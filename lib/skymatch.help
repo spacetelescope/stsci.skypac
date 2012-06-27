@@ -1,0 +1,9 @@
+********************************
+    HELPFILE for skymatch
+********************************
+
+Match sky in overlapping exposures.
+
+Input(s)
+========
+FLT image(s) with to match.

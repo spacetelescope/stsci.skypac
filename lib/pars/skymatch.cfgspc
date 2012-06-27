@@ -1,0 +1,4 @@
+_task_name_ = string_kw(default="skymatch")
+input = string_kw(default="", comment="Input FLT FITS image name")
+skyfunc = string_kw(default=None, comment="Custom sky function")
+[ _RULES_ ]
