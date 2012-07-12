@@ -1,25 +1,17 @@
-"""
-Sky matching module.
-
-:Author: Pey Lian Lim
-
-:Organization: Space Telescope Science Institute
-
-:History:
-    * 2012-06-27 PLL started this module.
-
-"""
+"""Sky matching module."""
 from __future__ import division, print_function
 
 # STDLIB
+from datetime import datetime
 from inspect import isfunction
+from collections import defaultdict
 
 # THIRD PARTY
 import numpy
 import pyfits
+from sphere.skyline import SkyLine
 from stsci.tools import parseinput
 from stsci.imagestats import ImageStats
-from sphere.skyline import SkyLine
 
 try:
     from stsci.tools import teal
@@ -29,9 +21,15 @@ except ImportError:
 __all__ = ['skymatch']
 __taskname__ = 'skymatch'
 __version__ = '0.1b'
-__vdate__ = '27-Jun-2012'
+__vdate__ = '12-Jul-2012'
 
-def skymatch(input, skyfunc=None):
+# Function to use for sky calculations
+SKYFUNC = computeSky
+
+# Track SKYUSER assignments to reduce FITS header I/O
+SKYUSER = defaultdict(float)
+
+def skymatch(input, skyfunc=None, verbose=True):
     """
     Standalone task to match sky in overlapping exposures.
     
@@ -77,10 +75,10 @@ def skymatch(input, skyfunc=None):
             * an at-file ('@input')
 
     skyfunc : function
-        Function for sky calculation. Function can have only
-        one argument that is the PyFITS pointer to a FITS
-        extension (see Examples). If `None`, `computeSky`
-        will be used.
+        Function for sky calculation. See `computeSky`.
+
+    verbose : bool
+        Print info to screen.
 
     Examples
     --------
@@ -108,30 +106,26 @@ def skymatch(input, skyfunc=None):
            >>> teal.teal('skymatch')
 
     """
+    # Time it
+    if verbose:
+        runtime_begin = datetime.now()
+        print('***** SKYMATCH started on {}'.format(runtime_begin))
+
     # Parse input to get list of filenames to process
     infiles, output = parseinput.parseinput(input)
-    assert len(infiles) > 1, '%s: Need at least 2 images. Aborting.' % __taskname__
-
-# need to put this into separate func to test skyfunc. no test if skyfunc is None. then skyfunc=computeSky
+    assert len(infiles) > 1, '%s: Need at least 2 images. Aborting...' % __taskname__
 
     # Check sky function
-    assert isfunction(skyfunc), '%s: skyfunc is not a function' % __taskname__
-
-    pf = pyfits.open(infiles[0])
-    try:
-        sky = skyfunc(pf['SCI',1])
-    except Exception as err:
-        print('%s: skyfunc failed. Aborting.' % __taskname__)
-        raise
-    finally:
-        pf.close()
-
-    assert isinstance(sky, (int, long, float)), '%s: skyfunc does not return a number. Aborting.' % __taskname__
+    _pick_skyfunc(skyfunc, infiles[0])
+    if verbose:
+        print('    Using sky function {}'.format(SKYFUNC))
 
     # Extract skylines
     skylines = []
     for file in infiles:
         skylines.append( SkyLine(file) )
+
+    remaining = list(skylines)
 
     #---------------------------------------------------------#
     # 1. Finding the two exposures with the greatest overlap, #
@@ -148,19 +142,20 @@ def skymatch(input, skyfunc=None):
     #---------------------------------------------------------#
 
     s1, s2 = starting_pair
-    intersect = s1.find_intersection(s2)
 
-    #wcs = intersect.to_wcs() --> so something with this? see Astrodrizzle?
-    # how to extract image.data of overlapping region?
-    
-    #sky1 = skyfunc(intersect_s1)
-    #sky2 = skyfunc(intersect_s2)
+    remaining.remove(s1)
+    remaining.remove(s2)
+
+    if verbose:
+        print('    Starting pair: {}, {}'.format(s1._rough_id(),
+                                                 s2._rough_id()))
 
     #---------------------------------------------------------#
     # 3. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    #sky_diff = numpy.abs(sky1 - sky2)
+    sky1, sky2 = _calc_sky(s1, s2)
+    diff_sky = numpy.abs(sky1 - sky2)
 
     #---------------------------------------------------------#
     # 4. Record that difference in the header of the exposure #
@@ -168,8 +163,17 @@ def skymatch(input, skyfunc=None):
     #    the SCI headers.                                     #
     #---------------------------------------------------------#
 
-    # need to open pyfits with mode='update'
-    # pyfits.header.update('SKYUSER', sky_diff)
+    if sky1 > sky2:
+        skyline2update = s1
+    else:
+        skyline2update = s2
+
+    _set_skyuser(skyline2update, diff_sky)
+
+    if verbose:
+        print('    {}'.format(skyline2update._rough_id()))
+        print('        SKYUSER = {:%E} (abs({:%E} - {:%E}))'.format(
+            diff_sky, sky1, sky2))
 
     #---------------------------------------------------------#
     # 5. Generate a footprint for that pair of exposures.     #
@@ -185,34 +189,207 @@ def skymatch(input, skyfunc=None):
     #    recompute its sky value).                            #
     #---------------------------------------------------------#
 
-    #see SkyLine.mosaic()
+    while len(remaining) > 0:
+        next_skyline, i_area = mosaic.find_max_overlap(remaining)
 
-#The computation of the sky can be done using the same basic algorithm already used by AstroDrizzle; namely, the minimum value of the clipped modes from all chips in the exposure. We should be able to expand the task later to use additional methods for computing the sky values.
+        if next_skyline is None:
+            if verbose:
+                for r in remaining:
+                    print('    No overlap: Excluding {}'.format(r._rough_id()))
+            break
 
-#These images could then be combined using AstroDrizzle with the 'skyuser' parameter set to 'SKYUSER' to generate a mosaic with a uniform background or even called from within AstroDrizzle to replace the current sky subtraction algorithm.  This task should be callable interactively from Python (naturally), but also eventually have a TEAL interface as well.
-   
+        sky1, sky2 = _calc_sky(mosaic, next_skyline)
+        diff_sky = sky2 - sky1
 
-def computeSky(image, **kwargs):
+        _set_skyuser(next_skyline, diff_sky)
+
+        if verbose:
+            print('    {}'.format(next_skyline._rough_id()))
+            print('        SKYUSER = {:%E} ({:%E} - {:%E})'.format(
+                diff_sky, sky2, sky1))
+
+        new_mos = mosaic.add_image(next_skyline)
+        mosaic = new_mos
+        remaining.remove(next_skyline)
+
+        if verbose:
+            print('    Added {} to mosaic'.format(next_skyline._rough_id()))
+
+    # Time it
+    if verbose:
+        runtime_end = datetime.now()
+        print('    TOTAL RUN TIME: {}'.format(runtime_end - runtime_begin))
+        print('***** SKYMATCH ended on {}'.format(runtime_end))
+
+
+def computeSky(data, **kwargs):
     """
     Return clipped mode of data as sky.
 
-    This is modeled after `drizzlepac.sky._computeSky`.
-
     Parameters
     ----------
-    image : `pyfits` pointer to data extension
+    data : array_like
 
     **kwargs : `ImageStats` keywords
 
     Returns
     -------
-    sky : float
-        Sky value in image data unit.
+    Sky value in image data unit.
+
+    See Also
+    --------
+    stsci_python/trunk/drizzlepac/lib/drizzlepac/sky.py
+    
+    """
+    return ImageStats(data, **kwargs).mode
+
+def _pick_skyfunc(f, im):
+    """Use `computeSky` unless a valid function is provided."""
+    global SKYFUNC
+    
+    if f is None:
+        return
+
+    with pyfits.open(im) as pf:
+        try:
+            sky = f(pf['SCI',1])
+        except Exception:
+            print('%s: skyfunc failed. Using default.' % __taskname__)
+            return
+
+    if not isinstance(sky, (int, long, float)):
+        print('%s: skyfunc does not return a number. Using default.' %
+              __taskname__)
+        return
+
+    SKYFUNC = f
+
+def _overlap_xy(wcs, ra, dec):
+    """
+    Find pixel coordinates of original image for a
+    given HSTWCS that fall within polygon bound by
+    given RA and DEC.
+
+    For simplicity, RA and DEC are only used to
+    determine min/max rows and columns. So pixels
+    returned are within the minimum bounding box on
+    the image of the polygon, not the actual polygon.
+    If RA and DEC fall outside the image, X and Y are
+    clipped to image edges.
+
+    .. note:: A more accurate but slower algorithm
+        could be implemented in the future to return
+        pixels belonging to the exact polygon.
+
+    Parameters
+    ----------
+    wcs : HSTWCS object
+        WCS of the science extension from which to
+        extract coordinates.
+
+    ra, dec : array_like
+        RA and DEC of the polygon.
+
+    Returns
+    -------
+    idx : Numpy indices
+        Indices of pixel coordinates in Python format.
+    
+    """   
+    x, y = wcs.all_sky2pix(ra, dec, 0)
+
+    bound_x = numpy.clip(x, 0, wcs.naxis1 - 1)
+    bound_y = numpy.clip(y, 0, wcs.naxis2 - 1)
+
+    min_x, max_x = bound_x.min(), bound_x.max()
+    min_y, max_y = bound_y.min(), bound_y.max()
+
+    return numpy.where((x >= min_x) && (x <= max_x) &&
+                       (y >= min_y) &&(y <= max_y))
+
+def _weighted_sky(skyline, ra, dec):
+    """
+    Calculate the average sky weighted by the number of
+    overlapped pixels with a polygon defined by the
+    given RA and DEC from individual chips in a given
+    skyline.
+
+    If skyline is already assigned a SKYUSER value, this
+    value is subtracted in the calculations.
+
+    Parameters
+    ----------
+    skyline : `SkyLine` object
+
+    ra, dec : array_like
+        RA and DEC of the polygon.
 
     """
-    # https://www.stsci.edu/trac/ssb/stsci_python/browser/stsci_python/trunk/drizzlepac/lib/drizzlepac/sky.py
-    sky = ImageStats(image.data, **kwargs).mode
-    return sky
+    w_sky = 0.0
+    w_tot = 0.0
+    
+    for wcs in skyline._indv_mem_wcslist():
+        idx = _overlap_xy(wcs, ra, dec)
+        npix = len(idx[0])
+        
+        with pyfits.open(wcs.filename) as pf:
+            sky = SKYFUNC(pf[wcs.extname].data[idx]) - SKYUSER[wcs.filename]
+
+        w_sky += npix * sky
+        w_tot += npix
+
+    if w_tot == 0:
+        raise ValueError('_weighted_sky has invalid weight for '
+                         '({}, {}, {})'.format(skyline, ra, dec))
+    else:
+        return w_sky / w_tot
+
+def _calc_sky(s1, s2):
+    """
+    Calculate weighted sky values and their difference in
+    overlapping regions of given skylines.
+
+    Parameters
+    ----------
+    s1, s2 : `SkyLine` objects
+
+    Returns
+    -------
+    sky1, sky2 : float
+        Weighted sky values for `s1` and `s2`.
+    
+    """
+    intersect = s1.find_intersection(s2)
+    intersect_ra, intersect_dec = intersect.to_radec()
+
+    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec)
+    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec)
+
+    return sky1, sky2
+
+def _set_skyuser(skyline, value):
+    """
+    Set SKYUSER in image SCI headers and global dictionary.
+
+    Parameters
+    ----------
+    skyline : `SkyLine` object
+        Skyline of the image to update. Does not work if
+        skyline is a product of union or intersection.
+
+    value : float
+        SKYUSER value for the image. It is the same for
+        all extensions.
+
+    """
+    global SKYUSER
+    im_name = skyline._rough_id()
+    
+    with pyfits.open(im_name, mode='update') as pf:
+        for ext in skyline.members[0].ext:
+            pf[ext].header.update('SKYUSER', value)
+
+    SKYUSER[im_name] = value
 
 
 #--------------------------
