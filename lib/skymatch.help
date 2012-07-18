@@ -4,6 +4,17 @@
 
 Match sky in overlapping exposures.
 
-Input(s)
-========
-FLT image(s) with to match.
+Inputs
+======
+
+input
+    FLT image(s) with to match.
+
+skyfunc
+    Function to use for sky matching.
+    
+    mode
+        Clipped mode of the overlapping region.
+
+verbose
+    Print info to screen.

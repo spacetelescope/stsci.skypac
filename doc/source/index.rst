@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    skymatch
+   computeSky
 
 Indices and tables
 ==================

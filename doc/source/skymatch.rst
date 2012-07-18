@@ -1,8 +1,8 @@
-********
-skymatch
-********
+******************************
+Sky matching for image mosaic.
+******************************
 
-.. currentmodule:: skymatch
+.. currentmodule:: skymatch.skymatch
 
-.. automodule:: skymatch
+.. automodule:: skymatch.skymatch
    :members:

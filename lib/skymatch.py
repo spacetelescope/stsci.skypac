@@ -3,7 +3,6 @@ from __future__ import division, print_function
 
 # STDLIB
 from datetime import datetime
-from inspect import isfunction
 from collections import defaultdict
 
 # THIRD PARTY
@@ -11,25 +10,30 @@ import numpy
 import pyfits
 from sphere.skyline import SkyLine
 from stsci.tools import parseinput
-from stsci.imagestats import ImageStats
 
 try:
     from stsci.tools import teal
 except ImportError:
     teal = None
 
-__all__ = ['skymatch']
+# LOCAL
+from . import computeSky
+
+__all__ = ['match']
 __taskname__ = 'skymatch'
 __version__ = '0.1b'
-__vdate__ = '12-Jul-2012'
+__vdate__ = '18-Jul-2012'
+
+# DEBUG
+SKYMATCH_DEBUG = True
 
 # Function to use for sky calculations
-SKYFUNC = computeSky
+SKYFUNC = computeSky.mode
 
 # Track SKYUSER assignments to reduce FITS header I/O
 SKYUSER = defaultdict(float)
 
-def skymatch(input, skyfunc=None, verbose=True):
+def match(input, skyfunc='mode', verbose=True):
     """
     Standalone task to match sky in overlapping exposures.
     
@@ -62,6 +66,9 @@ def skymatch(input, skyfunc=None, verbose=True):
     can be called from within AstroDrizzle to replace the
     current sky subtraction algorithm.
 
+    .. warning:: Image headers are modified. Remember to back
+        up original copies as desired.
+
     Parameters
     ----------
     input : str or list of str
@@ -74,8 +81,9 @@ def skymatch(input, skyfunc=None, verbose=True):
             * filename of an ASN table ('j12345670_asn.fits')
             * an at-file ('@input')
 
-    skyfunc : function
-        Function for sky calculation. See `computeSky`.
+    skyfunc : {'mode'}
+        Function for sky calculation.
+        See `~skymatch.computeSky`.
 
     verbose : bool
         Print info to screen.
@@ -86,39 +94,36 @@ def skymatch(input, skyfunc=None, verbose=True):
        images simply with:
    
            >>> from skymatch import skymatch
-           >>> skymatch('j*q_flt.fits')
+           >>> skymatch.match('j*q_flt.fits')
 
-    #. One could provide a custom function for sky
-       calculation:
+    #. The TEAL GUI can be used to run this task using::
 
-           >>> def simple_mean(image):
-           >>>     return image.data.mean()
-           >>>
-           >>> skymatch('j*q_flt.fits', skyfunc=simple_mean)
-
-    #. The TEAL GUI can be used to run this task using:
-
-           >>> epar skymatch
+           --> import skymatch
+           --> epar skymatch.skymatch
 
        or from a general Python command line:
 
+           >>> import skymatch
            >>> from stsci.tools import teal
-           >>> teal.teal('skymatch')
+           >>> teal.teal('skymatch.skymatch')
 
     """
     # Time it
     if verbose:
         runtime_begin = datetime.now()
         print('***** SKYMATCH started on {}'.format(runtime_begin))
+        print('Version {} ({})'.format(__version__, __vdate__))
 
     # Parse input to get list of filenames to process
     infiles, output = parseinput.parseinput(input)
-    assert len(infiles) > 1, '%s: Need at least 2 images. Aborting...' % __taskname__
+    assert len(infiles) > 1, \
+           '%s: Need at least 2 images. Aborting...' % __taskname__
 
     # Check sky function
     _pick_skyfunc(skyfunc, infiles[0])
     if verbose:
         print('    Using sky function {}'.format(SKYFUNC))
+        print()
 
     # Extract skylines
     skylines = []
@@ -134,7 +139,8 @@ def skymatch(input, skyfunc=None, verbose=True):
     #---------------------------------------------------------#
     
     starting_pair = SkyLine.max_overlap_pair(skylines)
-    assert starting_pair is not None, '%s: No overlapping pair. Aborting.' % __taskname__
+    assert starting_pair is not None, \
+           '%s: No overlapping pair. Aborting.' % __taskname__
 
     #---------------------------------------------------------#
     # 2. Compute the sky for both exposures, ideally this     #
@@ -171,9 +177,13 @@ def skymatch(input, skyfunc=None, verbose=True):
     _set_skyuser(skyline2update, diff_sky)
 
     if verbose:
-        print('    {}'.format(skyline2update._rough_id()))
-        print('        SKYUSER = {:%E} (abs({:%E} - {:%E}))'.format(
-            diff_sky, sky1, sky2))
+        print('    Image 1: {}'.format(s1._rough_id()))
+        print('        SKY = {:E}'.format(sky1))
+        print('    Image 2: {}'.format(s2._rough_id()))
+        print('        SKY = {:E}'.format(sky2))
+        print('    Updating {}'.format(skyline2update._rough_id()))
+        print('        SKYUSER = {:E}'.format(diff_sky))
+        print()
 
     #---------------------------------------------------------#
     # 5. Generate a footprint for that pair of exposures.     #
@@ -204,16 +214,26 @@ def skymatch(input, skyfunc=None, verbose=True):
         _set_skyuser(next_skyline, diff_sky)
 
         if verbose:
-            print('    {}'.format(next_skyline._rough_id()))
-            print('        SKYUSER = {:%E} ({:%E} - {:%E})'.format(
-                diff_sky, sky2, sky1))
+            print('    Mosaic')
+            print('        SKY = {:E}'.format(sky1))
+            print('    Updating {}'.format(next_skyline._rough_id()))
+            print('        SKY = {:E}'.format(sky2))
+            print('        SKYUSER = {:E}'.format(diff_sky))
 
-        new_mos = mosaic.add_image(next_skyline)
-        mosaic = new_mos
-        remaining.remove(next_skyline)
-
-        if verbose:
-            print('    Added {} to mosaic'.format(next_skyline._rough_id()))
+        try:
+            new_mos = mosaic.add_image(next_skyline)
+        except (ValueError, AssertionError):
+            if SKYMATCH_DEBUG:
+                print('WARNING: Cannot add {} to mosaic.'.format(next_skyline._rough_id()))
+            else:
+                raise
+        else:
+            mosaic = new_mos
+            if verbose:
+                print('        Added to mosaic')
+        finally:
+            remaining.remove(next_skyline)
+            print()
 
     # Time it
     if verbose:
@@ -222,47 +242,28 @@ def skymatch(input, skyfunc=None, verbose=True):
         print('***** SKYMATCH ended on {}'.format(runtime_end))
 
 
-def computeSky(data, **kwargs):
+def _pick_skyfunc(choice, im):
     """
-    Return clipped mode of data as sky.
+    *FUTURE WORK*
+    
+    Use default unless a valid choice is provided.
 
-    Parameters
-    ----------
-    data : array_like
+    """
+    #global SKYFUNC
+    #if choice == 'new_choice':
+    #    SKYFUNC = some_function
+    pass
 
-    **kwargs : `ImageStats` keywords
-
-    Returns
-    -------
-    Sky value in image data unit.
-
-    See Also
-    --------
-    stsci_python/trunk/drizzlepac/lib/drizzlepac/sky.py
+def _get_min_max(arr, in_min, in_max):
+    """
+    Return minimum and maximum of given array bound by
+    [min, max]. Values are rounded to the closest
+    integer for index look-up.
     
     """
-    return ImageStats(data, **kwargs).mode
-
-def _pick_skyfunc(f, im):
-    """Use `computeSky` unless a valid function is provided."""
-    global SKYFUNC
-    
-    if f is None:
-        return
-
-    with pyfits.open(im) as pf:
-        try:
-            sky = f(pf['SCI',1])
-        except Exception:
-            print('%s: skyfunc failed. Using default.' % __taskname__)
-            return
-
-    if not isinstance(sky, (int, long, float)):
-        print('%s: skyfunc does not return a number. Using default.' %
-              __taskname__)
-        return
-
-    SKYFUNC = f
+    out_min = int(round(max([arr.min(), in_min])))
+    out_max = int(round(min([arr.max(), in_max])))
+    return out_min, out_max
 
 def _overlap_xy(wcs, ra, dec):
     """
@@ -271,9 +272,9 @@ def _overlap_xy(wcs, ra, dec):
     given RA and DEC.
 
     For simplicity, RA and DEC are only used to
-    determine min/max rows and columns. So pixels
-    returned are within the minimum bounding box on
-    the image of the polygon, not the actual polygon.
+    determine min/max rows and columns. So limits
+    returned are the minimum bounding box on the
+    image of the polygon, not the actual polygon.
     If RA and DEC fall outside the image, X and Y are
     clipped to image edges.
 
@@ -292,20 +293,20 @@ def _overlap_xy(wcs, ra, dec):
 
     Returns
     -------
-    idx : Numpy indices
-        Indices of pixel coordinates in Python format.
+    min_x, max_x : int
+        X limits, rounded to nearest integer, in Python
+        format. Minimum is inclusive, maximum is exclusive.
+
+    min_y, max_y : int
+        Similar limits for Y.
     
-    """   
+    """
     x, y = wcs.all_sky2pix(ra, dec, 0)
 
-    bound_x = numpy.clip(x, 0, wcs.naxis1 - 1)
-    bound_y = numpy.clip(y, 0, wcs.naxis2 - 1)
+    min_x, max_x = _get_min_max(x, 0, wcs.naxis1 - 1)
+    min_y, max_y = _get_min_max(y, 0, wcs.naxis2 - 1)
 
-    min_x, max_x = bound_x.min(), bound_x.max()
-    min_y, max_y = bound_y.min(), bound_y.max()
-
-    return numpy.where((x >= min_x) && (x <= max_x) &&
-                       (y >= min_y) &&(y <= max_y))
+    return min_x, max_x+1, min_y, max_y+1
 
 def _weighted_sky(skyline, ra, dec):
     """
@@ -329,14 +330,15 @@ def _weighted_sky(skyline, ra, dec):
     w_tot = 0.0
     
     for wcs in skyline._indv_mem_wcslist():
-        idx = _overlap_xy(wcs, ra, dec)
-        npix = len(idx[0])
-        
+        min_x, max_x, min_y, max_y = _overlap_xy(wcs, ra, dec)
+ 
         with pyfits.open(wcs.filename) as pf:
-            sky = SKYFUNC(pf[wcs.extname].data[idx]) - SKYUSER[wcs.filename]
+            dat = pf[wcs.extname].data[min_y:max_y, min_x:max_x]
+            sky = SKYFUNC(dat - SKYUSER[wcs.filename])
 
-        w_sky += npix * sky
-        w_tot += npix
+            npix = dat.size
+            w_sky += npix * sky
+            w_tot += npix
 
     if w_tot == 0:
         raise ValueError('_weighted_sky has invalid weight for '
@@ -389,6 +391,9 @@ def _set_skyuser(skyline, value):
         for ext in skyline.members[0].ext:
             pf[ext].header.update('SKYUSER', value)
 
+        pf['PRIMARY'].header.add_history('SKYUSER by {} {} ({})'.format(
+            __taskname__, __version__, __vdate__))
+
     SKYUSER[im_name] = value
 
 
@@ -396,14 +401,16 @@ def _set_skyuser(skyline, value):
 # TEAL Interface functions
 #--------------------------
 def run(configObj):
-    skymatch(configObj['input'])
+    match(configObj['input'], skyfunc=configObj['skyfunc'],
+          verbose=configObj['verbose'])
 
-def getHelpAsString():
+def getHelpAsString():   
     helpString = ''
+
     if teal:
         helpString += teal.getHelpFileAsString(__taskname__,__file__)
 
     if helpString.strip() == '':
-        helpString += __doc__ + '\n' + skymatch.__doc__
+        helpString += __doc__ + '\n' + match.__doc__
 
     return helpString
