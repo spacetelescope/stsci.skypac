@@ -2,6 +2,8 @@
 from __future__ import division, print_function
 
 # STDLIB
+import os
+import sys
 from datetime import datetime
 from collections import defaultdict
 
@@ -21,19 +23,20 @@ from . import computeSky
 
 __all__ = ['match']
 __taskname__ = 'skymatch'
-__version__ = '0.1b'
-__vdate__ = '18-Jul-2012'
+__version__ = '0.2b'
+__vdate__ = '23-Jul-2012'
 
-# DEBUG
+# DEBUG - Can remove this when sphere is stable
 SKYMATCH_DEBUG = True
 
 # Function to use for sky calculations
 SKYFUNC = computeSky.mode
+SKY_NCLIP = 0
 
 # Track SKYUSER assignments to reduce FITS header I/O
 SKYUSER = defaultdict(float)
 
-def match(input, skyfunc='mode', verbose=True):
+def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
     """
     Standalone task to match sky in overlapping exposures.
     
@@ -81,12 +84,16 @@ def match(input, skyfunc='mode', verbose=True):
             * filename of an ASN table ('j12345670_asn.fits')
             * an at-file ('@input')
 
-    skyfunc : {'mode'}
+    skyfunc : {'mean', 'median', 'mode'}
         Function for sky calculation.
         See `~skymatch.computeSky`.
 
-    verbose : bool
-        Print info to screen.
+    nclip : int
+        Number of clipping iterations for `skyfunc`.
+
+    logfile : str
+        Store execution log in this file. Always append.
+        If not given, print to screen instead.
 
     Examples
     --------
@@ -108,22 +115,33 @@ def match(input, skyfunc='mode', verbose=True):
            >>> teal.teal('skymatch.skymatch')
 
     """
+    global SKY_NCLIP
+
+    # For logging
+    if logfile in ('', None):
+        flog = sys.stdout          # print to screen
+    else:
+        flog = open(logfile, 'a')  # always append
+
     # Time it
-    if verbose:
-        runtime_begin = datetime.now()
-        print('***** SKYMATCH started on {}'.format(runtime_begin))
-        print('Version {} ({})'.format(__version__, __vdate__))
+    runtime_begin = datetime.now()
+    flog.write('***** SKYMATCH started on {0}{3}'
+               'Version {1} ({2}){3}'.format(
+        runtime_begin, __version__, __vdate__, os.linesep))
 
     # Parse input to get list of filenames to process
     infiles, output = parseinput.parseinput(input)
-    assert len(infiles) > 1, \
-           '%s: Need at least 2 images. Aborting...' % __taskname__
+    if len(infiles) < 2:
+        _print_and_close('{}: Need at least 2 images. Aborting...'.format(
+            __taskname__), flog)
+        return
 
     # Check sky function
-    _pick_skyfunc(skyfunc, infiles[0])
-    if verbose:
-        print('    Using sky function {}'.format(SKYFUNC))
-        print()
+    _pick_skyfunc(skyfunc)
+    SKY_NCLIP = nclip
+    flog.write('    Using sky function {0} in {1}{3}'
+               '    NCLIP = {2}{3}{3}'.format(
+        SKYFUNC.__name__, SKYFUNC.__module__, SKY_NCLIP, os.linesep))
 
     # Extract skylines
     skylines = []
@@ -139,8 +157,10 @@ def match(input, skyfunc='mode', verbose=True):
     #---------------------------------------------------------#
     
     starting_pair = SkyLine.max_overlap_pair(skylines)
-    assert starting_pair is not None, \
-           '%s: No overlapping pair. Aborting.' % __taskname__
+    if starting_pair is None:
+        _print_and_close('{}: No overlapping pair. Aborting...'.format(
+            __taskname__), flog)
+        return
 
     #---------------------------------------------------------#
     # 2. Compute the sky for both exposures, ideally this     #
@@ -152,9 +172,8 @@ def match(input, skyfunc='mode', verbose=True):
     remaining.remove(s1)
     remaining.remove(s2)
 
-    if verbose:
-        print('    Starting pair: {}, {}'.format(s1._rough_id(),
-                                                 s2._rough_id()))
+    flog.write('    Starting pair: {}, {}{}'.format(
+        s1._rough_id(), s2._rough_id(), os.linesep))
 
     #---------------------------------------------------------#
     # 3. Compute the difference in the sky values.            #
@@ -171,19 +190,19 @@ def match(input, skyfunc='mode', verbose=True):
 
     if sky1 > sky2:
         skyline2update = s1
+        skyline2zero = s2
     else:
         skyline2update = s2
+        skyline2zero = s1
 
     _set_skyuser(skyline2update, diff_sky)
+    _set_skyuser(skyline2zero, 0.0)  # Avoid Astrodrizzle crash
 
-    if verbose:
-        print('    Image 1: {}'.format(s1._rough_id()))
-        print('        SKY = {:E}'.format(sky1))
-        print('    Image 2: {}'.format(s2._rough_id()))
-        print('        SKY = {:E}'.format(sky2))
-        print('    Updating {}'.format(skyline2update._rough_id()))
-        print('        SKYUSER = {:E}'.format(diff_sky))
-        print()
+    flog.write('    Image 1: {0}{6}        SKY = {1:E}{6}'
+               '    Image 2: {2}{6}        SKY = {3:E}{6}'
+               '    Updating {4}{6}        SKYUSER = {5:E}{6}{6}'.format(
+        s1._rough_id(), sky1, s2._rough_id(), sky2,
+        skyline2update._rough_id(), diff_sky, os.linesep))
 
     #---------------------------------------------------------#
     # 5. Generate a footprint for that pair of exposures.     #
@@ -203,9 +222,9 @@ def match(input, skyfunc='mode', verbose=True):
         next_skyline, i_area = mosaic.find_max_overlap(remaining)
 
         if next_skyline is None:
-            if verbose:
-                for r in remaining:
-                    print('    No overlap: Excluding {}'.format(r._rough_id()))
+            for r in remaining:
+                flog.write('    No overlap: Excluding {}{}'.format(
+                    r._rough_id(), os.linesep))
             break
 
         sky1, sky2 = _calc_sky(mosaic, next_skyline)
@@ -213,46 +232,55 @@ def match(input, skyfunc='mode', verbose=True):
 
         _set_skyuser(next_skyline, diff_sky)
 
-        if verbose:
-            print('    Mosaic')
-            print('        SKY = {:E}'.format(sky1))
-            print('    Updating {}'.format(next_skyline._rough_id()))
-            print('        SKY = {:E}'.format(sky2))
-            print('        SKYUSER = {:E}'.format(diff_sky))
+        flog.write('    Mosaic{4}        SKY = {0:E}{4}'
+                   '    Updating {1}{4}        SKY = {2:E}{4}'
+                   '        SKYUSER = {3:E}{4}'.format(
+            sky1, next_skyline._rough_id(), sky2, diff_sky, os.linesep))
 
         try:
             new_mos = mosaic.add_image(next_skyline)
         except (ValueError, AssertionError):
             if SKYMATCH_DEBUG:
-                print('WARNING: Cannot add {} to mosaic.'.format(next_skyline._rough_id()))
+                flog.write('WARNING: Cannot add {} to mosaic.{}'.format(next_skyline._rough_id(), os.linesep))
             else:
                 raise
         else:
             mosaic = new_mos
-            if verbose:
-                print('        Added to mosaic')
+            flog.write('        Added to mosaic{}'.format(os.linesep))
         finally:
             remaining.remove(next_skyline)
-            print()
+            flog.write(os.linesep)
 
     # Time it
-    if verbose:
-        runtime_end = datetime.now()
-        print('    TOTAL RUN TIME: {}'.format(runtime_end - runtime_begin))
-        print('***** SKYMATCH ended on {}'.format(runtime_end))
+    runtime_end = datetime.now()
+    flog.write('***** SKYMATCH ended on {}{}'.format(runtime_end, os.linesep))
+    _print_and_close('TOTAL RUN TIME: {}'.format(
+        runtime_end - runtime_begin), flog)
 
 
-def _pick_skyfunc(choice, im):
-    """
-    *FUTURE WORK*
-    
+def _print_and_close(emsg, flog):
+    """Print error message and close log file."""
+    flog.write(emsg + os.linesep)
+    if flog is not sys.stdout:
+        print(emsg)
+        print('{} written'.format(flog.name))
+        flog.close()
+
+def _pick_skyfunc(choice):
+    """   
     Use default unless a valid choice is provided.
 
+    Parameters
+    ----------
+    choice : see `match.skyfunc`
+
     """
-    #global SKYFUNC
-    #if choice == 'new_choice':
-    #    SKYFUNC = some_function
-    pass
+    global SKYFUNC
+    if choice == 'mean':
+        SKYFUNC = computeSky.mean
+    elif choice == 'median':
+        SKYFUNC = computeSky.median
+    # else mode is default
 
 def _get_min_max(arr, in_min, in_max):
     """
@@ -334,7 +362,7 @@ def _weighted_sky(skyline, ra, dec):
  
         with pyfits.open(wcs.filename) as pf:
             dat = pf[wcs.extname].data[min_y:max_y, min_x:max_x]
-            sky = SKYFUNC(dat - SKYUSER[wcs.filename])
+            sky = SKYFUNC(dat - SKYUSER[wcs.filename], nclip=SKY_NCLIP)
 
             npix = dat.size
             w_sky += npix * sky
@@ -402,7 +430,7 @@ def _set_skyuser(skyline, value):
 #--------------------------
 def run(configObj):
     match(configObj['input'], skyfunc=configObj['skyfunc'],
-          verbose=configObj['verbose'])
+          nclip=configObj['nclip'], logfile=configObj['logfile'])
 
 def getHelpAsString():   
     helpString = ''

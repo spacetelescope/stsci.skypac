@@ -1,26 +1,22 @@
-"""Sky calculation functions for `~skymatch.skymatch.match`."""
+"""
+Sky calculation functions for `~skymatch.skymatch.match`.
 
+stsci_python/trunk/drizzlepac/lib/drizzlepac/sky.py
+
+"""
 # THIRD PARTY
 from stsci.imagestats import ImageStats
 
-__all__ = ['mode']
+__all__ = ['mean', 'median', 'mode']
 
-def mode(data, nclip=10):
-    """
-    Return clipped mode of data as sky.
+def mean(data, **kwargs):
+    """Return clipped mean of data as sky."""
+    return ImageStats(data, **kwargs).mean
 
-    stsci_python/trunk/drizzlepac/lib/drizzlepac/sky.py
+def median(data, **kwargs):
+    """Return clipped median of data as sky."""
+    return ImageStats(data, fields='midpt', **kwargs).midpt
 
-    Parameters
-    ----------
-    data : array_like
-
-    nclip : int
-        Number of clipping iterations.
-
-    Returns
-    -------
-    Sky value in image data unit.
-    
-    """
-    return ImageStats(data, fields='mode', nclip=nclip).mode
+def mode(data, **kwargs):
+    """Return clipped mode of data as sky."""
+    return ImageStats(data, fields='mode', **kwargs).mode

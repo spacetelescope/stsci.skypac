@@ -11,10 +11,15 @@ input
     FLT image(s) with to match.
 
 skyfunc
-    Function to use for sky matching.
+    Function for sky calculations.
     
-    mode
-        Clipped mode of the overlapping region.
+    mean   -- Clipped mean.
+    median -- Clipped median.
+    mode   -- Clipped mode.
 
-verbose
-    Print info to screen.
+nclip
+    Number of clipping iterations for sky calculations.
+
+logfile
+    Store log in this file.
+    If not given, will print to screen.

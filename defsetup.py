@@ -16,7 +16,7 @@ pkg =  "skymatch"
 #ext = [ distutils.core.Extension('', [], include_dirs = [pythoninc,numpyinc]) ]
 
 setupargs = {
-    'version' : "0.1b",
+    'version' : "0.2b",
     'description' : "Sky matching on image mosaic",
     'author' : "Pey Lian Lim",
     'author_email' : "help@stsci.edu",

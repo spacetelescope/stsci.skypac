@@ -14,7 +14,7 @@ if False :
         pass
 
 else :
-    __version__ = '0.1'
+    __version__ = '0.2'
 
 try:
     from skymatch.svninfo import (__svn_version__, __full_svn_info__,
