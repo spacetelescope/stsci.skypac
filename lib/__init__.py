@@ -16,7 +16,7 @@ if False :
 else :
     __version__ = '0.3'
 
-from . import skypac
+import skypac
 
 try:
     from skypac.svninfo import (__svn_version__, __full_svn_info__,

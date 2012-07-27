@@ -21,22 +21,37 @@ except ImportError:
 # LOCAL
 from . import computeSky
 
-__all__ = ['match']
+__all__ = ['match4teal', 'match']
 __taskname__ = 'skymatch'
 __version__ = '0.3b'
 __vdate__ = '27-Jul-2012'
 
 # DEBUG - Can remove this when sphere is stable
-SKYMATCH_DEBUG = True
+__local_debug__ = True
 
-# Function to use for sky calculations
-SKYFUNC = computeSky.mode
-SKY_NCLIP = 0
+def match4teal(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
+    """
+    Teal interface for `match` because Teal cannot take
+    output stream object.
 
-# Track SKYUSER assignments to reduce FITS header I/O
-SKYUSER = defaultdict(float)
+    Parameters
+    ----------
+    input, skyfunc, nclip : See `match`
 
-def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
+    logfile : str
+        Store execution log in this file. Always append.
+        If not given, print to screen instead.
+
+    """
+    # For logging
+    if logfile in ('', None):
+        flog = sys.stdout          # print to screen
+    else:
+        flog = open(logfile, 'a')  # always append
+
+    match(input, skyfunc, nclip, flog)
+
+def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
     """
     Standalone task to match sky in overlapping exposures.
     
@@ -91,9 +106,10 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
     nclip : int
         Number of clipping iterations for `skyfunc`.
 
-    logfile : str
-        Store execution log in this file. Always append.
-        If not given, print to screen instead.
+    flog : output stream
+        Can be file or stdout stream. This is designed such
+        that log can be written to existing output stream
+        from another Python program such as `astrodrizzle`.
 
     Examples
     --------
@@ -105,24 +121,16 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
 
     #. The TEAL GUI can be used to run this task using::
 
-           --> import skypac
-           --> epar skypac.skymatch
+           --> from skypac import skymatch
+           --> epar skymatch
 
        or from a general Python command line:
 
-           >>> import skypac
+           >>> from skypac import skymatch
            >>> from stsci.tools import teal
-           >>> teal.teal('skypac.skymatch')
+           >>> teal.teal('skymatch')
 
     """
-    global SKY_NCLIP
-
-    # For logging
-    if logfile in ('', None):
-        flog = sys.stdout          # print to screen
-    else:
-        flog = open(logfile, 'a')  # always append
-
     # Time it
     runtime_begin = datetime.now()
     flog.write('***** {0} started on {1}{4}'
@@ -137,11 +145,10 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
         return
 
     # Check sky function
-    _pick_skyfunc(skyfunc)
-    SKY_NCLIP = nclip
+    func2use = _pick_skyfunc(skyfunc)
     flog.write('    Using sky function {0} in {1}{3}'
                '    NCLIP = {2}{3}{3}'.format(
-        SKYFUNC.__name__, SKYFUNC.__module__, SKY_NCLIP, os.linesep))
+        func2use.__name__, func2use.__module__, nclip, os.linesep))
 
     # Extract skylines
     skylines = []
@@ -149,6 +156,9 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
         skylines.append( SkyLine(file) )
 
     remaining = list(skylines)
+
+    # Track SKYUSER assignments to reduce FITS header I/O
+    skyuser = defaultdict(float)
 
     #---------------------------------------------------------#
     # 1. Finding the two exposures with the greatest overlap, #
@@ -179,7 +189,7 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
     # 3. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    sky1, sky2 = _calc_sky(s1, s2)
+    sky1, sky2 = _calc_sky(s1, s2, func2use, nclip, skyuser)
     diff_sky = numpy.abs(sky1 - sky2)
 
     #---------------------------------------------------------#
@@ -195,8 +205,8 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
         skyline2update = s2
         skyline2zero = s1
 
-    _set_skyuser(skyline2update, diff_sky)
-    _set_skyuser(skyline2zero, 0.0)  # Avoid Astrodrizzle crash
+    _set_skyuser(skyuser, skyline2update, diff_sky)
+    _set_skyuser(skyuser, skyline2zero, 0.0)  # Avoid Astrodrizzle crash
 
     flog.write('    Image 1: {0}{6}        SKY = {1:E}{6}'
                '    Image 2: {2}{6}        SKY = {3:E}{6}'
@@ -227,10 +237,10 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
                     r._rough_id(), os.linesep))
             break
 
-        sky1, sky2 = _calc_sky(mosaic, next_skyline)
+        sky1, sky2 = _calc_sky(mosaic, next_skyline, func2use, nclip, skyuser)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(next_skyline, diff_sky)
+        _set_skyuser(skyuser, next_skyline, diff_sky)
 
         flog.write('    Mosaic{4}        SKY = {0:E}{4}'
                    '    Updating {1}{4}        SKY = {2:E}{4}'
@@ -240,7 +250,7 @@ def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
         try:
             new_mos = mosaic.add_image(next_skyline)
         except (ValueError, AssertionError):
-            if SKYMATCH_DEBUG:
+            if __local_debug__:
                 flog.write('WARNING: Cannot add {} to mosaic.{}'.format(next_skyline._rough_id(), os.linesep))
             else:
                 raise
@@ -275,13 +285,17 @@ def _pick_skyfunc(choice):
     ----------
     choice : see `match.skyfunc`
 
+    Returns
+    -------
+    Function to use for sky calculations.
+
     """
-    global SKYFUNC
     if choice == 'mean':
-        SKYFUNC = computeSky.mean
+        return computeSky.mean
     elif choice == 'median':
-        SKYFUNC = computeSky.median
-    # else mode is default
+        return computeSky.median
+    else:  # default
+        return computeSky.mode
 
 def _get_min_max(arr, in_min, in_max):
     """
@@ -337,7 +351,7 @@ def _overlap_xy(wcs, ra, dec):
 
     return min_x, max_x+1, min_y, max_y+1
 
-def _weighted_sky(skyline, ra, dec):
+def _weighted_sky(skyline, ra, dec, skyfunc, nclip, skyuser):
     """
     Calculate the average sky weighted by the number of
     overlapped pixels with a polygon defined by the
@@ -354,6 +368,15 @@ def _weighted_sky(skyline, ra, dec):
     ra, dec : array_like
         RA and DEC of the polygon.
 
+    skyfunc : function
+        Function for sky calculations.
+
+    nclip : int
+        Number of clipping iterations.
+
+    skyuser : defaultdict
+        SKYUSER dictionary for look-up.
+
     """
     w_sky = 0.0
     w_tot = 0.0
@@ -363,7 +386,7 @@ def _weighted_sky(skyline, ra, dec):
  
         with pyfits.open(wcs.filename) as pf:
             dat = pf[wcs.extname].data[min_y:max_y, min_x:max_x]
-            sky = SKYFUNC(dat - SKYUSER[wcs.filename], nclip=SKY_NCLIP)
+            sky = skyfunc(dat - skyuser[wcs.filename], nclip=nclip)
 
             npix = dat.size
             w_sky += npix * sky
@@ -371,11 +394,11 @@ def _weighted_sky(skyline, ra, dec):
 
     if w_tot == 0:
         raise ValueError('_weighted_sky has invalid weight for '
-                         '({}, {}, {})'.format(skyline, ra, dec))
+                         '({}, {}, {}, {})'.format(skyline, ra, dec, nclip))
     else:
         return w_sky / w_tot
 
-def _calc_sky(s1, s2):
+def _calc_sky(s1, s2, skyfunc, nclip, skyuser):
     """
     Calculate weighted sky values and their difference in
     overlapping regions of given skylines.
@@ -383,6 +406,15 @@ def _calc_sky(s1, s2):
     Parameters
     ----------
     s1, s2 : `SkyLine` objects
+
+    skyfunc : function
+        Function to use for sky calculations.
+
+    nclip : int
+        Number of clipping iterations.
+
+    skyuser : defaultdict
+        SKYUSER dictionary for look-up.
 
     Returns
     -------
@@ -393,17 +425,22 @@ def _calc_sky(s1, s2):
     intersect = s1.find_intersection(s2)
     intersect_ra, intersect_dec = intersect.to_radec()
 
-    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec)
-    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec)
+    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec,
+                         skyfunc, nclip, skyuser)
+    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec,
+                         skyfunc, nclip, skyuser)
 
     return sky1, sky2
 
-def _set_skyuser(skyline, value):
+def _set_skyuser(skyuser, skyline, value):
     """
     Set SKYUSER in image SCI headers and global dictionary.
 
     Parameters
     ----------
+    skyuser : defaultdict
+        SKYUSER dictionary to modify.
+    
     skyline : `SkyLine` object
         Skyline of the image to update. Does not work if
         skyline is a product of union or intersection.
@@ -413,24 +450,24 @@ def _set_skyuser(skyline, value):
         all extensions.
 
     """
-    global SKYUSER
+    hdr_keyword = 'SKYUSER'
     im_name = skyline._rough_id()
     
     with pyfits.open(im_name, mode='update') as pf:
         for ext in skyline.members[0].ext:
-            pf[ext].header.update('SKYUSER', value)
+            pf[ext].header.update(hdr_keyword, value)
 
-        pf['PRIMARY'].header.add_history('SKYUSER by {} {} ({})'.format(
-            __taskname__, __version__, __vdate__))
+        pf['PRIMARY'].header.add_history('{} by {} {} ({})'.format(
+            hdr_keyword, __taskname__, __version__, __vdate__))
 
-    SKYUSER[im_name] = value
+    skyuser[im_name] = value
 
 
 #--------------------------
 # TEAL Interface functions
 #--------------------------
 def run(configObj):
-    match(configObj['input'], skyfunc=configObj['skyfunc'],
+    match4teal(configObj['input'], skyfunc=configObj['skyfunc'],
           nclip=configObj['nclip'], logfile=configObj['logfile'])
 
 def getHelpAsString():   
@@ -440,6 +477,6 @@ def getHelpAsString():
         helpString += teal.getHelpFileAsString(__taskname__,__file__)
 
     if helpString.strip() == '':
-        helpString += __doc__ + '\n' + match.__doc__
+        helpString += __doc__ + '\n' + match4teal.__doc__
 
     return helpString

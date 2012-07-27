@@ -1,8 +1,8 @@
-***************************************
-Sky calculation functions for skymatch.
-***************************************
+*************************************
+Sky calculation functions for skypac.
+*************************************
 
-.. currentmodule:: skymatch.computeSky
+.. currentmodule:: skypac.computeSky
 
-.. automodule:: skymatch.computeSky
+.. automodule:: skypac.computeSky
    :members:

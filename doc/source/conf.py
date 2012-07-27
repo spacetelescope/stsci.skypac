@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# skymatch documentation build configuration file, created by
+# skypac documentation build configuration file, created by
 # sphinx-quickstart on Wed Jun 27 16:06:36 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'skymatch'
+project = u'skypac'
 copyright = u'2012, Pey Lian Lim'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -165,7 +165,7 @@ html_domain_indices = ['py-modindex']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'skymatchdoc'
+htmlhelp_basename = 'skypacdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -184,7 +184,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'skymatch.tex', u'skymatch Documentation',
+  ('index', 'skypac.tex', u'skypac Documentation',
    u'Pey Lian Lim', 'manual'),
 ]
 
@@ -214,7 +214,7 @@ latex_domain_indices = ['py-modindex']
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'skymatch', u'skymatch Documentation',
+    ('index', 'skypac', u'skypac Documentation',
      [u'Pey Lian Lim'], 1)
 ]
 
@@ -228,8 +228,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'skymatch', u'skymatch Documentation',
-   u'Pey Lian Lim', 'skymatch', 'One line description of project.',
+  ('index', 'skypac', u'skypac Documentation',
+   u'Pey Lian Lim', 'skypac', 'One line description of project.',
    'Miscellaneous'),
 ]
 
