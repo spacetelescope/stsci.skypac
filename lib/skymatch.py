@@ -23,8 +23,8 @@ from . import computeSky
 
 __all__ = ['match']
 __taskname__ = 'skymatch'
-__version__ = '0.2b'
-__vdate__ = '23-Jul-2012'
+__version__ = '0.3b'
+__vdate__ = '27-Jul-2012'
 
 # DEBUG - Can remove this when sphere is stable
 SKYMATCH_DEBUG = True
@@ -36,7 +36,7 @@ SKY_NCLIP = 0
 # Track SKYUSER assignments to reduce FITS header I/O
 SKYUSER = defaultdict(float)
 
-def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
+def match(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
     """
     Standalone task to match sky in overlapping exposures.
     
@@ -86,7 +86,7 @@ def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
 
     skyfunc : {'mean', 'median', 'mode'}
         Function for sky calculation.
-        See `~skymatch.computeSky`.
+        See `~skypac.computeSky`.
 
     nclip : int
         Number of clipping iterations for `skyfunc`.
@@ -100,19 +100,19 @@ def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
     #. This task can be used to match skies of a set of ACS
        images simply with:
    
-           >>> from skymatch import skymatch
+           >>> from skypac import skymatch
            >>> skymatch.match('j*q_flt.fits')
 
     #. The TEAL GUI can be used to run this task using::
 
-           --> import skymatch
-           --> epar skymatch.skymatch
+           --> import skypac
+           --> epar skypac.skymatch
 
        or from a general Python command line:
 
-           >>> import skymatch
+           >>> import skypac
            >>> from stsci.tools import teal
-           >>> teal.teal('skymatch.skymatch')
+           >>> teal.teal('skypac.skymatch')
 
     """
     global SKY_NCLIP
@@ -125,9 +125,9 @@ def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
 
     # Time it
     runtime_begin = datetime.now()
-    flog.write('***** SKYMATCH started on {0}{3}'
-               'Version {1} ({2}){3}'.format(
-        runtime_begin, __version__, __vdate__, os.linesep))
+    flog.write('***** {0} started on {1}{4}'
+               'Version {2} ({3}){4}'.format(
+        __taskname__, runtime_begin, __version__, __vdate__, os.linesep))
 
     # Parse input to get list of filenames to process
     infiles, output = parseinput.parseinput(input)
@@ -253,7 +253,8 @@ def match(input, skyfunc='mode', nclip=10, logfile='skymatch_log.txt'):
 
     # Time it
     runtime_end = datetime.now()
-    flog.write('***** SKYMATCH ended on {}{}'.format(runtime_end, os.linesep))
+    flog.write('***** {} ended on {}{}'.format(
+        __taskname__, runtime_end, os.linesep))
     _print_and_close('TOTAL RUN TIME: {}'.format(
         runtime_end - runtime_begin), flog)
 

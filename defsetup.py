@@ -11,7 +11,7 @@ from __future__ import division # confidence high
 #pythoninc = distutils.sysconfig.get_python_inc()
 #numpyinc = numpy.get_include()
 
-pkg =  "skymatch"
+pkg =  "skypac"
 
 #ext = [ distutils.core.Extension('', [], include_dirs = [pythoninc,numpyinc]) ]
 
@@ -27,5 +27,5 @@ setupargs = {
     'scripts' : [ ] ,
     'platforms' : ["Linux","Solaris","Mac OS X","Win"],
     'ext_modules' : [],
-    'package_dir' : { 'skymatch':'lib', },
+    'package_dir' : { 'skypac':'lib', },
 }

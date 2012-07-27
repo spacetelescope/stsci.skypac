@@ -2,7 +2,7 @@
 Sky matching for image mosaic.
 ******************************
 
-.. currentmodule:: skymatch.skymatch
+.. currentmodule:: skypac.skymatch
 
-.. automodule:: skymatch.skymatch
+.. automodule:: skypac.skymatch
    :members:
