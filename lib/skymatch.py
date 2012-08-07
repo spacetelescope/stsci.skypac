@@ -5,7 +5,6 @@ from __future__ import division, print_function
 import os
 import sys
 from datetime import datetime
-from collections import defaultdict
 
 # THIRD PARTY
 import numpy
@@ -24,7 +23,7 @@ from . import computeSky
 __all__ = ['match4teal', 'match']
 __taskname__ = 'skymatch'
 __version__ = '0.4b'
-__vdate__ = '06-Aug-2012'
+__vdate__ = '07-Aug-2012'
 
 # DEBUG - Can remove this when sphere is stable
 __local_debug__ = True
@@ -65,7 +64,7 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
         #. Compute the difference in the sky values.
         #. Record that difference in the header of the exposure
            with the highest sky value as the SKYUSER keyword
-           in the SCI headers.
+           in the SCI headers. Also subtract from SCI data.
         #. Generate a footprint for that pair of exposures.
         #. Repeat the above steps for all remaining exposures
            using the newly created combined footprint as one of
@@ -73,10 +72,10 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
            created footprint as one of the values (no need to
            recompute its sky value).
 
-    The computation of the sky is done using the same basic
-    algorithm in AstroDrizzle; namely, the minimum value of the
-    clipped modes from all chips in the exposure. Alternately,
-    user can provide custom function to compute the sky values.
+    The computation of the sky is done using the weighted mean
+    of the clipped modes from all chips in the exposure.
+    Alternately, user can use clipped mean or median to compute
+    the sky values.
 
     These images could then be combined using AstroDrizzle with
     the 'skyuser' parameter set to 'SKYUSER' to generate a
@@ -158,9 +157,6 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
 
     remaining = list(skylines)
 
-    # Track SKYUSER assignments to reduce FITS header I/O
-    skyuser = defaultdict(float)
-
     #---------------------------------------------------------#
     # 1. Finding the two exposures with the greatest overlap, #
     #    with each exposure defined by the combined footprint #
@@ -190,13 +186,13 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
     # 3. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    sky1, sky2 = _calc_sky(s1, s2, func2use, nclip, skyuser)
+    sky1, sky2 = _calc_sky(s1, s2, func2use, nclip)
     diff_sky = numpy.abs(sky1 - sky2)
 
     #---------------------------------------------------------#
     # 4. Record that difference in the header of the exposure #
     #    with the highest sky value as the SKYUSER keyword in #
-    #    the SCI headers.                                     #
+    #    the SCI headers. Also subtract from SCI data.        #
     #---------------------------------------------------------#
 
     if sky1 > sky2:
@@ -206,8 +202,8 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
         skyline2update = s2
         skyline2zero = s1
 
-    _set_skyuser(skyuser, skyline2update, diff_sky)
-    _set_skyuser(skyuser, skyline2zero, 0.0)  # Avoid Astrodrizzle crash
+    _set_skyuser(skyline2update, diff_sky)
+    _set_skyuser(skyline2zero, 0.0)  # Avoid Astrodrizzle crash
 
     flog.write('    Image 1: {0}{6}        SKY = {1:E}{6}'
                '    Image 2: {2}{6}        SKY = {3:E}{6}'
@@ -238,10 +234,10 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
                     r._rough_id(), os.linesep))
             break
 
-        sky1, sky2 = _calc_sky(mosaic, next_skyline, func2use, nclip, skyuser)
+        sky1, sky2 = _calc_sky(mosaic, next_skyline, func2use, nclip)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(skyuser, next_skyline, diff_sky)
+        _set_skyuser(next_skyline, diff_sky)
 
         flog.write('    Mosaic{4}        SKY = {0:E}{4}'
                    '    Updating {1}{4}        SKY = {2:E}{4}'
@@ -352,15 +348,12 @@ def _overlap_xy(wcs, ra, dec):
 
     return min_x, max_x+1, min_y, max_y+1
 
-def _weighted_sky(skyline, ra, dec, skyfunc, nclip, skyuser):
+def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
     """
     Calculate the average sky weighted by the number of
     overlapped pixels with a polygon defined by the
     given RA and DEC from individual chips in a given
     skyline.
-
-    If skyline is already assigned a SKYUSER value, this
-    value is subtracted in the calculations.
 
     Parameters
     ----------
@@ -375,9 +368,6 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip, skyuser):
     nclip : int
         Number of clipping iterations.
 
-    skyuser : defaultdict
-        SKYUSER dictionary for look-up.
-
     """
     w_sky = 0.0
     w_tot = 0.0
@@ -387,7 +377,7 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip, skyuser):
  
         with pyfits.open(wcs.filename) as pf:
             dat = pf[wcs.extname].data[min_y:max_y, min_x:max_x]
-            sky = skyfunc(dat - skyuser[wcs.filename], nclip=nclip)
+            sky = skyfunc(dat, nclip=nclip)
 
             npix = dat.size
             w_sky += npix * sky
@@ -399,7 +389,7 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip, skyuser):
     else:
         return w_sky / w_tot
 
-def _calc_sky(s1, s2, skyfunc, nclip, skyuser):
+def _calc_sky(s1, s2, skyfunc, nclip):
     """
     Calculate weighted sky values and their difference in
     overlapping regions of given skylines.
@@ -414,9 +404,6 @@ def _calc_sky(s1, s2, skyfunc, nclip, skyuser):
     nclip : int
         Number of clipping iterations.
 
-    skyuser : defaultdict
-        SKYUSER dictionary for look-up.
-
     Returns
     -------
     sky1, sky2 : float
@@ -426,26 +413,21 @@ def _calc_sky(s1, s2, skyfunc, nclip, skyuser):
     intersect = s1.find_intersection(s2)
     intersect_ra, intersect_dec = intersect.to_radec()
 
-    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec,
-                         skyfunc, nclip, skyuser)
-    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec,
-                         skyfunc, nclip, skyuser)
+    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skyfunc, nclip)
+    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skyfunc, nclip)
 
     return sky1, sky2
 
-def _set_skyuser(skyuser, skyline, value):
+def _set_skyuser(skyline, value):
     """
-    Set SKYUSER in image SCI headers and global dictionary.
-    Subtract SKYUSER from SCI extensions.
+    Set SKYUSER in SCI headers and subtract SKYUSER from
+    SCI data.
 
     .. note:: ERR extensions are not modified even if sky
         subtraction could introduce additional errors.
 
     Parameters
     ----------
-    skyuser : defaultdict
-        SKYUSER dictionary to modify.
-    
     skyline : `SkyLine` object
         Skyline of the image to update. Does not work if
         skyline is a product of union or intersection.
@@ -468,8 +450,6 @@ def _set_skyuser(skyuser, skyline, value):
         pf['PRIMARY'].header.add_history('{} by {} {} ({})'.format(
             hdr_keyword, __taskname__, __version__, __vdate__))
 
-    skyuser[im_name] = value
-
 
 #--------------------------
 # TEAL Interface functions
@@ -485,6 +465,6 @@ def getHelpAsString():
         helpString += teal.getHelpFileAsString(__taskname__,__file__)
 
     if helpString.strip() == '':
-        helpString += __doc__ + '\n' + match4teal.__doc__
+        helpString += __doc__ + os.linesep + match4teal.__doc__ + os.linesep + match.__doc__
 
     return helpString
