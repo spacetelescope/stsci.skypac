@@ -23,8 +23,8 @@ from . import computeSky
 
 __all__ = ['match4teal', 'match']
 __taskname__ = 'skymatch'
-__version__ = '0.3b'
-__vdate__ = '27-Jul-2012'
+__version__ = '0.4b'
+__vdate__ = '06-Aug-2012'
 
 # DEBUG - Can remove this when sphere is stable
 __local_debug__ = True
@@ -84,8 +84,9 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
     can be called from within AstroDrizzle to replace the
     current sky subtraction algorithm.
 
-    .. warning:: Image headers are modified. Remember to back
-        up original copies as desired.
+    .. warning:: Image headers are modified and data will be
+        background-subtracted. Remember to back up original
+        copies as desired.
 
     Parameters
     ----------
@@ -435,6 +436,10 @@ def _calc_sky(s1, s2, skyfunc, nclip, skyuser):
 def _set_skyuser(skyuser, skyline, value):
     """
     Set SKYUSER in image SCI headers and global dictionary.
+    Subtract SKYUSER from SCI extensions.
+
+    .. note:: ERR extensions are not modified even if sky
+        subtraction could introduce additional errors.
 
     Parameters
     ----------
@@ -455,7 +460,10 @@ def _set_skyuser(skyuser, skyline, value):
     
     with pyfits.open(im_name, mode='update') as pf:
         for ext in skyline.members[0].ext:
+            pf[ext].data -= value
             pf[ext].header.update(hdr_keyword, value)
+            pf[ext].header.add_history('{} {:E} subtracted from image'.format(
+                hdr_keyword, value))
 
         pf['PRIMARY'].header.add_history('{} by {} {} ({})'.format(
             hdr_keyword, __taskname__, __version__, __vdate__))
