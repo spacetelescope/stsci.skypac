@@ -18,12 +18,13 @@ except ImportError:
     teal = None
 
 # LOCAL
+from . import bresenham
 from . import computeSky
 
 __all__ = ['match4teal', 'match']
 __taskname__ = 'skymatch'
-__version__ = '0.4b'
-__vdate__ = '07-Aug-2012'
+__version__ = '0.5b'
+__vdate__ = '08-Aug-2012'
 
 # DEBUG - Can remove this when sphere is stable
 __local_debug__ = True
@@ -246,7 +247,7 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
 
         try:
             new_mos = mosaic.add_image(next_skyline)
-        except (ValueError, AssertionError):
+        except:
             if __local_debug__:
                 flog.write('WARNING: Cannot add {} to mosaic.{}'.format(next_skyline._rough_id(), os.linesep))
             else:
@@ -294,66 +295,33 @@ def _pick_skyfunc(choice):
     else:  # default
         return computeSky.mode
 
-def _get_min_max(arr, in_min, in_max):
+def _pixelate(arr, min, max):
     """
-    Return minimum and maximum of given array bound by
-    [min, max]. Values are rounded to the closest
-    integer for index look-up.
+    Return valid pixel values within given limits.
     
-    """
-    out_min = int(round(max([arr.min(), in_min])))
-    out_max = int(round(min([arr.max(), in_max])))
-    return out_min, out_max
-
-def _overlap_xy(wcs, ra, dec):
-    """
-    Find pixel coordinates of original image for a
-    given HSTWCS that fall within polygon bound by
-    given RA and DEC.
-
-    For simplicity, RA and DEC are only used to
-    determine min/max rows and columns. So limits
-    returned are the minimum bounding box on the
-    image of the polygon, not the actual polygon.
-    If RA and DEC fall outside the image, X and Y are
-    clipped to image edges.
-
-    .. note:: A more accurate but slower algorithm
-        could be implemented in the future to return
-        pixels belonging to the exact polygon.
+    Values are rounded to nearest integer and clipped
+    to given limits.
 
     Parameters
     ----------
-    wcs : HSTWCS object
-        WCS of the science extension from which to
-        extract coordinates.
+    arr : float array
+        Coordinates in a single dimension.
 
-    ra, dec : array_like
-        RA and DEC of the polygon.
+    min, max : int
+        Allowed pixel limits, inclusive.
 
     Returns
     -------
-    min_x, max_x : int
-        X limits, rounded to nearest integer, in Python
-        format. Minimum is inclusive, maximum is exclusive.
+    Rounded and clipped pixel values.
 
-    min_y, max_y : int
-        Similar limits for Y.
-    
     """
-    x, y = wcs.all_sky2pix(ra, dec, 0)
-
-    min_x, max_x = _get_min_max(x, 0, wcs.naxis1 - 1)
-    min_y, max_y = _get_min_max(y, 0, wcs.naxis2 - 1)
-
-    return min_x, max_x+1, min_y, max_y+1
+    return numpy.clip(numpy.round(arr).astype('int'), min, max)
 
 def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
     """
-    Calculate the average sky weighted by the number of
-    overlapped pixels with a polygon defined by the
-    given RA and DEC from individual chips in a given
-    skyline.
+    Calculate the weighted average of sky from individual
+    chips in the given skyline within a given RA and DEC
+    of a polygon.
 
     Parameters
     ----------
@@ -368,18 +336,48 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
     nclip : int
         Number of clipping iterations.
 
+    Raises
+    ------
+    ValueError : Total weight is zero.
+
+    Returns
+    -------
+    sky : float
+
     """
     w_sky = 0.0
     w_tot = 0.0
-    
-    for wcs in skyline._indv_mem_wcslist():
-        min_x, max_x, min_y, max_y = _overlap_xy(wcs, ra, dec)
- 
-        with pyfits.open(wcs.filename) as pf:
-            dat = pf[wcs.extname].data[min_y:max_y, min_x:max_x]
-            sky = skyfunc(dat, nclip=nclip)
 
-            npix = dat.size
+    for wcs in skyline._indv_mem_wcslist():
+        # All pixels along intersection boundary for that chip
+        sparse_x, sparse_y = wcs.all_sky2pix(ra, dec, 0)
+        x, y = zip(*bresenham.lines(*zip(_pixelate(sparse_x, 0, wcs.naxis1-1),
+                                         _pixelate(sparse_y, 0, wcs.naxis2-1))))
+        x = numpy.array(x)
+        y = numpy.array(y)
+
+        fill_mask = numpy.zeros((wcs.naxis2, wcs.naxis1), dtype='bool')
+
+        # Process each row in intersection boundary
+        for cur_y in numpy.unique(y):
+            idx = numpy.where(y == cur_y)
+
+            # Can have odd or even number of matches near top or bottom.
+            # In those cases, aliasing might occur.
+            x1 = x[idx][::2]
+            x2 = x[idx][1::2]
+            nx = min([x1.size, x2.size])
+
+            # Flag pixels within intersection
+            for ix in xrange(nx):
+                fill_mask[cur_y, x1[ix]:x2[ix]+1] = True
+
+        # Calculate sky
+        dat = pyfits.getdata(wcs.filename,
+                             ext=wcs.extname)[numpy.where(fill_mask)]
+        npix = dat.size
+        if npix > 1:
+            sky = skyfunc(dat, nclip=nclip)
             w_sky += npix * sky
             w_tot += npix
 
@@ -408,7 +406,7 @@ def _calc_sky(s1, s2, skyfunc, nclip):
     -------
     sky1, sky2 : float
         Weighted sky values for `s1` and `s2`.
-    
+
     """
     intersect = s1.find_intersection(s2)
     intersect_ra, intersect_dec = intersect.to_radec()

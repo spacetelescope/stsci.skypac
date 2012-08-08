@@ -13,6 +13,7 @@ Contents:
 
    skymatch
    computeSky
+   bresenham
 
 Indices and tables
 ==================

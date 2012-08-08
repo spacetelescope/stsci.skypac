@@ -16,7 +16,7 @@ pkg =  "skypac"
 #ext = [ distutils.core.Extension('', [], include_dirs = [pythoninc,numpyinc]) ]
 
 setupargs = {
-    'version' : "0.2b",
+    'version' : "0.5b",
     'description' : "Sky matching on image mosaic",
     'author' : "Pey Lian Lim",
     'author_email' : "help@stsci.edu",
