@@ -2,15 +2,17 @@
 from __future__ import division, print_function
 
 # STDLIB
-import os
-import sys
+import os, sys
 from datetime import datetime
+from os.path import basename
+import copy
 
 # THIRD PARTY
-import numpy
+import numpy as np
 import pyfits
-from sphere.skyline import SkyLine
-from stsci.tools import parseinput
+#from stsci.tools import parseinput
+from .skyline import SkyLineMember, SkyLine
+from . import region
 
 try:
     from stsci.tools import teal
@@ -18,107 +20,568 @@ except ImportError:
     teal = None
 
 # LOCAL
-from . import bresenham
-from . import computeSky
+from .skystatistics import SkyStats
+from .utils import ext2str, MultiFileLog, ImageRef
+from .parseat import FileExtMaskInfo, parse_cs_line, parse_at_file
 
-__all__ = ['match4teal', 'match']
+#DEBUG
+from .utils import temp_mask_file
+
+
+__all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.5b'
-__vdate__ = '08-Aug-2012'
+__version__ = '0.6'
+__vdate__ = '12-Dec-2013'
+__author__ = 'Mihai Cara'
 
 # DEBUG - Can remove this when sphere is stable
 __local_debug__ = True
 
-def match4teal(input, skyfunc='mode', nclip=3, logfile='skymatch_log.txt'):
+if __local_debug__:
+    from .utils import ext2str
+
+
+def TEAL_SkyMatch(input, skymethod='globalmin+match',
+                  skystat='mode', lower=None, upper=None,
+                  nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
+                  skyuser_kwd='SKYUSER', units_kwd='BUNIT',
+                  readonly=True, subtractsky=False, DQFlags=None,
+                  optimize='balanced', clobber=False, clean=True,
+                  verbose=True, logfile='skymatch_log.txt'):
     """
-    Teal interface for `match` because Teal cannot take
-    output stream object.
+    TEAL interface for :py:func:`skymatch`. Most parameters are identical
+    to those of the :py:func:`skymatch`. Here we mention only the differences:
 
     Parameters
     ----------
-    input, skyfunc, nclip : See `match`
 
-    logfile : str
-        Store execution log in this file. Always append.
-        If not given, print to screen instead.
+    logfile : str (Default = 'skymatch_log.txt')
+        Store execution log in this file. Always openned in append mode.
+        If not given (\ `logfile`\ =\ `None`\ ), print to screen instead.
+        NOTE: Unlike :py:func:`skymatch`\ , `logfile` can *only* be either
+        a string file name or `None`\ .
 
     """
-    # For logging
-    if logfile in ('', None):
-        flog = sys.stdout          # print to screen
-    else:
-        flog = open(logfile, 'a')  # always append
+    # Initialize logging:
+    from .utils import MultiFileLog
+    ml = MultiFileLog(console = verbose)
+    if logfile not in ('', None):
+        ml.add_logfile(logfile)
+    mluncl = ml.unclose_copy()
 
-    match(input, skyfunc, nclip, flog)
+    try:
+        skymatch(input, skymethod=skymethod,
+                 skystat=skystat, lower=lower, upper=upper,
+                 nclip=nclip, lsigma=lsigma, usigma=usigma, binwidth=binwidth,
+                 skyuser_kwd = skyuser_kwd, units_kwd=units_kwd,
+                 readonly=readonly, subtractsky = subtractsky,
+                 DQFlags=DQFlags, optimize=optimize,
+                 clobber=clobber, clean=clean, verbose=verbose, flog=mluncl)
+        # sanity check:
+        assert(ml.count == mluncl.count)
+    except:
+        raise
+    finally:
+        ml.close()
 
-def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
+
+def skymatch(input, skymethod='globalmin+match',
+             skystat='mode', lower=None, upper=None,
+             nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
+             skyuser_kwd='SKYUSER', units_kwd='BUNIT',
+             readonly=True, subtractsky=False, DQFlags=None,
+             optimize='balanced', clobber=False, clean=True,
+             verbose=True, flog='skymatch_log.txt'):
     """
-    Standalone task to match sky in overlapping exposures.
-    
-    This task has these basic steps:
+    Standalone task to compute and/or "equalize" sky in input images.
 
-        #. Find the two exposures with the greatest overlap,
-           with each exposure defined by the combined
-           footprint of all its chips.
-        #. Compute the sky for both exposures, ideally this
-           would only need to be done in the region of overlap.
-        #. Compute the difference in the sky values.
-        #. Record that difference in the header of the exposure
-           with the highest sky value as the SKYUSER keyword
-           in the SCI headers. Also subtract from SCI data.
-        #. Generate a footprint for that pair of exposures.
-        #. Repeat the above steps for all remaining exposures
-           using the newly created combined footprint as one of
-           the exposures and using the sky value for this newly
-           created footprint as one of the values (no need to
-           recompute its sky value).
+    .. note:
+       Sky matching ("equalization") is possible only for **overlapping**
+       exposures.
 
-    The computation of the sky is done using the weighted mean
-    of the clipped modes from all chips in the exposure.
-    Alternately, user can use clipped mean or median to compute
-    the sky values.
+    .. warning:: When `readonly` is `False`\ , image headers will be modified
+       and image data will be background-subtracted if `subtractsky` is
+       `True`\ . Remember to back up original copies as desired.
 
-    These images could then be combined using AstroDrizzle with
-    the 'skyuser' parameter set to 'SKYUSER' to generate a
-    mosaic with a uniform background. Alternately, this task
-    can be called from within AstroDrizzle to replace the
-    current sky subtraction algorithm.
-
-    .. warning:: Image headers are modified and data will be
-        background-subtracted. Remember to back up original
-        copies as desired.
+    .. warning:: Unlike previous sky subtraction algorithm used by
+       `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
+drizzlepac/astrodrizzle.html>`_, :py:func:`skymatch` accounts for differences
+       in chip sensitivities by performing sky computations on data multiplied
+       by inverse sensitivity (e.g., value of ``PHOTFLAM`` in image headers).
 
     Parameters
     ----------
-    input : str or list of str
-        Name of FLT image(s) to be matched. The name(s) can be
-        specified either as:
+    input : str, list of FileExtMaskInfo
+        A list of of :py:class:`~skypac.parseat.FileExtMaskInfo` objects
+        or a string containing one of the following:
 
-            * a single filename ('j1234567q_flt.fits')
-            * a Python list of filenames
-            * a partial filename with wildcards ('\*flt.fits')
-            * filename of an ASN table ('j12345670_asn.fits')
-            * an at-file ('@input')
+            * a comma-separated list of valid science image file names
+              (see note below) and (optionally) extension specifications,
+              e.g.: ``'j1234567q_flt.fits[1], j1234568q_flt.fits[sci,2]'``;
 
-    skyfunc : {'mean', 'median', 'mode'}
-        Function for sky calculation.
-        See `~skypac.computeSky`.
+            * an @-file name, e.g., ``'@files_to_match.txt'``. See notes
+              section for details on the format of the @-files.
 
-    nclip : int
-        Number of clipping iterations for `skyfunc`.
+        .. note::
+            **Valid science image file names** are:
 
-    flog : output stream
-        Can be file or stdout stream. This is designed such
-        that log can be written to existing output stream
-        from another Python program such as `astrodrizzle`.
+            * file names of existing FITS, GEIS, or WAIVER FITS files;
+
+            * partial file names containing wildcard characters, e.g.,
+              ``'*_flt.fits'``;
+
+            * Association (ASN) tables (must have ``_asn``, or ``_asc``
+              suffix), e.g., ``'j12345670_asn.fits'``.
+
+        .. warning::
+            @-file names **MAY NOT** be followed by an extension
+            specification.
+
+        .. warning::
+            If an association table or a partial file name with wildcard
+            characters is followed by an extension specification, it will be
+            considered that this extension specification applies to **each**
+            file name in the association table or **each** file name
+            obtained after wildcard expansion of the partial file name.
+
+    skymethod : {'localmin', 'globalmin+match', 'globalmin', 'match'} \
+(Default = 'globalmin+match')
+
+        Select the algorithm for sky computation:
+
+        * **'localmin'**\ : compute a common sky for all members of
+          *an exposure* (see NOTES below). For a typical use, it will compute
+          sky values for each chip/image extension (marked for sky
+          subtraction in the :py:obj:`input` parameter) in an input image,
+          and it will subtract the previously found minimum sky value
+          from all chips (marked for sky subtraction) in that image.
+          This process is repeated for each input image.
+
+          .. note::
+            This setting is recommended when regions of overlap between images
+            are dominated by "pure" sky (as opposite to extended, diffuse
+            sources).
+
+          .. note::
+            This is similar to the "skysub" algorithm used in previous
+            versions of astrodrizzle.
+
+        * **'globalmin'**\ : compute a common sky value for all members of
+          *all exposures* (see NOTES below). It will compute
+          sky values for each chip/image extension (marked for sky
+          subtraction in the :py:attr:`input` parameter) in **all** input
+          images, find the minimum sky value, and then it will
+          subtract the **same** minimum sky value from **all** chips
+          (marked for sky subtraction) in **all** images. This method *may*
+          useful when input images already have matched background values.
+
+        * **'match'**\ : compute differences in sky values between images
+          in common (pair-wise) sky regions. In this case computed sky values
+          will be relative (delta) to the sky computed in one of the
+          input images whose sky value will be set to (reported to be) 0.
+          This setting will "equalize" sky values between the images in
+          large mosaics. However, this method is not recommended when used
+          in conjunction with `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
+          computes relative sky values while `astrodrizzle` needs
+          "measured" sky values for median image generation and CR rejection.
+
+        * **'globalmin+match'**\ : first find a minimum "global" sky value
+          in all input images and then use **'match'** method to
+          equalize sky values between images.
+
+          .. note::
+            This is the *recommended* setting for images
+            containing diffuse sources (e.g., galaxies, nebulae)
+            covering significant parts of the image.
+
+    skystat : {'mode', 'median', 'mode', 'midpt'} (Default = 'mode')
+        Statistical method for determining the sky value from the image
+        pixel values. See `~skypac.computeSky` for more detals.
+
+    lower : float, None (Default = None)
+        Lower limit of usable pixel values for computing the sky.
+        This value should be specified in the units of the input image(s).
+
+    upper : float, None (Default = None)
+        Upper limit of usable pixel values for computing the sky.
+        This value should be specified in the units of the input image(s).
+
+    nclip : int (Default = 5)
+        A non-negative number of clipping iterations to use when computing
+        the sky value.
+
+    lsigma : float (Default = 4.0)
+        Lower clipping limit, in sigma, used when computing the sky value.
+
+    usigma : float (Default = 4.0)
+        Upper clipping limit, in sigma, used when computing the sky value.
+
+    binwidth : float (Default = 0.1)
+        Bin width, in sigma, used to sample the distribution of pixel
+        brightness values in order to compute the sky background statistics.
+
+    skyuser_kwd : str (Default = 'SKYUSER')
+        Name of header keyword which records the sky value previously
+        subtracted (if `subtractsky` is `True`\ ) from the image or
+        computed (if `subtractsky` is `False`\ ). This keyword's value will
+        be updated by :py:func:`skymatch`\ .
+
+    units_kwd : str (Default = 'BUNIT')
+        Name of header keyword which records the units of the data in the
+        image.
+
+    readonly : bool (Default = True)
+        Report the sky matching values but do not modify the input files.
+
+    subtractsky : bool (Default = False)
+        Subtract computed sky value from image data or simply report sky
+        value in the header keyword specified by `skyuser_kwd`. This applies
+        only when `readonly`\ =\ `False`\ . It is important to be consistent
+        when putting a meaning into the header keyword given by
+        `skyuser_kwd`\ : inconsistent use may lead to sky value reported
+        in `skyuser_kwd` header keyword not reflect correct sky value
+        in sky subtracted flat-fielded images.
+
+        .. note::
+          `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
+          does not subtract computed sky values from input
+          flat-fielded images. Therefore, when using :py:func:`skymatch` on
+          images that subsequently will be processed by
+          `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
+          it is *recommended* to use the following suggestions:
+
+          * If one plans to turn on sky subtraction step in
+            `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ that will
+            involve additional sky computation (as opposite to using
+            `astrodrizzle`\ 's `skyuser` or `skyfile` parameters), then it is
+            recommended to set `subtractsky` to `False` and set
+            `skyuser_kwd` to the default value used by `astrodrizzle`\:
+            ``MDRIZSKY``\ .
+
+          * If one wants to effectively subtract the computed sky values
+            from the flat-fielded image data, then it is recommended to
+            set `subtractsky` to `True`\ , `skyuser_kwd` parameter to
+            something different from ``MDRIZSKY``\ , (e.g., ``SKYUSER``\ ),
+            and set `skyuser` parameter in `astrodrizzle <http://\
+stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
+            to the same value as `skyuser_kwd` in :py:func:`skymatch`\ .
+
+    DQFlags : int, None (Default = 0)
+        Integer sum of all the DQ bit values from the input image's
+        DQ array that should be considered "good" when building masks for
+        sky computations. For example, if pixels in the DQ array can be
+        combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
+        "defects" having flags 2 and 4 as being acceptable for sky
+        computations, then `DQFlags` should be set to 2+4=6. Then a DQ pixel
+        having values 2,4, or 6 will be considered a good pixel, while a
+        DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
+        a "bad" pixel.
+
+        | Default value (0) will make *all* non-zero
+          pixels in the DQ mask to be considered "bad" pixels, and the
+          corresponding image pixels will not be used for sky computations.
+
+        | Set `DQFlags` to `None` to turn off the use of image's DQ array
+          for sky computations.
+
+        .. note::
+            DQ masks (if used), *will* *be* combined with user masks
+            specified in the input @-file.
+
+    optimize : {'balanced', 'speed'} (Default = 'balanced')
+        Specifies whether to optimize execution for speed (maximum memory
+        usage) or use a balanced approach in which a minimal amount of
+        image data is kept in memory and retrieved from disk as needed.
+        The default setting is recommended for most systems.
+
+    clobber : bool (Default = False)
+        When a input image file is in GEIS or WAIVER FITS format it must be
+        converted to simple/MEF FITS file format before it can be used by
+        :py:func:`skymatch`\ . This setting specifies whether any existing
+        simple/MEF files be overwritten during this conversion process. If
+        `clobber`\ =\ `False`, existing simple/MEF FITS files will be opened.
+        If `clobber`\ =\ `True`, input GEIS or WAIVER FITS will be first
+        converted to simple FITS/MEF format overwritting (if necessary)
+        existing files and then these newly created simple FITS/MEF files
+        will be opened.
+
+    clean : bool (Default = True)
+        Specifies whether to delete at the end of the execution any temporary
+        files created by :py:func:`skymatch`\ .
+
+    verbose : bool (Default = True)
+        Specifies whether to print warning messages.
+
+    flog : str, file object, MultiFileLog, None (Default = 'skymatch_log.txt')
+        Log file to which messages shoul be written. It can be a file name,
+        file object, or a MultiFileLog object. The later two allow the
+        log to be written to an existing open output stream passed
+        from the calling function such as
+        `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
+        Log file is always openned in append mode.
+        If not provided (None), print messages to screen only.
+
+    Raises
+    ------
+    RuntimeError
+        Could not add an image to mosaic. Possibly this SkyLine does
+        not intersect the mosaic.
+
+    TypeError
+        The `input` argument must be either a Python list of
+        :py:class:`~skypac.parseat.FileExtMaskInfo` objects, or a string
+        either containing either a comma-separated list file names,
+        or an @-file name.
+
+    Notes
+    -----
+
+    :py:func:`skymatch` provides new algorithms for sky value computations
+    and enhances previously available algorithms used by, e.g.,
+    `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
+
+    First, the standard sky computation algorithm
+    (see `skymethod` = ``'localmin'``\ ) was upgraded to be able to use
+    DQ flags and user supplied masks to remove "bad" pixels from being
+    used for sky statistics computations.
+
+    Second, two new methods have been introduced: ``'globalmin'`` and
+    ``'match'``, as well as a combination of the two -- ``'globalmin+match'``.
+
+    - The ``'globalmin'`` method computes the minimum sky value across *all*
+      chips in *all* input images. That sky value is then considered to be
+      the background in all input images.
+
+    - The ``'match'`` algorithm (described in more details below) is somewhat
+      similar to the traditional sky subtraction method (`skymethod`\ =\
+      ``'localmin'``\ ) in the sense that it measures the sky indipendently
+      in input images (or detector chips). The major differences are that,
+      unlike the traditional method,
+
+        #. ``'match'`` algorithm computes *relative* sky values with regard
+           to the sky in a reference image chosen from the input list
+           of images; *and*
+
+        #. sky statistics is computed only in the part of the image
+           that intersects other images.
+
+      This makes ``'match'`` sky computation algorithm particularly useful
+      for "equalizing" sky values in large mosaics in which one may have
+      only (at least) pair-wise intersection of images without having
+      a common intersection region (on the sky) in all images.
+
+      .. note::
+
+        Because this method computes relative sky values compared to a
+        reference image (which will have its sky value set to 0), the sky
+        values computed with this method usually are smaller than the
+        "absolute" sky values computed, e.g., with the ``'localmin'``
+        algorithm. Since `astrodrizzle <http://stsdas.stsci.edu/\
+stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
+        (as opposite to *relative*) sky values in order to correctly
+        compute the median image or to perform cosmic-ray detection, this
+        algorithm in not recommended to be used *alone* for sky computations
+        to be used with `astrodrizzle`\ .
+
+    - The ``'globalmin+match'`` algorithm combines ``'match'`` and
+      ``'globalmin'`` methods in order to overcome the limitation of the
+      ``'match'`` method described in the note above: it uses ``'globalmin'``
+      algorithm to find a baseline sky value common to all input images
+      and the ``'match'`` algorithm to "equalize" sky values in the mosaic.
+      Thus, the sky value of the "reference" image will be equal to the
+      baseline sky value (instead of 0 in ``'match'`` algorithm alone)
+      making this method acceptable for use in conjunction with
+      `astrodrizzle`\ .
+
+    **Outline of the Sky Match (Equalization) Algorithm:**
+      #. Among all input images, find two *exposures* with the greatest
+         overlap *on the sky*\ . The *footprint* of each
+         exposure is the union of the footprints
+         of selected chips (FITS extensions) from those exposures.
+      #. Compute sky in both exposures but only in the region of the
+         overlap of the two exposures.
+      #. Compute the difference in the sky values.
+      #. Record this difference in the 'SCI' headers of the exposure
+         with the highest sky value as the value of the header
+         keyword specified by the `skyuser_kwd` parameter.
+         (Optionally, subtract computed sky value from image data.)
+      #. Combine the two exposures into a single
+         exposure (\ *mosaic*\ ). The footprint of the "mosaic" exposure
+         is formed by computing the union of the
+         footprints of each chip in the two exposures.
+      #. Repeat the above steps for all remaining exposures
+         using the newly created mosaic footprint as one of
+         the exposures and using the sky value for this newly
+         created footprint as one of the values. There is no need to
+         recompute its sky value -- it is the same as the sky value of the
+         first (\ *reference*\ ) image.
+
+    **Glossary:**
+      **Exposure** -- a *subset* of FITS image extensions in an input image
+      that correspond to different chips in the detector used to acquire
+      the image. The subset of image extensions that form an exposure
+      is defined by specifying extensions to be used with input images
+      (see parameter `input`\ ).
+
+      See help for :py:func:`skypac.parseat.parse_at_line` for details
+      on how to specify image extensions.
+
+      **Footprint** -- the outline (edge) of the projection of a chip or
+      of an exposure on the celestial sphere.
+
+      .. note::
+
+        * Footprints are managed by the
+          :py:class:`~sphere.polygon.SphericalPolygon` class.
+
+        * Both footprints *and* associated exposures (image data, WCS
+          information, and other header information) are managed by the
+          :py:class:`~skypac.skyline.SkyLine` class.
+
+        * Each :py:class:`~skypac.skyline.SkyLine` object contains one or more
+          :py:class:`~skypac.skyline.SkyLineMember` objects that manage
+          both footprints *and* associated *chip* data that form an exposure.
+
+    **Remarks:**
+      * The computation of the sky is performed using weighted mean
+        of the (clipped) mode, mean, or median *from all chips*
+        (selected by the user by specifying desired FITS extensions that
+        need to be processed) in the
+        exposure (but only in the region of the overlap of the two exposures
+        whose sky values are to be compared).
+        For mosaiced exposures, all chips that belong to the "elementary"
+        exposures that formed the mosaic are used to compute the sky value.
+
+      * :py:func:`skymatch` works directly on *geometrically distorted*
+        flat-fielded images thus avoiding the need to perform an additional
+        drizzle step to perform distortion correction of input images.
+
+        Initially, the footprint of a chip in an image is aproximated by a
+        2D planar rectangle representing the borders of chip's distorted
+        image. After applying distortion model to this rectangle and
+        progecting it onto the celestial sphere, it is approximated by
+        spherical polygons. Footprints of exposures and mosaics are
+        computed as unions of such spherical polygons while overlaps
+        of image pairs are found by intersecting these spherical polygons.
+        
+    **@-File Format:**
+      A catalog file containing a science image file 
+      and extension specifications and optionally followed by a 
+      comma-separated list of mask files and extension specifications
+      (or None).
+
+      File names will be stripped of leading and trailing white spaces. If it
+      is essential to keep these spaces, file names may be enclosed in single
+      or double quotation marks. Quotation marks may also be required when 
+      file names contain special characters used to separate file names and
+      extension specifications: ,[]{}
+
+      Extension specifications must follow the file name and must be delimited
+      by either square or curly brackets. Curly brackets allow specifying
+      multiple comma-separated extensions: integer extension numbers and/or
+      tuples ('ext name', ext version).
+
+      Some possible ways of specifying extensions:
+        [1] -- extension number
+
+        ['sci',2] -- extension name and version
+
+        {1,4,('sci',3)} -- multiple extension specifications, including tuples
+
+        {('sci',*)} -- wildcard extension versions (i.e., all extensions with
+        extension name 'sci')
+
+        ['sci'] -- equivalent to ['sci',1]
+
+        {'sci'} -- equivalent to {('sci',*)}
+
+      For extensions in the science image for which no mask file is provided,
+      the corresponding mask file names may be omitted (but a comma must still
+      be used to show that no mask is provided in that position) or None can
+      be used in place of the file name. NOTE: 'None' (in quotation marks) 
+      will be interpreted as a file named None.
+
+      Some examples of possible user input:
+        image1.fits{1,2,('sci',3)} mask1.fits,,mask3.fits[0]
+
+        In this case:
+
+        ``image1.fits``\ [1] is associated with ``mask1.fits``\ [0];
+
+        ``image1.fits``\ [2] does not have an associated mask;
+
+        ``image1.fits``\ ['sci',3] is associated with ``mask3.fits``\ [0].
+
+        -- Assume ``image2.fits`` has 4 'SCI' extensions:
+
+        image2.fits{'sci'} None,,mask3.fits
+
+        In this case:
+
+        ``image2.fits``\ ['sci',1] and ``image2.fits``\ ['sci',2] **and**
+        ``image2.fits``\ ['sci',4] do not have an associated mask;
+
+        ``image2.fits``\ ['sci',3] is associated with ``mask3.fits``\ [0]
+
+    **Limitations and Discussions:**
+      Primary reason for introducing "sky match" algorithm was to try to
+      equalize the sky in large mosaics in which computation of the
+      "absolute" sky is difficult due to the presence of large diffuse
+      sources in the image. As discussed above, :py:func:`skymatch`
+      accomplishes this by comparing "sky values" in a pair of images in the
+      overlap region (that is common to both images). Quite obviously the
+      quality of sky "matching" will depend on how well these "sky values"
+      can be estimated. We use quotation marks around *sky values* because
+      for some image "true" background may not be present at all and the
+      measured sky may be the surface brightness of large galaxy, nebula, etc.
+
+      Here is a brief list of possible limitations/factors that can affect
+      the outcome of the matching (sky subtraction in general) algorithm:
+
+      * Since sky subtraction is performed on *flat-fielded* but
+        *not distortion corrected* images, it is important to keep in mind
+        that flat-fielding is performed to obtain uniform surface brightness
+        and not flux. This distinction is important for images that have
+        not been distortion corrected. As a consequence, it is advisable that
+        point-like sources be masked through the user-supplied mask files.
+        Alternatively, one can use `upper` parameter to limit the use of
+        bright objects in sky computations.
+
+      * Normally, distorted flat-fielded images contain cosmic rays. This
+        algorithm does not perform CR cleaning. A possible way of minimizing
+        the effect of the cosmic rays on sky computations is to use
+        clipping (\ `nclip` > 0) and/or set `upper` parameter to a value
+        larger than most of the sky background (or extended source) but
+        lower than the values of most CR pixels.
+
+      * In general, clipping is a good way of eliminating "bad" pixels:
+        pixels affected by CR, hot/dead pixels, etc. However, for
+        images with complicated backgrounds (extended galaxies, nebulae,
+        etc.), affected by CR and noise, clipping process may mask different
+        pixels in different images. If variations in the background are
+        too strong, clipping may converge to different sky values in
+        different images even when factoring in the "true" difference
+        in the sky background between the two images.
+
+      * In general images can have different "true" background values
+        (we could measure it if images were not affected by large diffuse
+        sources). However, arguments such as `lower` and `upper` will
+        apply to all images regardless of the intrinsic differences
+        in sky levels.
 
     Examples
     --------
     #. This task can be used to match skies of a set of ACS
        images simply with:
-   
+
            >>> from skypac import skymatch
-           >>> skymatch.match('j*q_flt.fits')
+           >>> skymatch.skymatch('j*q_flt.fits')
 
     #. The TEAL GUI can be used to run this task using::
 
@@ -134,44 +597,315 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
     """
     # Time it
     runtime_begin = datetime.now()
-    flog.write('***** {0} started on {1}{4}'
-               'Version {2} ({3}){4}'.format(
-        __taskname__, runtime_begin, __version__, __vdate__, os.linesep))
+
+    # Set-up log files:
+    if isinstance(flog, MultiFileLog):
+        ml = flog
+    else:
+        ml = MultiFileLog(console = verbose)
+        if flog not in ('', None):
+            ml.add_logfile(flog)
+            ml.skip(2)
+    mlcopy = ml.unclose_copy()
+
+    #  BEGIN:
+    ml.logentry("***** {0} started on {1}", __taskname__, runtime_begin)
+    ml.logentry("      Version {0} ({1})", __version__, __vdate__, skip=1)
+
+    if readonly:
+        ml.logentry("\'skymatch\' task will be run in read-only mode.",
+                    skip=1)
+        ml.logentry("NOTE: Computed sky values WILL NOT be subtracted from "\
+                    "image data (\'readonly\'=True).{0:s}" \
+                    "Computed sky values will be reported in the specified " \
+                    "log file.", os.linesep, skip=1)
+        subtractsky = False # <- cannot subtract from data in read-only mode
+    else:
+        ml.logentry("\'skymatch\' task will apply computed sky differences " \
+                    "to input image file(s).", skip=1)
+        if subtractsky:
+            ml.logentry("NOTE: Computed sky values WILL be subtracted from "\
+                        "image data (\'subtractsky\'=True).{0:s}" \
+                        "\'{1:s}\' header keyword will represent sky value " \
+                        "*subtracted* from data.",
+                        os.linesep, skyuser_kwd, skip=1)
+        else:
+            ml.logentry("NOTE: Computed sky values WILL NOT be subtracted "\
+                        "from image data (\'subtractsky\'=False).{0:s}" \
+                        "\'{1:s}\' header keyword will represent sky value " \
+                        "*computed* from data.",
+                        os.linesep, skyuser_kwd, skip=1)
+
+
+    # Initialize SkyLineMember *class* with common to all objects settings:
+    ml.logentry("-----  User specified keywords:  -----{0}"   \
+                "       Sky Value Keyword:  \'{1:s}\'{0}"     \
+                "       Data Units Keyword: \'{2:s}\'", \
+                os.linesep, skyuser_kwd.upper(), units_kwd.upper(), skip=1)
+
+    SkyLineMember.init_class(skyuser_kwd=skyuser_kwd, units_kwd=units_kwd,
+                             verbose=verbose, logfile=mlcopy)
 
     # Parse input to get list of filenames to process
-    infiles, output = parseinput.parseinput(input)
-    if len(infiles) < 2:
-        _print_and_close('{}: Need at least 2 images. Aborting...'.format(
-            __taskname__), flog)
+    errmsg = "The \'input\' argument must be either a Python list of " \
+        "\'FileExtMaskInfo\' objects, or a string either containing either " \
+        "a comma-separated list file names, or an @-file name."
+
+    if isinstance(input, list):
+        if [1 for i in input if not isinstance(i, FileExtMaskInfo)]:
+                raise TypeError(errmsg)
+
+        finfo = []
+        for fi in input:
+            cpfi = copy.copy(fi)
+            if cpfi.fnamesOnly:
+                cpfi.convert2ImageRef()
+            cpfi.finalize()
+            finfo.append(cpfi)
+
+        if DQFlags is not None:
+            for fi in finfo:
+                fi.DQFlags = DQFlags
+
+    elif isinstance(input, str):
+        input = input.strip()
+        ml.skip()
+        ml.logentry("-----  Parsing input image file lists:  -----")
+        finfo = parse_cs_line(input, default_ext=('SCI','*'),
+                              clobber=False,
+                              fnamesOnly=False,
+                              doNotOpenDQ=DQFlags is None,
+                              im_fmode='readonly' if readonly else 'update',
+                              dq_fmode='readonly',
+                              msk_fmode='readonly',
+                              logfile=mlcopy,
+                              verbose=verbose)
+        for fi in finfo:
+            fi.DQFlags = DQFlags
+
+    else:
+        raise ValueError(errmsg)
+
+    #infiles, output = parseinput.parseinput(input)
+
+    # print input file information:
+    ml.skip()
+    ml.logentry("-----  Input file list:  -----")
+
+    for fi in finfo:
+        ml.skip()
+        # file name
+        ml.logentry("   **  Input image: \'{:s}\'", basename(fi.image.filename), skip=-1)
+        if fi.image.filename != fi.image.original_fname:
+            ml.logentry("  (original: \'{:s}\')", \
+                        basename(fi.image.original_fname), skip=-1)
+        ml.skip()
+        # DQ file name
+        if fi.image.DQ_model.lower() == 'external' and not fi.DQimage.closed:
+            ml.logentry("DQ image: \'{:s}\'", basename(fi.DQimage.filename), skip=-1)
+            if fi.DQimage.filename != fi.DQimage.original_fname:
+                ml.logentry("  (original: \'{:s}\')",
+                            basename(fi.DQimage.original_fname), skip=-1)
+            ml.skip()
+        # Extension information:
+        for i in range(fi.count):
+            ml.logentry("       EXT: {}", ext2str(fi.fext[i]), skip=-1)
+            if not fi.DQimage.closed:
+                ml.logentry(";\tDQ EXT: {}", ext2str(fi.dqext[i]), skip=-1)
+            if fi.mask_images[i] is not None and not fi.mask_images[i].closed:
+                ml.logentry(";\tMASK: {}[{}]", fi.mask_images[i].original_fname,
+                            ext2str(fi.maskext[i]), skip=-1)
+            ml.skip()
+
+    ml.skip()
+
+    if len(finfo) < 2 and 'match' in skymethod:
+        ml.logentry('{0}: Need at least 2 images. Aborting...', __taskname__)
+        ml.print_endlog_msg()
+        ml.close()
         return
 
-    # Check sky function
-    func2use = _pick_skyfunc(skyfunc)
-    flog.write('    Using sky function {0} in {1}{3}'
-               '    NCLIP = {2}{3}{3}'.format(
-        func2use.__name__, func2use.__module__, nclip, os.linesep))
+    # Sky statistics parameters:
+    sky_stat = SkyStats(skystat = skystat, lower = lower, upper = upper,
+                        nclip = nclip, lsig = lsigma, usig = usigma,
+                        binwidth = binwidth)
 
-    # Extract skylines
+    ml.logentry("-----  Sky statistics parameters:  -----{8}" \
+                "{9}statistics function: \'{0}\'{8}" \
+                "{9}lower = {2}{8}"  \
+                "{9}upper = {3}{8}"  \
+                "{9}nclip = {4}{8}"  \
+                "{9}lsigma = {5}{8}" \
+                "{9}usigma = {6}{8}" \
+                "{9}binwidth = {7}",
+                skystat, skystat, lower, upper, nclip, lsigma, usigma,
+                binwidth, os.linesep,"       ", skip=1)
+
+    # Initialize skylines
     skylines = []
-    for file in infiles:
-        skylines.append( SkyLine(file) )
+    ml.logentry("-----  Data->Brightness conversion parameters " \
+                "for input files:  -----", skip=1)
 
-    remaining = list(skylines)
+    for fi in finfo:
+        ml.logentry("   **  Image: {}", basename(fi.image.filename))
+
+        sl = SkyLine(fi)
+
+        # EXPTIME:
+        exptime = "UNKNOWN" if sl.members[0].exptime == None \
+            else str(sl.members[0].exptime)
+
+        for m in sl.members:
+            # Units *TYPE* (counts or rate?):
+            if m.is_countrate == None:
+                unittype = "UNKNOWN"
+            else:
+                unittype = "COUNT-RATE" if m.is_countrate else "COUNTS"
+
+            # PHOTFLAM:
+            photflam = "UNKNOWN" if m.photflam == None else str(m.photflam)
+
+            if m.is_countrate:
+                ml.logentry("{1}EXT = {3}{0}" \
+                            "{2}Data units type: {4}{0}" \
+                            "{2}PHOTFLAM: {5} [flux units/data units]{0}" \
+                            "{2}Conversion factor (data->brightness):  {6}", \
+                            os.linesep, "       ", "             ", \
+                            ext2str(m.ext), unittype, photflam,
+                            m.data2brightness_conv)
+            else:
+                ml.logentry("{1}EXT = {3}{0}" \
+                            "{2}Data units type: {4}{0}" \
+                            "{2}PHOTFLAM: {5} [flux units/(data units/time)]{0}"\
+                            "{2}EXPTIME: {6} [s]{0}" \
+                            "{2}Conversion factor (data->brightness): {7}", \
+                            os.linesep, "       ", "             ", \
+                            ext2str(m.ext), unittype, photflam, exptime, \
+                            m.data2brightness_conv)
+
+        skylines.append( sl )
+        ml.skip()
+
 
     #---------------------------------------------------------#
-    # 1. Finding the two exposures with the greatest overlap, #
+    # 1a. Compute the minimum sky background value in each    #
+    #     sky line member of a skyline and return.            #
+    #     This is an improved (use of masks) replacement      #
+    #     for the classical 'subtractsky' used by astrodrizzle.    #
+    #                                                         #
+    #     NOTE: incompatible with "match"-containing          #
+    #           'skymethod' modes.                            #
+    #---------------------------------------------------------#
+    if skymethod == 'localmin':
+        ml.skip()
+        ml.logentry("-----  Computing sky values requested image " \
+                    "extensions (detector chips):  -----", skip=1)
+        for sl in skylines:
+            sky = _minsky(sl, sky_stat, subtractsky, ml)
+
+            ml.logentry("    Image:   \'{1}\'  --  SKY = {2} (brightness units){0}"
+                        "    Sky change (data units):",
+                        os.linesep, sl.id, sky)
+
+            if sky is None: sky = 0.0
+            _set_skyuser(sl, sky, readonly, subtractsky)
+
+            for m in sl.members:
+                ml.logentry("        EXT = {0:s}"      \
+                            "   delta({1:s}) = {2:G}"  \
+                            "   NEW {1:s} = {3:G}", \
+                            ext2str(m.ext), m.get_skyuser_kwd(),    \
+                            m.skyuser_delta, m.skyuser)
+
+            sl.close(clean=clean)
+
+        # Time it
+        runtime_end = datetime.now()
+        ml.logentry("***** {} ended on {}", __taskname__, runtime_end)
+        ml.logentry("TOTAL RUN TIME: {}", runtime_end - runtime_begin)
+        if ml.count == 0 and not verbose:
+            print("TOTAL RUN TIME: {}".format(runtime_end - runtime_begin))
+
+        # Finalize/close log files
+        ml.print_endlog_msg()
+        ml.close()
+
+        return
+
+    #---------------------------------------------------------#
+    # 1b. Compute the minimum sky background value            #
+    #     *across* *all* sky line members.                    #
+    #---------------------------------------------------------#
+
+    minsky = None # in flux/area units
+
+    if skymethod == 'globalmin+match' or skymethod == 'globalmin':
+        ml.skip()
+        ml.logentry("-----  Computing \"global\" sky on requested image " \
+                    "extensions (detector chips):  -----", skip=1)
+        for sl in skylines:
+            sky = _minsky(sl, sky_stat, subtractsky, ml)
+            if minsky is None or sky < minsky:
+                minsky = sky
+
+        ml.logentry("    \"Global\" sky value: {} (brightness units)",
+                    sky, skip=1)
+
+    if skymethod == 'globalmin':
+        # update skyuser and return (no sky matching requested):
+        if minsky is None: minsky = 0.0
+        for sl in skylines:
+            ml.logentry("    Computed sky change (data units) " \
+                        "for image {:s}:", sl.id)
+
+            _set_skyuser(sl, minsky, readonly, subtractsky)
+
+            for m in sl.members:
+                ml.logentry("        EXT = {0:s}"      \
+                            "   delta({1:s}) = {2:G}"  \
+                            "   NEW {1:s} = {3:G}", \
+                            ext2str(m.ext), m.get_skyuser_kwd(),    \
+                            m.skyuser_delta, m.skyuser)
+
+            sl.close(clean=clean)
+
+        # Time it
+        runtime_end = datetime.now()
+        ml.logentry("***** {} ended on {}", __taskname__, runtime_end)
+        ml.logentry("TOTAL RUN TIME: {}", runtime_end - runtime_begin)
+        if ml.count == 0 and not verbose:
+            print("TOTAL RUN TIME: {}".format(runtime_end - runtime_begin))
+
+        # Finalize/close log files
+        ml.print_endlog_msg()
+        ml.close()
+
+        return
+
+    if minsky is None:
+        minsky = 0.0
+
+    #---------------------------------------------------------#
+    # 2. Finding the two exposures with the greatest overlap, #
     #    with each exposure defined by the combined footprint #
     #    of all its chips.                                    #
     #---------------------------------------------------------#
-    
+
+    remaining = skylines
+
+    ml.skip()
+    ml.logentry("-----  Computing differences in sky values in " \
+                "overlapping regions:  -----", skip=1)
+
     starting_pair = SkyLine.max_overlap_pair(skylines)
     if starting_pair is None:
-        _print_and_close('{}: No overlapping pair. Aborting...'.format(
-            __taskname__), flog)
+        ml.logentry("{0}: No overlapping pair. Aborting...", __taskname__)
+        ml.print_endlog_msg()
+        ml.close()
         return
 
     #---------------------------------------------------------#
-    # 2. Compute the sky for both exposures, ideally this     #
+    # 3. Compute the sky for both exposures, ideally this     #
     #    would only need to be done in the region of overlap. #
     #---------------------------------------------------------#
 
@@ -180,144 +914,150 @@ def match(input, skyfunc='mode', nclip=3, flog=sys.stdout):
     remaining.remove(s1)
     remaining.remove(s2)
 
-    flog.write('    Starting pair: {}, {}{}'.format(
-        s1._rough_id(), s2._rough_id(), os.linesep))
+    ml.logentry("    Starting pair: {}, {}", s1.id, s2.id)
 
     #---------------------------------------------------------#
-    # 3. Compute the difference in the sky values.            #
+    # 4. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    sky1, sky2 = _calc_sky(s1, s2, func2use, nclip)
-    diff_sky = numpy.abs(sky1 - sky2)
+    sky1, sky2 = _calc_sky(s1, s2, sky_stat, subtractsky)
+    diff_sky   = np.abs(sky1 - sky2)
 
     #---------------------------------------------------------#
-    # 4. Record that difference in the header of the exposure #
+    # 5. Record that difference in the header of the exposure #
     #    with the highest sky value as the SKYUSER keyword in #
     #    the SCI headers. Also subtract from SCI data.        #
     #---------------------------------------------------------#
 
-    if sky1 > sky2:
-        skyline2update = s1
-        skyline2zero = s2
-    else:
+    if sky1 < sky2:
+        skyline2zero   = s1
         skyline2update = s2
-        skyline2zero = s1
+        sv0 = sky1
+        svu = sky2
+    else:
+        skyline2zero   = s2
+        skyline2update = s1
+        sv0 = sky2
+        svu = sky1
 
-    _set_skyuser(skyline2update, diff_sky)
-    _set_skyuser(skyline2zero, 0.0)  # Avoid Astrodrizzle crash
+    _set_skyuser(skyline2zero, minsky, readonly, subtractsky)  # Avoid Astrodrizzle crash
 
-    flog.write('    Image 1: {0}{6}        SKY = {1:E}{6}'
-               '    Image 2: {2}{6}        SKY = {3:E}{6}'
-               '    Updating {4}{6}        SKYUSER = {5:E}{6}{6}'.format(
-        s1._rough_id(), sky1, s2._rough_id(), sky2,
-        skyline2update._rough_id(), diff_sky, os.linesep))
+    ml.logentry("    Image 1: \'{0}\'  --  SKY = {1:E} (brightness units){5}"
+                "    Image 2: \'{2}\'  --  SKY = {3:E} (brightness units){5}"
+                "    Updating Image 1: \'{4}\'  (values are in data units):",
+                skyline2zero.id, sv0, skyline2update.id, svu, skyline2zero.id, os.linesep)
+
+    for m in skyline2zero.members:
+        ml.logentry("        EXT = {0:s}"      \
+                    "   delta({1:s}) = {2:G}"  \
+                    "   NEW {1:s} = {3:G}", \
+                    ext2str(m.ext), m.get_skyuser_kwd(),    \
+                    m.skyuser_delta, m.skyuser)
+
+    ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
+                skyline2update.id)
+
+    _set_skyuser(skyline2update, minsky + diff_sky, readonly, subtractsky)
+
+    for m in skyline2update.members:
+        ml.logentry("        EXT = {0:s}"      \
+                    "   delta({1:s}) = {2:G}"  \
+                    "   NEW {1:s} = {3:G}", \
+                    ext2str(m.ext), m.get_skyuser_kwd(),    \
+                    m.skyuser_delta, m.skyuser)
+    ml.skip()
 
     #---------------------------------------------------------#
-    # 5. Generate a footprint for that pair of exposures.     #
+    # 6. Generate a footprint for that pair of exposures.     #
     #---------------------------------------------------------#
 
     mosaic = s1.add_image(s2)
 
     #---------------------------------------------------------#
-    # 6. Repeat Steps 1-5 for all remaining exposures using   #
+    # 7. Repeat Steps 1-5 for all remaining exposures using   #
     #    the newly created combined footprint as one of the   #
     #    exposures and using the sky value for this newly     #
     #    created footprint as one of the values (no need to   #
     #    recompute its sky value).                            #
     #---------------------------------------------------------#
-
     while len(remaining) > 0:
         next_skyline, i_area = mosaic.find_max_overlap(remaining)
 
         if next_skyline is None:
             for r in remaining:
-                flog.write('    No overlap: Excluding {}{}'.format(
-                    r._rough_id(), os.linesep))
+                ml.logentry("    No overlap: Excluding {}", r.id)
             break
 
-        sky1, sky2 = _calc_sky(mosaic, next_skyline, func2use, nclip)
+        sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat, subtractsky)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(next_skyline, diff_sky)
+        _set_skyuser(next_skyline, diff_sky, readonly, subtractsky)
 
-        flog.write('    Mosaic{4}        SKY = {0:E}{4}'
-                   '    Updating {1}{4}        SKY = {2:E}{4}'
-                   '        SKYUSER = {3:E}{4}'.format(
-            sky1, next_skyline._rough_id(), sky2, diff_sky, os.linesep))
+        ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"  \
+                    "    Image     \'{1:s}\' SKY = {2:G} " \
+                    "[brightness units]{3}" \
+                    "    Updating Image (values are in data units):",  \
+                    sky1, next_skyline.id, sky2, os.linesep)
+
+        for m in next_skyline.members:
+            ml.logentry("        EXT = {0:s}"                   \
+                        "   delta({1:s}) = {2:G}"  \
+                        "   NEW {1:s} = {3:G}", \
+                        ext2str(m.ext), m.get_skyuser_kwd(),    \
+                        m.skyuser_delta, m.skyuser)
 
         try:
             new_mos = mosaic.add_image(next_skyline)
         except:
             if __local_debug__:
-                flog.write('WARNING: Cannot add {} to mosaic.{}'.format(next_skyline._rough_id(), os.linesep))
+                ml.warning("Could not add \'{}\' to mosaic.", next_skyline.id)
             else:
-                raise
+                ml.error("Could not add \'{}\' to mosaic.", next_skyline.id)
+                for sl in remaining:
+                    ml.error()
+                    sl.close(clean=clean)
+                mosaic.close(clean=clean)
+                ml.print_endlog_msg()
+                ml.close()
+                raise RuntimeError("Could not add \'{}\' to mosaic. " \
+                        "Possibly this SkyLine does not intersect the " \
+                        "mosaic.".format(next_skyline.id))
         else:
             mosaic = new_mos
-            flog.write('        Added to mosaic{}'.format(os.linesep))
-        finally:
             remaining.remove(next_skyline)
-            flog.write(os.linesep)
+            ml.logentry("    Added \'{}\' to mosaic.", next_skyline.id)
+        ml.skip()
+
+    if remaining:
+        ml.error("The following SkyLines could not be processed:")
+        for sl in remaining:
+            ml.error("Could not process SkyLine \'{}\'.", sl.id)
+            sl.close(clean=clean)
+
+    mosaic.close(clean=clean)
 
     # Time it
     runtime_end = datetime.now()
-    flog.write('***** {} ended on {}{}'.format(
-        __taskname__, runtime_end, os.linesep))
-    _print_and_close('TOTAL RUN TIME: {}'.format(
-        runtime_end - runtime_begin), flog)
+    ml.logentry("***** {} ended on {}", __taskname__, runtime_end)
+    ml.logentry("TOTAL RUN TIME: {}", runtime_end - runtime_begin)
+    if ml.count == 0 and not verbose:
+        print("TOTAL RUN TIME: {}".format(runtime_end - runtime_begin))
+
+    # Finalize/close log files
+    ml.print_endlog_msg()
+    ml.close()
 
 
-def _print_and_close(emsg, flog):
-    """Print error message and close log file."""
-    flog.write(emsg + os.linesep)
-    if flog is not sys.stdout:
-        print(emsg)
-        print('{} written'.format(flog.name))
-        flog.close()
+def _debug_write_region(fname, vert):
+    fh = open(fname, 'w')
+    fh.write('# Region file format: DS9 version 4.1\n')
+    fh.write('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
+    fh.write('image\n')
+    fh.write('polygon({})\n'.format(','.join(map(str,[x for e in vert for x in e]))))
+    fh.close()
 
-def _pick_skyfunc(choice):
-    """   
-    Use default unless a valid choice is provided.
 
-    Parameters
-    ----------
-    choice : see `match.skyfunc`
-
-    Returns
-    -------
-    Function to use for sky calculations.
-
-    """
-    if choice == 'mean':
-        return computeSky.mean
-    elif choice == 'median':
-        return computeSky.median
-    else:  # default
-        return computeSky.mode
-
-def _pixelate(arr, min, max):
-    """
-    Return valid pixel values within given limits.
-    
-    Values are rounded to nearest integer and clipped
-    to given limits.
-
-    Parameters
-    ----------
-    arr : float array
-        Coordinates in a single dimension.
-
-    min, max : int
-        Allowed pixel limits, inclusive.
-
-    Returns
-    -------
-    Rounded and clipped pixel values.
-
-    """
-    return numpy.clip(numpy.round(arr).astype('int'), min, max)
-
-def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
+def _weighted_sky(skyline, ra, dec, skystat, subtractsky, _dbg_name):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -330,11 +1070,8 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
     ra, dec : array_like
         RA and DEC of the polygon.
 
-    skyfunc : function
-        Function for sky calculations.
-
-    nclip : int
-        Number of clipping iterations.
+    skystat : A SkyStats object
+        Class for sky calculations.
 
     Raises
     ------
@@ -348,46 +1085,132 @@ def _weighted_sky(skyline, ra, dec, skyfunc, nclip):
     w_sky = 0.0
     w_tot = 0.0
 
-    for wcs in skyline._indv_mem_wcslist():
+    for member in skyline.members:
+        wcs = member.wcs
         # All pixels along intersection boundary for that chip
         sparse_x, sparse_y = wcs.all_sky2pix(ra, dec, 0)
-        x, y = zip(*bresenham.lines(*zip(_pixelate(sparse_x, 0, wcs.naxis1-1),
-                                         _pixelate(sparse_y, 0, wcs.naxis2-1))))
-        x = numpy.array(x)
-        y = numpy.array(y)
+        ivert = zip(*[map(int,sparse_x),map(int,sparse_y)])
 
-        fill_mask = numpy.zeros((wcs.naxis2, wcs.naxis1), dtype='bool')
+        if __local_debug__:
+            #print("{}".format(ivert))
+            fn = member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'-'+_dbg_name.split('_')[0]+'.reg'
+            _debug_write_region(fn, ivert)
 
-        # Process each row in intersection boundary
-        for cur_y in numpy.unique(y):
-            idx = numpy.where(y == cur_y)
+        fill_mask = np.zeros((wcs.naxis2, wcs.naxis1), dtype=np.uint8)
+        pol = region.Polygon(1, ivert)
+        fill_mask = pol.scan(fill_mask)
 
-            # Can have odd or even number of matches near top or bottom.
-            # In those cases, aliasing might occur.
-            x1 = x[idx][::2]
-            x2 = x[idx][1::2]
-            nx = min([x1.size, x2.size])
+        if __local_debug__:
+            print("** NPIX={}".format(np.count_nonzero(fill_mask)))
 
-            # Flag pixels within intersection
-            for ix in xrange(nx):
-                fill_mask[cur_y, x1[ix]:x2[ix]+1] = True
+        dqmask = member.mask_data # may be a combination of DQ data and user mask
+        if dqmask is not None:
+            fill_mask *= dqmask
+            member.free_mask_data()
+            del dqmask
+
+        if __local_debug__:
+            fn = member.basefname.split('_')[0]+'_'+\
+                ext2str(member.ext,True)+'-'+_dbg_name.split('_')[0]+'.fits'
+            if os.path.exists(fn):
+                os.remove(fn)
+            # write data to the "temporary" file
+            hdu      = pyfits.PrimaryHDU(fill_mask)
+            hdulist  = pyfits.HDUList([hdu])
+            hdulist.writeto(fn)
+            # clean-up
+            hdulist.close()
+            del hdu, hdulist
 
         # Calculate sky
-        dat = pyfits.getdata(wcs.filename,
-                             ext=wcs.extname)[numpy.where(fill_mask)]
-        npix = dat.size
+        if np.count_nonzero(fill_mask) == 0:
+            continue
+
+        if __local_debug__:
+            sky, npix = skystat.calc_sky(member.image_data)
+            print("** FULL SKY: {}   NPIX: {}".format(sky, npix))
+
+        dat = member.image_data[np.where(fill_mask)]
+        sky, npix = skystat.calc_sky(dat)
+        if subtractsky:
+            sky = member.data2brightness(sky)
+        else:
+            sky = member.data2brightness(sky-member.skyuser)
         if npix > 1:
-            sky = skyfunc(dat, nclip=nclip)
             w_sky += npix * sky
             w_tot += npix
 
     if w_tot == 0:
         raise ValueError('_weighted_sky has invalid weight for '
-                         '({}, {}, {}, {})'.format(skyline, ra, dec, nclip))
+                         '({}, {}, {})'.format(skyline, ra, dec))
     else:
         return w_sky / w_tot
 
-def _calc_sky(s1, s2, skyfunc, nclip):
+
+def _minsky(skyline, skystat, subtractsky, mlog):
+    """
+    Calculate the weighted average of sky from individual
+    chips in the given skyline within a given RA and DEC
+    of a polygon.
+
+    Parameters
+    ----------
+    skyline : `SkyLine` object
+
+    ra, dec : array_like
+        RA and DEC of the polygon.
+
+    skystat : A SkyStats object
+        Class for sky calculations.
+
+    Raises
+    ------
+    ValueError
+        Total weight is zero.
+
+    Returns
+    -------
+    sky : float
+
+    """
+    minsky = None
+    for member in skyline.members:
+        dqmask = member.mask_data # may be a combination of DQ data and user mask
+        if dqmask is None:
+            dat = member.image_data
+        else:
+            dat = member.image_data[np.where(dqmask)]
+            member.free_mask_data()
+            del dqmask
+
+        if dat.size < 1:
+            # we need at least 1 valid pixel to do statistics
+            mlog.warning("Not enough data points to compute sky for \'{}\'.",
+                         member.id)
+            continue
+
+        # Calculate sky
+        sky, npix = skystat.calc_sky(dat)
+        if npix < 1:
+            # we need at least 1 valid pixel to do statistics
+            mlog.warning("Not enough data points to compute sky for " \
+                         "\'{}\' after clipping was applied.",
+                         member.id)
+            continue
+
+        # convert to flux/pixel area units
+        if subtractsky:
+            sky = member.data2brightness(sky)
+        else:
+            sky = member.data2brightness(sky-member.skyuser)
+
+        if minsky is None or minsky > sky:
+            minsky = sky
+
+    return minsky
+
+
+def _calc_sky(s1, s2, skystat, subtractsky):
     """
     Calculate weighted sky values and their difference in
     overlapping regions of given skylines.
@@ -396,11 +1219,8 @@ def _calc_sky(s1, s2, skyfunc, nclip):
     ----------
     s1, s2 : `SkyLine` objects
 
-    skyfunc : function
-        Function to use for sky calculations.
-
-    nclip : int
-        Number of clipping iterations.
+    skystat : A SkyStats object
+        Class for sky calculations.
 
     Returns
     -------
@@ -411,12 +1231,21 @@ def _calc_sky(s1, s2, skyfunc, nclip):
     intersect = s1.find_intersection(s2)
     intersect_ra, intersect_dec = intersect.to_radec()
 
-    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skyfunc, nclip)
-    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skyfunc, nclip)
+    #DEBUG
+    def make_name(s):
+        from .utils import ext2str
+        b = s.basefname
+        e = s.ext
+        fn = b + '_'+e
+        return fn
+
+    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skystat, subtractsky, s2.id)
+    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skystat, subtractsky, s1.id)
 
     return sky1, sky2
 
-def _set_skyuser(skyline, value):
+
+def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky):
     """
     Set SKYUSER in SCI headers and subtract SKYUSER from
     SCI data.
@@ -430,39 +1259,91 @@ def _set_skyuser(skyline, value):
         Skyline of the image to update. Does not work if
         skyline is a product of union or intersection.
 
-    value : float
-        SKYUSER value for the image. It is the same for
-        all extensions.
-
     """
-    hdr_keyword = 'SKYUSER'
-    im_name = skyline._rough_id()
-    
-    with pyfits.open(im_name, mode='update') as pf:
-        for ext in skyline.members[0].ext:
-            pf[ext].data -= value
-            pf[ext].header.update(hdr_keyword, value)
-            pf[ext].header.add_history('{} {:E} subtracted from image'.format(
-                hdr_keyword, value))
 
-        pf['PRIMARY'].header.add_history('{} by {} {} ({})'.format(
-            hdr_keyword, __taskname__, __version__, __vdate__))
+    if skyline.is_mf_mosaic or len(skyline.members) < 1:
+        return
+
+    hdr_keyword = skyline.members[0].get_skyuser_kwd()
+
+    if readonly_mode:
+        for m in skyline.members:
+            skyuser_delta = m.brightness2data(skyval_brightness)
+            m.update_skyuser(skyuser_delta)
+        return
+
+    # if not readonly_mode => apply sky differences to data:
+    for m in skyline.members:
+        ext = m.ext
+        skyuser_delta = m.brightness2data(skyval_brightness)
+        m.update_skyuser(skyuser_delta)
+        if subtractsky:
+            m.image_hdulist[ext].data -= skyuser_delta
+        m.image_header.update(hdr_keyword, m.skyuser,
+                    comment='Sky *match* value computed by SkyMatch')
+        m.image_header.add_history('{} {:E} subtracted from image'.format(
+            hdr_keyword, skyuser_delta))
+
+    if skyline.members:
+        skyline.members[0].image_hdulist[0].header.add_history(
+            '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
+                                      __version__, __vdate__))
 
 
 #--------------------------
 # TEAL Interface functions
 #--------------------------
 def run(configObj):
-    match4teal(configObj['input'], skyfunc=configObj['skyfunc'],
-          nclip=configObj['nclip'], logfile=configObj['logfile'])
 
-def getHelpAsString():   
+    TEAL_SkyMatch(input       = configObj['input'],
+                  skymethod   = configObj['skymethod'],
+                  skystat     = configObj['skystat'],
+                  lower       = configObj['lower'],
+                  upper       = configObj['upper'],
+                  nclip       = configObj['nclip'],
+                  lsigma      = configObj['lsigma'],
+                  usigma      = configObj['usigma'],
+                  binwidth    = configObj['binwidth'],
+                  skyuser_kwd = configObj['skyuser_kwd'],
+                  units_kwd   = configObj['units_kwd'],
+                  readonly    = configObj['readonly'],
+                  subtractsky = configObj['subtractsky'],
+                  DQFlags     = configObj['DQFlags'],
+                  optimize    = configObj['optimize'],
+                  clobber     = configObj['clobber'],
+                  clean       = configObj['clean'],
+                  verbose     = configObj['verbose'],
+                  logfile     = configObj['logfile'])
+
+def getHelpAsString(docstring=True):
     helpString = ''
 
-    if teal:
-        helpString += teal.getHelpFileAsString(__taskname__,__file__)
+    #if teal:
+        #helpString += teal.getHelpFileAsString(__taskname__,__file__)
 
     if helpString.strip() == '':
-        helpString += __doc__ + os.linesep + match4teal.__doc__ + os.linesep + match.__doc__
+        helpString += __doc__ + os.linesep + TEAL_SkyMatch.__doc__ + \
+            os.linesep + skymatch.__doc__
 
     return helpString
+
+
+def help(file=None):
+    """
+    Print out syntax help for running skymatch
+
+    Parameters
+    ----------
+    file : str (Default = None)
+        If given, write out help to the filename specified by this parameter
+        Any previously existing file with this name will be deleted before
+        writing out the help.
+    """
+    helpstr = getHelpAsString(docstring=True)
+    if file is None:
+        print(helpstr)
+    else:
+        if os.path.exists(file): os.remove(file)
+        f = open(file,mode='w')
+        f.write(helpstr)
+        f.close()

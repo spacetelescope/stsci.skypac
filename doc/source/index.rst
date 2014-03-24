@@ -12,8 +12,11 @@ Contents:
    :maxdepth: 2
 
    skymatch
-   computeSky
-   bresenham
+   skyline
+   parseat
+   region
+   skystatistics
+   utils
 
 Indices and tables
 ==================
