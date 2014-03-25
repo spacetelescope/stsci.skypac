@@ -229,7 +229,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'skypac', u'skypac Documentation',
-   u'Mihai Cara, Warren Hack, Pey Lian Lim', 'skypac', 'One line description of project.',
+   u'Mihai Cara, Warren Hack, Pey Lian Lim', 'skypac',
+   'One line description of project.',
    'Miscellaneous'),
 ]
 
