@@ -4,7 +4,7 @@ Utility functions for skypac.
 
 .. moduleauthor:: Mihai Cara <help@stsci.edu>
 
-.. currentmodule:: skypac.utils
+.. currentmodule:: stsci.skypac.utils
 
-.. automodule:: skypac.utils
+.. automodule:: stsci.skypac.utils
    :members:

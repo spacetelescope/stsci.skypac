@@ -100,6 +100,91 @@ __version__ = '0.6'
 __vdate__ = '12-Dec-2013'
 
 
+
+
+
+#Skylines
+#--------
+
+#Skylines are designed to capture and manipulate HST WCS image information as
+#spherical polygons. They are represented by the `~stsci.sphere.skyline.SkyLine`
+#class, which is an extension of `~stsci.sphere.polygon.SphericalPolygon` class.
+
+#Representation
+#``````````````
+#Each skyline has a list of members, `~stsci.sphere.skyline.SkyLine.members`,
+#and a composite spherical polygon, `~stsci.sphere.skyline.SkyLine.polygon`,
+#members. The polygon has all the functionalities of
+#defined by those `~stsci.sphere.polygon.SphericalPolygon`.
+
+#What is a skyline member?
+#^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#Each member in `~stsci.sphere.skyline.SkyLine.members` belongs to the
+#`~stsci.sphere.skyline.SkyLineMember` class, which contains image name (with
+#path if given), science extension(s), and composite WCS and polygon of the
+#extension(s). All skylines start out with a single member from a single image.
+#When operations are used to find composite or intersecting skylines, the
+#resulting skyline can have multiple members.
+
+#For example, a skyline from an ACS/WFC full-frame image would give 1 member,
+#which is a composite of extensions 1 and 4. A skyline from the union of 2 such
+#images would have 2 members, and so forth.
+
+#Creating skylines
+#`````````````````
+
+#`~stsci.sphere.skyline.SkyLine` constructor takes an image name and an optional
+#`extname` keyword, which defaults to "SCI". To create skyline from
+#single-extension FITS, change `extname` to "PRIMARY".
+
+#If `None` is given instead of image name, an empty skyline is created with no
+#member and an empty spherical polygon.
+
+#Operations on skylines
+#``````````````````````
+
+#`~stsci.sphere.skyline.SkyLine` has direct access to most of the
+#`~stsci.sphere.polygon.SphericalPolygon` properties and methods *except* for the
+#following (which are still accessible indirectly via
+#`~stsci.sphere.skyline.SkyLine.polygon`):
+
+  #- `~stsci.sphere.polygon.SphericalPolygon.from_radec`
+  #- `~stsci.sphere.polygon.SphericalPolygon.from_cone`
+  #- `~stsci.sphere.polygon.SphericalPolygon.from_wcs`
+  #- `~stsci.sphere.polygon.SphericalPolygon.multi_union`
+  #- `~stsci.sphere.polygon.SphericalPolygon.multi_intersection`
+
+#In addition, `~stsci.sphere.skyline.SkyLine` also has these operations available:
+
+  #- `~stsci.sphere.skyline.SkyLine.to_wcs`: Return a composite HST WCS object
+    #defined by all the members. In a skyline resulting from intersection, this
+    #does *not* return the WCS of the intersecting polygons.
+
+  #- `~stsci.sphere.skyline.SkyLine.add_image`: Return a new skyline that is the
+    #union of two skylines. This should be used, *not* `SkyLine.union` (which is
+    #actually `~sphere.polygon.SphericalPolygon.union`) that will not include
+    #members.
+
+  #- `~stsci.sphere.skyline.SkyLine.find_intersection`: Return a new skyline
+    #that is the intersection of two skylines. This should be used, *not*
+    #`SkyLine.intersection` (which is actually
+    #`~stsci.sphere.polygon.SphericalPolygon.intersection`) that will not include
+    #members.
+
+  #- `~stsci.sphere.skyline.SkyLine.find_max_overlap` and
+    #`~stsci.sphere.skyline.SkyLine.max_overlap_pair`: Return a pair of skylines
+    #that overlap the most from a given list of skylines.
+
+  #- `~stsci.sphere.skyline.SkyLine.mosaic`: Return a new skyline that is a mosaic of
+    #given skylines that overlap, a list of image names of the skylines used, and
+    #a list of image names of the excluded skylines. A pair of skylines with the
+    #most overlap is used as a starting point. Then a skyline that overlaps the
+    #most with the mosaic is used, and so forth until no overlapping skyline is
+    #found.
+
+
+
 class SkyLineMember(object):
     """
     Container for `SkyLine` members with these attributes:

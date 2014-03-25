@@ -8,7 +8,7 @@ Sky matching for image mosaic.
 
 .. moduleauthor:: Warren Hack <help@stsci.edu>
 
-.. currentmodule:: skypac.skymatch
+.. currentmodule:: stsci.skypac.skymatch
 
-.. automodule:: skypac.skymatch
+.. automodule:: stsci.skypac.skymatch
    :members:

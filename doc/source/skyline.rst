@@ -8,7 +8,7 @@ SkyLine (chip outline on the sky) management for image mosaic.
 
 .. moduleauthor:: Warren Hack <help@stsci.edu>
 
-.. currentmodule:: skypac.skyline
+.. currentmodule:: stsci.skypac.skyline
 
-.. automodule:: skypac.skyline
+.. automodule:: stsci.skypac.skyline
    :members:

@@ -4,7 +4,7 @@ Polygon filling algorithm
 
 .. moduleauthor:: Nadezhda Dencheva <help@stsci.edu>
 
-.. currentmodule:: skypac.region
+.. currentmodule:: stsci.skypac.region
 
-.. automodule:: skypac.region
+.. automodule:: stsci.skypac.region
    :members:
