@@ -107,7 +107,7 @@ class SkyLineMember(object):
         * `fname`: Image name (with path if given)
         * `ext`: Tuple of extensions read
         * `wcs`: `HSTWCS` object the composite data
-        * `polygon`: :py:class:`~sphere.polygon.SphericalPolygon`
+        * `polygon`: :py:class:`~stsci.sphere.polygon.SphericalPolygon`
           object of the composite data
 
     """
@@ -566,7 +566,7 @@ class SkyLine(object):
 
     Each `SkyLine` has a list of `~SkyLine.members` and
     a composite `~SkyLine.polygon` with all the
-    functionalities of `~sphere.polygon.SphericalPolygon`.
+    functionalities of `~stsci.sphere.polygon.SphericalPolygon`.
 
     """
     def __init__(self, mlist):
@@ -632,7 +632,7 @@ class SkyLine(object):
         self.members = slm
 
     def __getattr__(self, what):
-        """Control attribute access to `~sphere.polygon.SphericalPolygon`."""
+        """Control attribute access to `~stsci.sphere.polygon.SphericalPolygon`."""
         if what in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
@@ -668,7 +668,7 @@ class SkyLine(object):
     @property
     def polygon(self):
         """
-        `~sphere.polygon.SphericalPolygon` portion of `SkyLine`
+        `~stsci.sphere.polygon.SphericalPolygon` portion of `SkyLine`
         that contains the composite skyline from `members`
         belonging to *self*.
 

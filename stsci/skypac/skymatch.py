@@ -35,10 +35,10 @@ __vdate__ = '12-Dec-2013'
 __author__ = 'Mihai Cara'
 
 # DEBUG - Can remove this when sphere is stable
-__local_debug__ = True
+__local_debug__ = False
 
-if __local_debug__:
-    from .utils import ext2str
+#if __local_debug__:
+    #from .utils import ext2str
 
 
 def TEAL_SkyMatch(input, skymethod='globalmin+match',
