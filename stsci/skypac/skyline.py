@@ -83,7 +83,7 @@ import numpy as np
 import pyfits
 from stwcs import wcsutil
 from stwcs.distortion.utils import output_wcs
-from sphere.polygon import SphericalPolygon
+from stsci.sphere.polygon import SphericalPolygon
 #from stsci.tools.fileutil import openImage
 #from drizzlepac.imageObject import imageObject
 
