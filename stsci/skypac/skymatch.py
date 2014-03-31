@@ -91,8 +91,14 @@ def skymatch(input, skymethod='globalmin+match',
              skyuser_kwd='SKYUSER', units_kwd='BUNIT',
              readonly=True, subtractsky=False, DQFlags=None,
              optimize='balanced', clobber=False, clean=True,
-             verbose=True, flog='skymatch_log.txt'):
+             verbose=True, flog='skymatch_log.txt',
+             _taskname4history='SkyMatch'):
     """
+    skymatch(input, skymethod='globalmin+match', \
+skystat='mode', lower=None, upper=None, nclip=5, lsigma=4.0, usigma=4.0, \
+binwidth=0.1, skyuser_kwd='SKYUSER', units_kwd='BUNIT', readonly=True, \
+subtractsky=False, DQFlags=None, optimize='balanced', clobber=False, \
+clean=True, verbose=True, flog='skymatch_log.txt')
     Standalone task to compute and/or "equalize" sky in input images.
 
     .. note:
@@ -808,7 +814,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                         os.linesep, sl.id, sky)
 
             if sky is None: sky = 0.0
-            _set_skyuser(sl, sky, readonly, subtractsky)
+            _set_skyuser(sl, sky, readonly, subtractsky, _taskname4history)
 
             for m in sl.members:
                 ml.logentry("        EXT = {0:s}"      \
@@ -858,7 +864,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
             ml.logentry("    Computed sky change (data units) " \
                         "for image {:s}:", sl.id)
 
-            _set_skyuser(sl, minsky, readonly, subtractsky)
+            _set_skyuser(sl, minsky, readonly, subtractsky, _taskname4history)
 
             for m in sl.members:
                 ml.logentry("        EXT = {0:s}"      \
@@ -940,7 +946,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         sv0 = sky2
         svu = sky1
 
-    _set_skyuser(skyline2zero, minsky, readonly, subtractsky)  # Avoid Astrodrizzle crash
+    _set_skyuser(skyline2zero, minsky, readonly, subtractsky,
+                 _taskname4history)  # Avoid Astrodrizzle crash
 
     ml.logentry("    Image 1: \'{0}\'  --  SKY = {1:E} (brightness units){5}"
                 "    Image 2: \'{2}\'  --  SKY = {3:E} (brightness units){5}"
@@ -957,7 +964,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
     ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
                 skyline2update.id)
 
-    _set_skyuser(skyline2update, minsky + diff_sky, readonly, subtractsky)
+    _set_skyuser(skyline2update, minsky + diff_sky, readonly, subtractsky,
+                 _taskname4history)
 
     for m in skyline2update.members:
         ml.logentry("        EXT = {0:s}"      \
@@ -974,7 +982,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
     mosaic = s1.add_image(s2)
 
     #---------------------------------------------------------#
-    # 7. Repeat Steps 1-5 for all remaining exposures using   #
+    # 7. Repeat Steps 1-6 for all remaining exposures using   #
     #    the newly created combined footprint as one of the   #
     #    exposures and using the sky value for this newly     #
     #    created footprint as one of the values (no need to   #
@@ -991,7 +999,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat, subtractsky)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(next_skyline, diff_sky, readonly, subtractsky)
+        _set_skyuser(next_skyline, diff_sky, readonly, subtractsky,
+                     _taskname4history)
 
         ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"  \
                     "    Image     \'{1:s}\' SKY = {2:G} " \
@@ -1245,7 +1254,8 @@ def _calc_sky(s1, s2, skystat, subtractsky):
     return sky1, sky2
 
 
-def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky):
+def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
+                 _taskname4history):
     """
     Set SKYUSER in SCI headers and subtract SKYUSER from
     SCI data.
@@ -1280,9 +1290,10 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky):
         if subtractsky:
             m.image_hdulist[ext].data -= skyuser_delta
         m.image_header.update(hdr_keyword, m.skyuser,
-                    comment='Sky *match* value computed by SkyMatch')
-        m.image_header.add_history('{} {:E} subtracted from image'.format(
-            hdr_keyword, skyuser_delta))
+            comment='Sky value computed by {:s}'.format(_taskname4history))
+        if _taskname4history == 'SkyMatch' and subtractsky:
+            m.image_header.add_history('{} {:E} subtracted from image by {:s}'\
+                .format(hdr_keyword, skyuser_delta, _taskname4history))
 
     if skyline.members:
         skyline.members[0].image_hdulist[0].header.add_history(
