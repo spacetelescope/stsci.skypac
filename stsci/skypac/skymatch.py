@@ -233,6 +233,26 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
         computed (if `subtractsky` is `False`\ ). This keyword's value will
         be updated by :py:func:`skymatch`\ .
 
+        .. warning::
+            When `subtractsky` is `True` then `skyuser_kwd` is treated as a
+            **cummulative** value. That is, subtracted sky value will be
+            **added** to the `skyuser_kwd` value and thus `skyuser_kwd`
+            represents *total* sky subtracted from the image by the user
+            over the entire "history" of the image.
+            If `skyuser_kwd` is missing in the input image,
+            "previous" sky value will be considered to be 0.0.
+
+            When `subtractsky` is `False` then `skyuser_kwd` represents
+            **computed** sky value and it is **not** treated as a
+            **cummulative** value. Any previous value of the `skyuser_kwd`
+            header keyword will be **overwritten**\ .
+
+            Because of different meanings of the value represented by the
+            `skyuser_kwd` header keyword depending on the value of the
+            `subtractsky` parameter, it is important to be consistent
+            and not to mix the two modes when using :py:func:`skymatch`
+            multiple times on the same images.
+
     units_kwd : str (Default = 'BUNIT')
         Name of header keyword which records the units of the data in the
         image.
@@ -248,6 +268,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
         `skyuser_kwd`\ : inconsistent use may lead to sky value reported
         in `skyuser_kwd` header keyword not reflect correct sky value
         in sky subtracted flat-fielded images.
+
+        .. warning::
+          See warning for `skyuser_kwd` parameter.
 
         .. note::
           `astrodrizzle <http://stsdas.stsci.edu/\
@@ -475,16 +498,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         spherical polygons. Footprints of exposures and mosaics are
         computed as unions of such spherical polygons while overlaps
         of image pairs are found by intersecting these spherical polygons.
-        
+
     **@-File Format:**
-      A catalog file containing a science image file 
-      and extension specifications and optionally followed by a 
+      A catalog file containing a science image file
+      and extension specifications and optionally followed by a
       comma-separated list of mask files and extension specifications
       (or None).
 
       File names will be stripped of leading and trailing white spaces. If it
       is essential to keep these spaces, file names may be enclosed in single
-      or double quotation marks. Quotation marks may also be required when 
+      or double quotation marks. Quotation marks may also be required when
       file names contain special characters used to separate file names and
       extension specifications: ,[]{}
 
@@ -510,7 +533,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
       For extensions in the science image for which no mask file is provided,
       the corresponding mask file names may be omitted (but a comma must still
       be used to show that no mask is provided in that position) or None can
-      be used in place of the file name. NOTE: 'None' (in quotation marks) 
+      be used in place of the file name. NOTE: 'None' (in quotation marks)
       will be interpreted as a file named None.
 
       Some examples of possible user input:
@@ -762,6 +785,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
             else str(sl.members[0].exptime)
 
         for m in sl.members:
+            # reset skyuser if necessary:
+            if not subtractsky:
+                m.set_skyuser(0.0)
             # Units *TYPE* (counts or rate?):
             if m.is_countrate == None:
                 unittype = "UNKNOWN"
@@ -1200,6 +1226,9 @@ def _minsky(skyline, skystat, subtractsky, mlog):
 
         # Calculate sky
         sky, npix = skystat.calc_sky(dat)
+        if __local_debug__:
+            print("_minsky : raw sky stat : fields = \'{}\',  npix = {}, sky = {}"\
+                  .format(skystat._fields, npix, sky))
         if npix < 1:
             # we need at least 1 valid pixel to do statistics
             mlog.warning("Not enough data points to compute sky for " \
@@ -1295,7 +1324,7 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
             m.image_header.add_history('{} {:E} subtracted from image by {:s}'\
                 .format(hdr_keyword, skyuser_delta, _taskname4history))
 
-    if skyline.members:
+    if skyline.members and _taskname4history == 'SkyMatch':
         skyline.members[0].image_hdulist[0].header.add_history(
             '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
                                       __version__, __vdate__))

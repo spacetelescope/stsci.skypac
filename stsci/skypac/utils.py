@@ -554,7 +554,7 @@ stsci_python_dev/pyfits.docs/html/api_docs/api_files.html#pyfits.getdata>`_
     # if necessary) keyword values. Return the default for a specific
     # 'INSTRUME'/'DETECTOR' combination.
     supported_telescopes    = ['HST']
-    counts_only_instruments = ['WFPC','WFPC2','ACS','HRS','STIS']
+    counts_only_instruments = ['WFPC','WFPC2','ACS', 'STIS'] # 'HRS'
     mixed_units_instruments = ['NICMOS','WFC3']
     rates_only_instruments  = ['FOC','COS']
     supported_instruments = counts_only_instruments+mixed_units_instruments+ \
@@ -649,6 +649,10 @@ class MultiFileLog(object):
     console : bool (Default = True)
         Enables writting to the standard output.
 
+    enableBold : bool (Default = True)
+        Enable or disable writing bold text to console, e.g., 'WARNING:'
+        'ERROR:', etc.
+
     flog : str, file, None, list of str or file objects (Default = None)
         File name or file object to be added to `MultiFileLog` during the
         initialization. More files can be added lated with
@@ -669,7 +673,7 @@ class MultiFileLog(object):
         Indicates whether or not to add EOL at the end of each log entry.
 
     """
-    def __init__(self, console=True, flog=None, append=True,
+    def __init__(self, console=True, enableBold=True, flog=None, append=True,
                  autoflush=True, appendEOL=True):
         self._console   = sys.stdout if console else None
         self._lsep      = "{:s}".format(os.linesep)
@@ -678,6 +682,7 @@ class MultiFileLog(object):
         self._logfh     = []
         self._close     = []
         self._autoflush = autoflush
+        self._enableBold= enableBold
         if flog:
             self.add_logfile(flog)
 
@@ -709,7 +714,7 @@ class MultiFileLog(object):
         """
         return len(self._logfh)
 
-    def enable_console(self, enable=True):
+    def enable_console(self, enable=True, enableBold=True):
         """
         Enable output to the standard console -- `sys.stdout`\ .
 
@@ -717,6 +722,10 @@ class MultiFileLog(object):
         ----------
         enable : bool (Default = True)
             Enable or disable output to `sys.stdout`\ .
+
+        enableBold : bool (Default = True)
+            Enable or disable writing bold text to console, e.g., 'WARNING:'
+            'ERROR:', etc.
 
         """
         if enable:
@@ -726,6 +735,7 @@ class MultiFileLog(object):
                 self._console = sys.stdout
         else:
             self._console = None
+        self._enableBold = enableBold
 
     def add_logfile(self, flog, initial_skip=2, can_close=None, mode=None):
         """
@@ -924,7 +934,10 @@ class MultiFileLog(object):
         m = msg.format(*fmt) + self._eol
 
         if self._console:
-            bm = "\x1B[1m{:s}: \x1B[0m".format(bmsg)
+            if self._enableBold:
+                bm = "\x1B[1m{:s}: \x1B[0m".format(bmsg)
+            else:
+                bm = "*{:s}:* ".format(bmsg)
             self._console.write(bm + m)
 
         bm = "*{:s}:* ".format(bmsg)

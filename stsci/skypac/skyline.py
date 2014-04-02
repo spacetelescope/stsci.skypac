@@ -460,6 +460,27 @@ class SkyLineMember(object):
         # replace it with 0 once the bug in fileutil.getExtn() is fixed.
         # The bug causes imageObject[0] to return first image HDU instead
         # of the PRIMARY HDU.
+        assert(pscale > 0.0)
+
+        supported_telescopes  = ['HST']
+        supported_instruments = ['WFPC', 'WFPC2', 'ACS', 'STIS', \
+                                 'NICMOS', 'WFC3', 'FOC', 'COS']
+        photcorr_kwd = {
+            'FOC'    : [ 'WAVCORR',  'COMPLETE'  ],
+            'WFPC'   : [ 'DOPHOTOM', 'DONE'      ],
+            'WFPC2'  : [ 'DOPHOTOM', 'COMPLETE'  ],
+            'NICMOS' : [ 'PHOTDONE', 'PERFORMED' ],
+            'STIS'   : [ 'PHOTCORR', 'COMPLETE'  ],
+            'ACS'    : [ 'PHOTCORR', 'COMPLETE'  ],
+            'WFC3'   : [ 'PHOTCORR', 'COMPLETE'  ],
+            'COS'    : [ 'PHOTCORR', 'COMPLETE'  ]
+        }
+
+        sci_header = hdulist[self.ext].header
+        primary_header = hdulist[primHDUname].header
+
+        # start with pixel-area scaling and add other conversion factors later
+        self._data2brightness_conv = 1.0/(pscale**2)
 
         # check if image data are in counts or count-rate
         self._is_countrate = is_countrate(hdulist, self.ext,
@@ -469,53 +490,152 @@ class SkyLineMember(object):
 
         # Check that all the necessary information for conversion
         # to flux (brightness) units is available:
-        missing_info = False
-
         if self.is_countrate == None:
             self._ml.warning(
                 "Unable to determine units of data in file {0}.{1}"  \
-                "No conversion to brightness units will be performed " \
-                "(except for pixel area rescaling).". \
+                "*ASSUMING* image data are \"COUNT-RATE\".". \
                 self._basefname, os.linesep)
-            missing_info = True
 
         # retrieve PHOTFLAM:
-        if 'PHOTFLAM' in hdulist[self.ext].header:
-            self._photflam = hdulist[self.ext].header['PHOTFLAM']
-        elif 'PHOTFLAM' in hdulist[primHDUname].header:
-            self._photflam = hdulist[primHDUname].header['PHOTFLAM']
+
+        # Initially assume that PHOTCORR was performed. For non-HST images
+        # or unsupported instruments, we assume that PHOTCORR was performed,
+        # and in the end we will check if PHOTFLAM has a reasonable value (>0)
+        # if present.
+        photcorr = True
+
+        if 'TELESCOP' in primary_header:
+            telescope = primary_header['TELESCOP'].strip().upper()
         else:
-            self._photflam = None
-            if not missing_info:
+            telescope = None
+
+        if telescope not in supported_telescopes:
+            self._ml.warning("Skipping check of photometric correction " \
+                             "step for{:s}non-HST file \'{:s}\': "     \
+                             "Unsupported telescope.", os.linesep, self._basefname)
+            telescope = None
+
+        if telescope is not None:
+            if 'INSTRUME' in primary_header:
+                instrument = primary_header['INSTRUME'].strip().upper()
+                if instrument not in supported_instruments:
+                    self._ml.warning("Skipping check of photometric "        \
+                                     "correction step for{:s}file \'{:s}\': "\
+                                     "Unsupported instrument \'{:s}\'.",
+                                     os.linesep, self._basefname, instrument)
+                    instrument = None
+            else:
+                # For HST instruments we expect 'INSTRUME' to be present
+                # in the primary header.
+                errmsg = "Missing instrument information in " \
+                               "\'{:s}\' data file \'{:s}\'." \
+                               .format(telescope, self._basefname)
+                self._ml.error(errmsg)
+                self._ml.close()
+                raise KeyError(errmsg)
+
+        # see if photometric correction step was performed:
+        if telescope is not None and instrument is not None:
+            phot_switch = photcorr_kwd[instrument][0]
+            phot_done   = photcorr_kwd[instrument][1]
+
+            if phot_switch in primary_header:
+                phot_switch_val = primary_header[phot_switch].strip()
+                if phot_switch_val.upper() != phot_done:
+                    photcorr = False
+                    self._ml.warning("Photometric correction was not " \
+                        "performed for data file {1:s}.{0:s}" \
+                        "Variations in detector sensitivity WILL NOT " \
+                        "be accounted for.",
+                        os.linesep, self._basefname)
+                    self._photflam = None
+            else:
+                # For HST instruments we expect ~'PHOTCORR' to be present
+                # in the primary header.
+                errmsg = "Missing photometry switch keyword \'{:s}\' in " \
+                         "{:s}-{:s} data file \'{:s}\'." \
+                         .format(phot_switch, telescope, instruments, self._basefname)
+                self._ml.error(errmsg)
+                self._ml.close()
+                raise KeyError(errmsg)
+
+        if photcorr:
+            if 'PHOTFLAM' in sci_header:
+                self._photflam = sci_header['PHOTFLAM']
+                if self._photflam > 0.0:
+                    self._data2brightness_conv *= self._photflam
+                else:
+                    self._ml.warning(
+                        "\'PHOTFLAM\' value must be a *strictly* positive "  \
+                        "number.{0:s}Found: \'PHOTFLAM\' = {1} in extension "\
+                        "{2:s} in data file \'{3:s}\'.{0:s}\'PHOTFLAM\' "    \
+                        "value will be ignored.{0:s}Variations in detector " \
+                        "sensitivity WILL NOT be accounted for.",            \
+                        os.linesep, self._photflam, ext2str(self.ext),
+                        self._basefname)
+                    self._photflam = None
+            elif 'PHOTFLAM' in primary_header:
+                self._photflam = primary_header['PHOTFLAM']
+                if self._photflam > 0.0:
+                    self._data2brightness_conv *= self._photflam
+                else:
+                    self._ml.warning(
+                        "\'PHOTFLAM\' value must be a *strictly* positive "  \
+                        "number.{0}Found: \'PHOTFLAM\' = {1} in the primary "\
+                        "header in data file \'{2:s}\'.{0:s}\'PHOTFLAM\' "   \
+                        "value will be ignored.{0:s}Variations in detector " \
+                        "sensitivity WILL NOT be accounted for.",            \
+                        os.linesep, self._photflam, self._basefname)
+                    self._photflam = None
+            else:
+                self._photflam = None
                 self._ml.warning(
-                    "Keyword \'PHOTFLAM\' not found in the header of "   \
-                    "extension ({0:s}) in file {1:s}.{2}"                \
-                    "No conversion to brightness units will be performed.", \
-                    ext2str(self._ext), self._basefname, os.linesep)
-                missing_info = True
+                    "Keyword \'PHOTFLAM\' not found neither in the " \
+                    "Primary header nor{0:s}in the header of "       \
+                    "extension ({1:s}) in file {2:s}.{0:s}"          \
+                    "Variations in detector sensitivity WILL NOT "   \
+                    "be accounted for.",                             \
+                    os.linesep, ext2str(self.ext), self._basefname)
 
         # retrieve EXPTIME:
-        if 'EXPTIME' in hdulist[primHDUname].header:
-            self._exptime = hdulist[primHDUname].header['EXPTIME']
-        elif 'EXPTIME' in hdulist[self.ext].header:
-            self._exptime = hdulist[self.ext].header['EXPTIME']
+        if 'EXPTIME' in primary_header:
+            self._exptime = primary_header['EXPTIME']
+            if self.is_countrate == False:
+                if self._exptime > 0.0:
+                    self._data2brightness_conv /= self._exptime
+                else:
+                    self._ml.warning(
+                        "\'EXPTIME\' value must be a *strictly* positive "   \
+                        "number.{0}Found: \'EXPTIME\' = {1} in the primary " \
+                        "header in data file \'{2:s}\'.{0:s}\'EXPTIME\' "    \
+                        "value will be ignored.{0:s}Variations in exposure " \
+                        "time WILL NOT be accounted for.",                   \
+                        os.linesep, self._exptime, self._basefname)
+                    self._exptime = None
+        elif 'EXPTIME' in sci_header:
+            self._exptime = sci_header['EXPTIME']
+            if self.is_countrate == False:
+                if self._exptime > 0.0:
+                    self._data2brightness_conv /= self._exptime
+                else:
+                    self._ml.warning(
+                        "\'EXPTIME\' value must be a *strictly* positive "   \
+                        "number.{0:s}Found: \'EXPTIME\' = {1} in extension " \
+                        "{2:s} in data file \'{3:s}\'.{0:s}\'EXPTIME\' "     \
+                        "value will be ignored.{0:s}Variations in exposure " \
+                        "time WILL NOT be accounted for.",                   \
+                        os.linesep, self._exptime, ext2str(self.ext),
+                        self._basefname)
+                    self._exptime = None
         else:
             self._exptime = None
-            if not missing_info and self.is_countrate == False:
+            if self.is_countrate == False:
                 self._ml.warning(
-                    "Keyword \'EXPTIME\' not found in the primary header " \
-                    "of file {0:s}.{1}"                                    \
-                    "No conversion to brightness units will be performed.".\
-                    self._basefname, os.linesep)
-                missing_info = True
-
-        # compute conversion factor (data units -> brightness units):
-        if missing_info:
-            self._data2brightness_conv = 1.0/(pscale**2)
-        else:
-            self._data2brightness_conv = self._photflam/(pscale**2)
-            if not self.is_countrate:
-                self._data2brightness_conv /= self._exptime
+                    "Keyword \'EXPTIME\' not found neither in the "  \
+                    "Primary header nor{0:s}in the header of "       \
+                    "extension ({1:s}) in file {2:s}.{0:s}"          \
+                    "*ASSUMING* image data are \"COUNT-RATE\".",     \
+                    os.linesep, ext2str(self.ext), self._basefname)
 
     def __repr__(self):
         return '%s(%r, %r, %r, %r)' % (self.__class__.__name__, self.fname,
@@ -637,6 +757,10 @@ class SkyLineMember(object):
     def update_skyuser(self, delta_skyval):
         self._skyuser_delta = delta_skyval
         self._skyuser += delta_skyval
+
+    def set_skyuser(self, skyval):
+        self._skyuser_delta = 0.0
+        self._skyuser       = skyval
 
     def data2brightness(self, data):
         return (self.data2brightness_conv * data)
