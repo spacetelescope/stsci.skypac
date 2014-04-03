@@ -503,8 +503,8 @@ stsci_python_dev/pyfits.docs/html/api_docs/api_files.html#pyfits.getdata>`_
             ml.add_logfile(flog)
             ml.skip(2)
 
-    data_units = ['ELECTRONS','COUNTS','DN']
-    time_units = ['S','SEC','SECOND']
+    data_units = [ 'ELECTRONS','COUNTS','DN' ]
+    time_units = [ 'S','SEC','SECOND' ]
 
     fname = os.path.basename(hdulist.filename())
 
@@ -553,10 +553,10 @@ stsci_python_dev/pyfits.docs/html/api_docs/api_files.html#pyfits.getdata>`_
     # Now, try to guess the units from the 'INSTRUME' (and 'DETECTOR',
     # if necessary) keyword values. Return the default for a specific
     # 'INSTRUME'/'DETECTOR' combination.
-    supported_telescopes    = ['HST']
-    counts_only_instruments = ['WFPC','WFPC2','ACS', 'STIS'] # 'HRS'
-    mixed_units_instruments = ['NICMOS','WFC3']
-    rates_only_instruments  = ['FOC','COS']
+    supported_telescopes    = [ 'HST' ]
+    counts_only_instruments = [ 'WFPC','WFPC2','ACS', 'STIS' ] # 'HRS'
+    mixed_units_instruments = [ 'NICMOS','WFC3' ]
+    rates_only_instruments  = [ 'FOC','COS' ]
     supported_instruments = counts_only_instruments+mixed_units_instruments+ \
                             rates_only_instruments
 

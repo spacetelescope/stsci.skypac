@@ -101,7 +101,7 @@ subtractsky=False, DQFlags=None, optimize='balanced', clobber=False, \
 clean=True, verbose=True, flog='skymatch_log.txt')
     Standalone task to compute and/or "equalize" sky in input images.
 
-    .. note:
+    .. note::
        Sky matching ("equalization") is possible only for **overlapping**
        exposures.
 
@@ -113,12 +113,13 @@ clean=True, verbose=True, flog='skymatch_log.txt')
        `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
 drizzlepac/astrodrizzle.html>`_, :py:func:`skymatch` accounts for differences
        in chip sensitivities by performing sky computations on data multiplied
-       by inverse sensitivity (e.g., value of ``PHOTFLAM`` in image headers).
+       by inverse sensitivity (e.g., value of ``PHOTFLAM`` in image headers
+       -- see "Notes" section below).
 
     Parameters
     ----------
     input : str, list of FileExtMaskInfo
-        A list of of :py:class:`~skypac.parseat.FileExtMaskInfo` objects
+        A list of of :py:class:`~stsci.skypac.parseat.FileExtMaskInfo` objects
         or a string containing one of the following:
 
             * a comma-separated list of valid science image file names
@@ -156,9 +157,9 @@ drizzlepac/astrodrizzle.html>`_, :py:func:`skymatch` accounts for differences
         Select the algorithm for sky computation:
 
         * **'localmin'**\ : compute a common sky for all members of
-          *an exposure* (see NOTES below). For a typical use, it will compute
-          sky values for each chip/image extension (marked for sky
-          subtraction in the :py:obj:`input` parameter) in an input image,
+          *an exposure* (see "Notes" section below). For a typical use, it
+          will compute sky values for each chip/image extension (marked for
+          sky subtraction in the :py:obj:`input` parameter) in an input image,
           and it will subtract the previously found minimum sky value
           from all chips (marked for sky subtraction) in that image.
           This process is repeated for each input image.
@@ -173,7 +174,7 @@ drizzlepac/astrodrizzle.html>`_, :py:func:`skymatch` accounts for differences
             versions of astrodrizzle.
 
         * **'globalmin'**\ : compute a common sky value for all members of
-          *all exposures* (see NOTES below). It will compute
+          *all exposures* (see "Notes" section below). It will compute
           sky values for each chip/image extension (marked for sky
           subtraction in the :py:attr:`input` parameter) in **all** input
           images, find the minimum sky value, and then it will
@@ -203,7 +204,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
 
     skystat : {'mode', 'median', 'mode', 'midpt'} (Default = 'mode')
         Statistical method for determining the sky value from the image
-        pixel values. See `~skypac.computeSky` for more detals.
+        pixel values. See `~stsci.skypac.computeSky` for more detals.
 
     lower : float, None (Default = None)
         Lower limit of usable pixel values for computing the sky.
@@ -229,15 +230,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
 
     skyuser_kwd : str (Default = 'SKYUSER')
         Name of header keyword which records the sky value previously
-        subtracted (if `subtractsky` is `True`\ ) from the image or
-        computed (if `subtractsky` is `False`\ ). This keyword's value will
-        be updated by :py:func:`skymatch`\ .
+        *subtracted* (if `subtractsky` is `True`\ ) from the image data or
+        the *computed* (if `subtractsky` is `False`\ ) sky value.
+        This keyword's value will be updated by :py:func:`skymatch`\ (if
+        `readonly` is `False`\ ).
 
         .. warning::
             When `subtractsky` is `True` then `skyuser_kwd` is treated as a
             **cummulative** value. That is, subtracted sky value will be
             **added** to the `skyuser_kwd` value and thus `skyuser_kwd`
-            represents *total* sky subtracted from the image by the user
+            represents *total* sky *subtracted* from the image by the user
             over the entire "history" of the image.
             If `skyuser_kwd` is missing in the input image,
             "previous" sky value will be considered to be 0.0.
@@ -245,7 +247,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
             When `subtractsky` is `False` then `skyuser_kwd` represents
             **computed** sky value and it is **not** treated as a
             **cummulative** value. Any previous value of the `skyuser_kwd`
-            header keyword will be **overwritten**\ .
+            header keyword will be **overwritten** with the newly computed
+            value.
 
             Because of different meanings of the value represented by the
             `skyuser_kwd` header keyword depending on the value of the
@@ -261,16 +264,28 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
         Report the sky matching values but do not modify the input files.
 
     subtractsky : bool (Default = False)
-        Subtract computed sky value from image data or simply report sky
-        value in the header keyword specified by `skyuser_kwd`. This applies
-        only when `readonly`\ =\ `False`\ . It is important to be consistent
-        when putting a meaning into the header keyword given by
-        `skyuser_kwd`\ : inconsistent use may lead to sky value reported
-        in `skyuser_kwd` header keyword not reflect correct sky value
-        in sky subtracted flat-fielded images.
+        Subtract computed sky value from image data and add this value to the
+        existing value represented by `skyuser_kwd` (\ **subtracted sky**\ )
+        or simply report the computed sky value in the header keyword
+        specified by `skyuser_kwd` (\ **computed sky**\ ).
 
         .. warning::
-          See warning for `skyuser_kwd` parameter.
+          Because `subtractsky` changes the *meaning* of the value of the
+          header keyword `skyuser_kwd` it is important to be consistent
+          in using `subtractsky` parameter: inconsistent use may lead
+          to sky values reported in `skyuser_kwd` header keyword that do not
+          reflect correct sky value *computed for* or *subtracted from*
+          flat-fielded images. A possible workaround is to use different
+          keywords for subtracted and computed sky, keeping in mind that the
+          order of operation will affect reported *computed* sky values.
+
+          Also see warning for `skyuser_kwd` parameter.
+
+        .. note::
+          When `readonly` is `True`\ , reported sky values will be consistent
+          with the setting specified by `subtractsky` (as if `readonly` is
+          `False`\ ), however sky values will **NOT** be subtracted from
+          the image data when `subtractsky`\ =\ `True`\ .
 
         .. note::
           `astrodrizzle <http://stsdas.stsci.edu/\
@@ -297,7 +312,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ that will
             something different from ``MDRIZSKY``\ , (e.g., ``SKYUSER``\ ),
             and set `skyuser` parameter in `astrodrizzle <http://\
 stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
-            to the same value as `skyuser_kwd` in :py:func:`skymatch`\ .
+            to the same value as the values of `skyuser_kwd` used
+            in the call to :py:func:`skymatch`\ .
 
     DQFlags : int, None (Default = 0)
         Integer sum of all the DQ bit values from the input image's
@@ -363,7 +379,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
     TypeError
         The `input` argument must be either a Python list of
-        :py:class:`~skypac.parseat.FileExtMaskInfo` objects, or a string
+        :py:class:`~stsci.skypac.parseat.FileExtMaskInfo` objects, or a string
         either containing either a comma-separated list file names,
         or an @-file name.
 
@@ -451,6 +467,47 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
          recompute its sky value -- it is the same as the sky value of the
          first (\ *reference*\ ) image.
 
+    **"Surface Brightness":**
+      :py:func:`skymatch` converts "raw" sky values (in image data units)
+      obtained directly from image data to "surface brightness"-like units and
+      all computations are performed in these units. Computed sky surface
+      brightness values are converted back to image data units before being
+      subtracted from the image data and/or reported in the `skyuser_kwd`
+      in the image header.
+
+      This conversion from image data units to "surface brightness"-like units
+      is necessary in order to perform correct sky computations for data
+      from various intsruments/detectors. It accounts for differences in
+      exposure times (if image data are in "counts" units) in each input
+      image, differences in pixel scales of different detector chips
+      (instruments), and detector sensitivities.
+
+      For images with data in "counts"-like units, the conversion from data
+      units to surface brightness is given by:
+
+      .. math::
+          sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}} \
+          \cdot \mathrm{PHOTFLAM} / (\mathrm{pixel\: Area}^2 \cdot \
+          \mathrm{EXPTIME})
+
+      and for image data in "count-rate"-like units, this conversion is given
+      by:
+
+      .. math::
+          sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}} \
+          \cdot \mathrm{PHOTFLAM} / \mathrm{pixel\: Area}^2 .
+
+    **Important Header Keywords:**
+      As discussed above, :py:func:`skymatch` uses values of various keywords
+      in image headers to perform conversion of sky values to/from data units
+      from/to surface brightness units. The most important keywords are:
+
+      * `BUNIT`
+
+      * `EXPTIME`
+
+      * `PHOTFLAM`
+
     **Glossary:**
       **Exposure** -- a *subset* of FITS image extensions in an input image
       that correspond to different chips in the detector used to acquire
@@ -458,7 +515,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
       is defined by specifying extensions to be used with input images
       (see parameter `input`\ ).
 
-      See help for :py:func:`skypac.parseat.parse_at_line` for details
+      See help for :py:func:`stsci.skypac.parseat.parse_at_line` for details
       on how to specify image extensions.
 
       **Footprint** -- the outline (edge) of the projection of a chip or
@@ -467,15 +524,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
       .. note::
 
         * Footprints are managed by the
-          :py:class:`~sphere.polygon.SphericalPolygon` class.
+          :py:class:`~stsci.sphere.polygon.SphericalPolygon` class.
 
         * Both footprints *and* associated exposures (image data, WCS
           information, and other header information) are managed by the
-          :py:class:`~skypac.skyline.SkyLine` class.
+          :py:class:`~stsci.skypac.skyline.SkyLine` class.
 
-        * Each :py:class:`~skypac.skyline.SkyLine` object contains one or more
-          :py:class:`~skypac.skyline.SkyLineMember` objects that manage
-          both footprints *and* associated *chip* data that form an exposure.
+        * Each :py:class:`~stsci.skypac.skyline.SkyLine` object contains one
+          or more :py:class:`~stsci.skypac.skyline.SkyLineMember` objects
+          that manage both footprints *and* associated *chip* data that
+          form an exposure.
 
     **Remarks:**
       * The computation of the sky is performed using weighted mean
@@ -609,17 +667,17 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
     #. This task can be used to match skies of a set of ACS
        images simply with:
 
-           >>> from skypac import skymatch
+           >>> from stsci.skypac import skymatch
            >>> skymatch.skymatch('j*q_flt.fits')
 
     #. The TEAL GUI can be used to run this task using::
 
-           --> from skypac import skymatch
+           --> from stsci.skypac import skymatch
            --> epar skymatch
 
        or from a general Python command line:
 
-           >>> from skypac import skymatch
+           >>> from stsci.skypac import skymatch
            >>> from stsci.tools import teal
            >>> teal.teal('skymatch')
 
@@ -648,7 +706,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                     "image data (\'readonly\'=True).{0:s}" \
                     "Computed sky values will be reported in the specified " \
                     "log file.", os.linesep, skip=1)
-        subtractsky = False # <- cannot subtract from data in read-only mode
     else:
         ml.logentry("\'skymatch\' task will apply computed sky differences " \
                     "to input image file(s).", skip=1)
@@ -787,7 +844,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         for m in sl.members:
             # reset skyuser if necessary:
             if not subtractsky:
-                m.set_skyuser(0.0)
+                m.set_skyuser(0.0) # => forget existing header value if any...
+
             # Units *TYPE* (counts or rate?):
             if m.is_countrate == None:
                 unittype = "UNKNOWN"
@@ -818,22 +876,27 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         skylines.append( sl )
         ml.skip()
 
+    ########################################################
+    ##     cannot subtract from data in read-only mode:   ##
+    ########################################################
+    #if readonly:
+        #subtractsky = False
 
-    #---------------------------------------------------------#
-    # 1a. Compute the minimum sky background value in each    #
-    #     sky line member of a skyline and return.            #
-    #     This is an improved (use of masks) replacement      #
-    #     for the classical 'subtractsky' used by astrodrizzle.    #
-    #                                                         #
-    #     NOTE: incompatible with "match"-containing          #
-    #           'skymethod' modes.                            #
-    #---------------------------------------------------------#
+    #-----------------------------------------------------------#
+    # 1a. Compute the minimum sky background value in each      #
+    #     sky line member of a skyline and return.              #
+    #     This is an improved (use of masks) replacement        #
+    #     for the classical 'subtractsky' used by astrodrizzle. #
+    #                                                           #
+    #     NOTE: incompatible with "match"-containing            #
+    #           'skymethod' modes.                              #
+    #-----------------------------------------------------------#
     if skymethod == 'localmin':
         ml.skip()
         ml.logentry("-----  Computing sky values requested image " \
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
-            sky = _minsky(sl, sky_stat, subtractsky, ml)
+            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
 
             ml.logentry("    Image:   \'{1}\'  --  SKY = {2} (brightness units){0}"
                         "    Sky change (data units):",
@@ -876,7 +939,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         ml.logentry("-----  Computing \"global\" sky on requested image " \
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
-            sky = _minsky(sl, sky_stat, subtractsky, ml)
+            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
             if minsky is None or sky < minsky:
                 minsky = sky
 
@@ -952,7 +1015,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
     # 4. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    sky1, sky2 = _calc_sky(s1, s2, sky_stat, subtractsky)
+    sky1, sky2 = _calc_sky(s1, s2, sky_stat, readonly, subtractsky)
     diff_sky   = np.abs(sky1 - sky2)
 
     #---------------------------------------------------------#
@@ -981,11 +1044,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                 skyline2zero.id, sv0, skyline2update.id, svu, skyline2zero.id, os.linesep)
 
     for m in skyline2zero.members:
+        if subtractsky:
+            new_sky = m.skyuser + m.skyuser_delta
+        else:
+            new_sky = m.skyuser_delta
+
         ml.logentry("        EXT = {0:s}"      \
                     "   delta({1:s}) = {2:G}"  \
                     "   NEW {1:s} = {3:G}", \
                     ext2str(m.ext), m.get_skyuser_kwd(),    \
-                    m.skyuser_delta, m.skyuser)
+                    m.skyuser_delta, new_sky)
 
     ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
                 skyline2update.id)
@@ -994,11 +1062,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                  _taskname4history)
 
     for m in skyline2update.members:
+        if subtractsky:
+            new_sky = m.skyuser + m.skyuser_delta
+        else:
+            new_sky = m.skyuser_delta
+
         ml.logentry("        EXT = {0:s}"      \
                     "   delta({1:s}) = {2:G}"  \
                     "   NEW {1:s} = {3:G}", \
                     ext2str(m.ext), m.get_skyuser_kwd(),    \
-                    m.skyuser_delta, m.skyuser)
+                    m.skyuser_delta, new_sky)
     ml.skip()
 
     #---------------------------------------------------------#
@@ -1022,7 +1095,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                 ml.logentry("    No overlap: Excluding {}", r.id)
             break
 
-        sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat, subtractsky)
+        sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat,
+                               readonly, subtractsky)
         diff_sky = sky2 - sky1
 
         _set_skyuser(next_skyline, diff_sky, readonly, subtractsky,
@@ -1035,11 +1109,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                     sky1, next_skyline.id, sky2, os.linesep)
 
         for m in next_skyline.members:
+            if subtractsky:
+                new_sky = m.skyuser + m.skyuser_delta
+            else:
+                new_sky = m.skyuser_delta
+
             ml.logentry("        EXT = {0:s}"                   \
                         "   delta({1:s}) = {2:G}"  \
                         "   NEW {1:s} = {3:G}", \
                         ext2str(m.ext), m.get_skyuser_kwd(),    \
-                        m.skyuser_delta, m.skyuser)
+                        m.skyuser_delta, new_sky)
 
         try:
             new_mos = mosaic.add_image(next_skyline)
@@ -1092,7 +1171,7 @@ def _debug_write_region(fname, vert):
     fh.close()
 
 
-def _weighted_sky(skyline, ra, dec, skystat, subtractsky, _dbg_name):
+def _weighted_sky(skyline, ra, dec, skystat, readonly, subtractsky, _dbg_name):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -1167,10 +1246,10 @@ def _weighted_sky(skyline, ra, dec, skystat, subtractsky, _dbg_name):
 
         dat = member.image_data[np.where(fill_mask)]
         sky, npix = skystat.calc_sky(dat)
-        if subtractsky:
-            sky = member.data2brightness(sky)
+        if readonly or not subtractsky:
+            sky = member.data2brightness(sky-member.skyuser_delta)
         else:
-            sky = member.data2brightness(sky-member.skyuser)
+            sky = member.data2brightness(sky)
         if npix > 1:
             w_sky += npix * sky
             w_tot += npix
@@ -1182,7 +1261,7 @@ def _weighted_sky(skyline, ra, dec, skystat, subtractsky, _dbg_name):
         return w_sky / w_tot
 
 
-def _minsky(skyline, skystat, subtractsky, mlog):
+def _minsky(skyline, skystat, readonly, subtractsky, mlog):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -1237,10 +1316,10 @@ def _minsky(skyline, skystat, subtractsky, mlog):
             continue
 
         # convert to flux/pixel area units
-        if subtractsky:
-            sky = member.data2brightness(sky)
+        if readonly or not subtractsky:
+            sky = member.data2brightness(sky-member.skyuser_delta)
         else:
-            sky = member.data2brightness(sky-member.skyuser)
+            sky = member.data2brightness(sky)
 
         if minsky is None or minsky > sky:
             minsky = sky
@@ -1248,7 +1327,7 @@ def _minsky(skyline, skystat, subtractsky, mlog):
     return minsky
 
 
-def _calc_sky(s1, s2, skystat, subtractsky):
+def _calc_sky(s1, s2, skystat, readonly, subtractsky):
     """
     Calculate weighted sky values and their difference in
     overlapping regions of given skylines.
@@ -1277,8 +1356,8 @@ def _calc_sky(s1, s2, skystat, subtractsky):
         fn = b + '_'+e
         return fn
 
-    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skystat, subtractsky, s2.id)
-    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skystat, subtractsky, s1.id)
+    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skystat, readonly, subtractsky, s2.id)
+    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skystat, readonly, subtractsky, s1.id)
 
     return sky1, sky2
 
@@ -1308,21 +1387,26 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
     if readonly_mode:
         for m in skyline.members:
             skyuser_delta = m.brightness2data(skyval_brightness)
-            m.update_skyuser(skyuser_delta)
+            m.update_skydelta(skyuser_delta)
         return
 
     # if not readonly_mode => apply sky differences to data:
     for m in skyline.members:
         ext = m.ext
         skyuser_delta = m.brightness2data(skyval_brightness)
-        m.update_skyuser(skyuser_delta)
+        m.update_skydelta(skyuser_delta)
         if subtractsky:
             m.image_hdulist[ext].data -= skyuser_delta
-        m.image_header.update(hdr_keyword, m.skyuser,
+            new_sky = m.skyuser + m.skyuser_delta
+        else:
+            new_sky = m.skyuser_delta
+
+        m.image_header.update(hdr_keyword, new_sky,
             comment='Sky value computed by {:s}'.format(_taskname4history))
+
         if _taskname4history == 'SkyMatch' and subtractsky:
             m.image_header.add_history('{} {:E} subtracted from image by {:s}'\
-                .format(hdr_keyword, skyuser_delta, _taskname4history))
+                .format(hdr_keyword, new_sky, _taskname4history))
 
     if skyline.members and _taskname4history == 'SkyMatch':
         skyline.members[0].image_hdulist[0].header.add_history(

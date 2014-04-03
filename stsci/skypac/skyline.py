@@ -751,16 +751,29 @@ class SkyLineMember(object):
         return self._skyuser_delta
 
     @property
+    def skyuser_total(self):
+        return self._skyuser + self._skyuser_delta
+
+    @property
     def is_countrate(self):
         return self._is_countrate
 
-    def update_skyuser(self, delta_skyval):
+    def update_skyuser(self, delta_skyval = None):
+        if delta_skyval is None:
+            self._skyuser      += self._skyuser_delta
+        else:
+            self._skyuser      += delta_skyval
+        self._skyuser_delta = 0.0
+
+    def update_skydelta(self, delta_skyval):
+        self._skyuser_delta += delta_skyval
+
+    def set_skydelta(self, delta_skyval):
         self._skyuser_delta = delta_skyval
-        self._skyuser += delta_skyval
 
     def set_skyuser(self, skyval):
-        self._skyuser_delta = 0.0
         self._skyuser       = skyval
+        self._skyuser_delta = 0.0
 
     def data2brightness(self, data):
         return (self.data2brightness_conv * data)
