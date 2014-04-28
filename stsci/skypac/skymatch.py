@@ -9,7 +9,9 @@ import copy
 
 # THIRD PARTY
 import numpy as np
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
+
 #from stsci.tools import parseinput
 from .skyline import SkyLineMember, SkyLine
 from . import region

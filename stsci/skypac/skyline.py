@@ -80,7 +80,8 @@ from os.path import basename, split, splitext
 import numpy as np
 
 # THIRD-PARTY
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 from stwcs import wcsutil
 from stwcs.distortion.utils import output_wcs
 from stsci.sphere.polygon import SphericalPolygon

@@ -1,4 +1,5 @@
-import sys, os, pyfits, weakref, tempfile
+import sys, os, weakref, tempfile
+from astropy.io import fits as pyfits
 from os import path
 from copy import copy, deepcopy
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
