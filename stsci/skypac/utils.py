@@ -1,5 +1,5 @@
 import sys, os, weakref, tempfile
-from astropy.io import fits as pyfits
+from astropy.io import fits
 from os import path
 from copy import copy, deepcopy
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
@@ -166,8 +166,8 @@ data=mask,dir='.',fnameOnly=False)
         fname = fh.name
 
     # write data to the "temporary" file
-    hdu      = pyfits.PrimaryHDU(data)
-    hdulist  = pyfits.HDUList([hdu])
+    hdu      = fits.PrimaryHDU(data)
+    hdulist  = fits.HDUList([hdu])
     hdulist.writeto(fh)
 
     # clean-up
@@ -199,7 +199,7 @@ def get_extver_list(img, extname='SCI'):
 
     Parameters
     ----------
-    img : str, pyfits.HDUList, or `~skypac.utils.ImageRef`
+    img : str, `astropy.io.fits.HDUList`, or `~skypac.utils.ImageRef`
         Input image object. If `img` is a string object (file name) then that
         file will be opened. If the file pointed to by the file name is a
         GEIS or WAIVER FITS file, it will be converted to a simple/MEF FITS
@@ -225,7 +225,7 @@ def get_extver_list(img, extname='SCI'):
 
     TypeError
         Argument `img` must be either a file name (str),
-        an `~.utils.ImageRef`, or a `pyfits.HDUList` object.
+        an `~.utils.ImageRef`, or a `astropy.io.fits.HDUList` object.
 
     TypeError
         Argument `extname` must be either a string or None.
@@ -243,7 +243,7 @@ def get_extver_list(img, extname='SCI'):
 
     """
     doRelease = False
-    if isinstance(img, pyfits.HDUList):
+    if isinstance(img, fits.HDUList):
         hdulist = img
     elif isinstance(img, str):
         try:
@@ -263,7 +263,7 @@ def get_extver_list(img, extname='SCI'):
         doRelease = False
     else:
         raise TypeError("Argument 'img' must be either a file name (string), "  \
-                        "an ImageRef, or a pyfits.HDUList object.")
+                        "an ImageRef, or a `astropy.io.fits.HDUList` object.")
 
     # when extver is None - return the range of all 'image'-like FITS extensions
     if extname is None:
@@ -293,7 +293,7 @@ def get_extver_list(img, extname='SCI'):
 
     extver = []
     for e in hdulist:
-        #if not isinstance(e, pyfits.ImageHDU): continue
+        #if not isinstance(e, fits.ImageHDU): continue
         #hkeys = map(str.upper, e.header.keys())
         if 'EXTNAME' in e.header and e.header['EXTNAME'].upper() == extname:
             extver.append(e.header['EXTVER'] if 'EXTVER' in e.header else 1)
@@ -307,7 +307,7 @@ def get_extver_list(img, extname='SCI'):
 def get_ext_list(img, extname='SCI'):
     """
     Return a list of all extension versions of `extname` extensions.
-    `img` can be either a file name or a `pyfits.HDUList` object.
+    `img` can be either a file name or a `astropy.io.fits.HDUList` object.
 
     This function is similar to :py:func:`get_extver_list`, the main
     difference being that it returns a list of fully qualified extensions: \
@@ -445,16 +445,15 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     Parameters
     ----------
-    hdulist : pyfits.HDUList
-        PyFITS HDUList of the image.
+    hdulist : `astropy.io.fits.HDUList`
+        `astropy.io.fits.HDUList` of the image.
 
     ext : tuple, int, str
         Extension specification for whose data the units need to be inferred.
         An int `ext` specifies extension number. A tuple in the form
         (str, int) specifies extension name and number. A string `ext`
         specifies extension name and the extension version is assumed to be
-        1. See documentation for `pyfits.getData <http://ssb.stsci.edu/doc/\
-stsci_python_dev/pyfits.docs/html/api_docs/api_files.html#pyfits.getdata>`_
+        1. See documentation for `astropy.io.fits.getData`
         for examples.
 
     units_kwd : str (Default = 'BUNIT')
@@ -1125,18 +1124,18 @@ class ImageRef(object):
     Parameters
     ----------
     hdulist_refcnt : ResourceRefCount
-        A :py:class:`ResourceRefCount` object holding a `pyfits.HDUList`
+        A :py:class:`ResourceRefCount` object holding a `astropy.io.fits.HDUList`
         object.
 
     Attributes
     ----------
     filename : str
         Name of the opened file. Can be `None` for in-memory created \
-        `pyfits.HDULists` objects.
+       `astropy.io.fits.HDUList` objects.
 
     can_reload_data : bool
         `True` for files attached to a physical file, `False` for in-memory \
-        `pyfits.HDULists` objects.
+        `astropy.io.fits.HDUList` objects.
 
     original_fname : str
         Original name of the file as requested by the user. *Note:* may be \
@@ -1173,12 +1172,10 @@ class ImageRef(object):
         Instrument used to acquire data.
 
     fmode : str
-        File mode used to open FITS file. See `pyfits.open \
-        <http://ssb.stsci.edu/doc/stsci_python_dev/pyfits.docs/html/api_docs/\
-api_files.html#pyfits.open>`_ for more details.
+        File mode used to open FITS file. See `astropy.io.fits.open` for more details.
 
     memmap : bool
-        Is the `pyfits.HDUList` memory mapped?
+        Is the `astropy.io.fits.HDUList` memory mapped?
 
 
     """
@@ -1190,7 +1187,7 @@ api_files.html#pyfits.open>`_ for more details.
                                     # created with 'readgeis' or
                                     # 'convertwaiveredfits'
         self.can_reload_data = False # True for not-in-memory HDULists (e.g.,
-                                     # loaded with pyfits.open() from existing
+                                     # loaded with fits.open() from existing
                                      # 'simple' or 'mef' FITS files)
 
         if hdulist_refcnt is not None:
@@ -1254,7 +1251,7 @@ api_files.html#pyfits.open>`_ for more details.
     @property
     def refcount(self):
         """
-        Reference count of the attached `pyfits.HDUList`.
+        Reference count of the attached `astropy.io.fits.HDUList`.
         """
         if self._hdulist_refcnt is not None:
             return self._hdulist_refcnt.refcount
@@ -1271,7 +1268,7 @@ api_files.html#pyfits.open>`_ for more details.
     def set_HDUList_RefCount(self, hdulist_refcnt=None):
         """
         Set (attach) a new :py:class:`ResourceRefCount` object that holds
-        a `pyfits.HDUList` object. This is allowed only if the already
+        a `astropy.io.fits.HDUList` object. This is allowed only if the already
         attached :py:class:`ResourceRefCount` can be closed. The reference
         count of the :py:class:`ResourceRefCount` being attached will be
         incremented.
@@ -1280,7 +1277,7 @@ api_files.html#pyfits.open>`_ for more details.
         ----------
         hdulist_refcnt : ResourceRefCount, None
             A :py:class:`ResourceRefCount` object containing a
-            `pyfits.HDUList` object. If it is `None`\ ,it will release
+            `astropy.io.fits.HDUList` object. If it is `None`\ ,it will release
             and close the attached :py:class:`ResourceRefCount` object.
 
         Raises
@@ -1382,7 +1379,7 @@ api_files.html#pyfits.open>`_ for more details.
     @property
     def hdu(self):
         """
-        `pyfits.HDUList` of the attached image.
+        `astropy.io.fits.HDUList` of the attached image.
 
         """
         if self._hdulist_refcnt is not None:
@@ -1450,7 +1447,7 @@ def basicGEIScheck(fname):
         fh = fname
         closefh = False
 
-    cardLen   = pyfits.Card.length
+    cardLen   = fits.Card.length
     readbytes = cardLen + 1
 
     try:
@@ -1476,7 +1473,7 @@ def basicGEIScheck(fname):
             if card[-1] != '\n':
                 # card does not end with a new line character
                 break
-            ## EXTRA CHECK (these errors would make pyfits.verify to fail):
+            ## EXTRA CHECK (these errors would make fits.verify to fail):
             #if card[0].isspace():
                 #if card[:8] != '        ':
                     #break
@@ -1511,7 +1508,7 @@ def basicFITScheck(fname):
         fh = fname
         closefh = False
 
-    cardLen = pyfits.Card.length
+    cardLen = fits.Card.length
 
     try:
         # process first "card":
@@ -1571,7 +1568,7 @@ def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
             if preferMEF and imageRef.mef_exists:
                 rc_new = ResourceRefCount(None)
                 try:
-                    hdulist = pyfits.open(imageRef.mef_fname, mode=fmode,
+                    hdulist = fits.open(imageRef.mef_fname, mode=fmode,
                                           memmap=memmap)
                     rc_new  = ResourceRefCount(hdulist)
                     rc_new.hold()
@@ -1656,7 +1653,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
     name, DQ model ("intrinsic", where DQ data are placed in the same file
     as the science data, or "extrinsic" when DQ data are in a separate file
     from the science data), etc. Because of the way it was implemented, it
-    requires half of the number of calls to `pyfits.open` thus making it
+    requires half of the number of calls to `astropy.io.fits.open` thus making it
     almost twice as fast as the :py:func:`~stsci.tools.fileutil.openImage`
     function.
 
@@ -1667,9 +1664,8 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
         recognized: simple/MEF FITS, HST GEIS format, or WAIVER FITS format.
 
     mode : str (Default = 'readonly')
-        File mode used to open main image FITS file. See `pyfits.open \
-        <http://ssb.stsci.edu/doc/stsci_python_dev/pyfits.docs/html/api_docs/\
-api_files.html#pyfits.open>`_ for more details.
+        File mode used to open main image FITS file. See `astropy.io.fits.open`
+        for more details.
 
     dqmode : str (Default = 'readonly')
         File mode used to open DQ image FITS file. See parameter `mode`
@@ -1817,7 +1813,7 @@ api_files.html#pyfits.open>`_ for more details.
             raise ValueError("Input file \'{}\' is neither a GEIS file nor a " \
                              "FITS file.".format(_fname))
 
-        hdulist = pyfits.open(_fname, mode=mode, memmap=memmap)
+        hdulist = fits.open(_fname, mode=mode, memmap=memmap)
 
         hdr = hdulist[0].header
         (telescope, instrument, hstftype) = _extract_instr_info(hdr)
@@ -1834,7 +1830,7 @@ api_files.html#pyfits.open>`_ for more details.
                                  "FITS format, contains no image data, or is "  \
                                  "from an unsupported instrument.".format(_fname))
         else:
-            if len(hdulist) > 1 and isinstance(hdulist[1],pyfits.pyfits.TableHDU):
+            if len(hdulist) > 1 and isinstance(hdulist[1], fits.TableHDU):
                 ftype = 'WAIVER'
                 if not (telescope == 'HST' and instrument in supported_extern_DQ) \
                    and verbose:
@@ -1868,7 +1864,7 @@ api_files.html#pyfits.open>`_ for more details.
 
                 dqhdulist = _getDQHDUList(dq_image, _dqfname, not imageOnly, \
                             ftype, (lambda x : True),                        \
-                            pyfits.open, {'mode' : dqmode, 'memmap' : memmap}, \
+                            fits.open, {'mode' : dqmode, 'memmap' : memmap}, \
                             verbose)
 
                 if dqhdulist is None:

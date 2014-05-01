@@ -9,8 +9,7 @@ import copy
 
 # THIRD PARTY
 import numpy as np
-#import pyfits
-from astropy.io import fits as pyfits
+from astropy.io import fits
 
 #from stsci.tools import parseinput
 from .skyline import SkyLineMember, SkyLine
@@ -1204,7 +1203,7 @@ def _weighted_sky(skyline, ra, dec, skystat, readonly, subtractsky, _dbg_name):
     for member in skyline.members:
         wcs = member.wcs
         # All pixels along intersection boundary for that chip
-        sparse_x, sparse_y = wcs.all_sky2pix(ra, dec, 0)
+        sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
         ivert = zip(*[map(int,sparse_x),map(int,sparse_y)])
 
         if __local_debug__:
@@ -1231,8 +1230,8 @@ def _weighted_sky(skyline, ra, dec, skystat, readonly, subtractsky, _dbg_name):
             if os.path.exists(fn):
                 os.remove(fn)
             # write data to the "temporary" file
-            hdu      = pyfits.PrimaryHDU(fill_mask)
-            hdulist  = pyfits.HDUList([hdu])
+            hdu      = fits.PrimaryHDU(fill_mask)
+            hdulist  = fits.HDUList([hdu])
             hdulist.writeto(fn)
             # clean-up
             hdulist.close()
@@ -1402,9 +1401,8 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
             new_sky = m.skyuser + m.skyuser_delta
         else:
             new_sky = m.skyuser_delta
-
-        m.image_header.update(hdr_keyword, new_sky,
-            comment='Sky value computed by {:s}'.format(_taskname4history))
+        comment='Sky value computed by {:s}'.format(_taskname4history)
+        m.image_header[hdr_keyword] = (new_sky, comment)
 
         if _taskname4history == 'SkyMatch' and subtractsky:
             m.image_header.add_history('{} {:E} subtracted from image by {:s}'\

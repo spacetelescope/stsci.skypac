@@ -579,9 +579,8 @@ class FileExtMaskInfo(object):
         :py:class:`~skypac.utils.ImageRef` objects?
 
     im_fmode : str (Default = 'update')
-        File mode to be used to open image FITS file. See `pyfits.open \
-        <http://ssb.stsci.edu/doc/stsci_python_dev/pyfits.docs/html/api_docs/\
-api_files.html#pyfits.open>`_ for more details.
+        File mode to be used to open image FITS file. See `astropy.io.fits.open`
+        for more details.
 
     dq_fmode : str (Default = 'readonly')
         File mode to be used to open DQ FITS file. This is valid only if the
@@ -1489,9 +1488,8 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
         files?
 
     im_fmode : str (Default = 'update')
-        File mode to be used to open image FITS file. See `pyfits.open \
-        <http://ssb.stsci.edu/doc/stsci_python_dev/pyfits.docs/html/api_docs/\
-api_files.html#pyfits.open>`_ for more details.
+        File mode to be used to open image FITS file. See `astropy.io.fits.open`
+        for more details.
 
     dq_fmode : str (Default = 'readonly')
         File mode to be used to open DQ FITS file. This is valid only if the
