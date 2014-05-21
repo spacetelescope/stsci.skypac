@@ -1,3 +1,12 @@
+"""
+Module for parsing ``@-files`` or user input strings for use
+by :py:mod:`stsci.skypac` module.
+
+:Authors: Mihai Cara (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+
+"""
 import os, sys, glob
 from copy import copy, deepcopy
 from utils import MultiFileLog, ImageRef, openImageEx, \
@@ -12,7 +21,7 @@ except:
 __all__ = ['parse_at_file', 'parse_at_line', 'parse_cs_line',
            'FileExtMaskInfo' ]
 __version__ = '0.1'
-__vdate__ = '20-Dec-2013'
+__vdate__ = '21-Dec-2013'
 __author__ = 'Mihai Cara'
 
 
@@ -24,12 +33,13 @@ if os.name == 'posix':
     _sameStat = os.path.samestat
     #_Stat     = os.stat
     def _Stat(fn):
-        class st(object):
-            def __init__(self, ino, dev):
-                self.st_ino = ino
-                self.st_dev = dev
+        #class st(object):
+            #def __init__(self, ino, dev):
+                #self.st_ino = ino
+                #self.st_dev = dev
         if fn is None:
-            return st(None, None)
+            #return st(None, None)
+            return os.stat_result(10*(None,))
         else:
             return os.stat(fn)
 
@@ -47,14 +57,17 @@ else:
         return st1 == st2
 
     def _Stat(fn):
-        class st(object):
-            def __init__(self, ino, dev):
-                self.st_ino = ino
-                self.st_dev = dev
+        #class st(object):
+            #def __init__(self, ino, dev):
+                #self.st_ino = ino
+                #self.st_dev = dev
         if fn is None:
-            return st(None, None)
+            #return st(None, None)
+            return os.stat_result(10*(None,))
         else:
-            return st(os.path.abspath(os.path.expanduser(fn)), 0)
+            fname = os.path.abspath(os.path.expanduser(fn))
+            #return st(fname, 0)
+            return os.stat_result((0, fname) + 8*(0))
 
 
 class CharAccumulator(object):
@@ -597,7 +610,7 @@ class FileExtMaskInfo(object):
         If a file being appended is in GEIS or WAIVER FITS format, should \
         any existing MEF files be overwritten?
 
-    DQFlags : int
+    dq_bits : int
         Bitmask specifying what pixels in the mask should be removed \
         (or kept) with the precise interpretation being left to the user. \
         This flag is not used by this class but was designed to be \
@@ -620,7 +633,7 @@ class FileExtMaskInfo(object):
         self._fnamesOnly = fnamesOnly
         self._dontopenDQ = doNotOpenDQ
         self.clobber     = clobber
-        self.DQFlags     = None # can be set from "outside" if needed
+        self.dq_bits     = None # can be set from "outside" if needed
         self._im_fmode   = im_fmode
         self._dq_fmode   = dq_fmode
         self._msk_fmode  = msk_fmode
@@ -1077,7 +1090,7 @@ class FileExtMaskInfo(object):
            not self._dq.closed and not self._fnamesOnly:
             self._dqext = self._find_DQ_extensions()
 
-    def append_mask(self, mask, ext):
+    def append_mask(self, mask, ext, mask_stat=None):
         """
         Append a mask image and its extension(s).
 
@@ -1103,6 +1116,11 @@ class FileExtMaskInfo(object):
             name. If ext is None, it will be replaced with the default
             extension specification for mask images set during
             the initialization of the :py:class:`FileExtMaskInfo` object.
+
+        mask_stat : `os.stat_result` (Default = None)
+            An `os.stat_result` structure for the input `mask` file.
+            If `None`, then :py:meth:`append_mask` will compute `stat` for
+            the input `mask` file.
 
         Raises
         ------
@@ -1161,7 +1179,10 @@ class FileExtMaskInfo(object):
             # reference count. Thus we will avoid opening (a time-consuming
             # operation) the same FITS file multiple times.
 
-            stat = _Stat(mask)
+            if mask_stat is None:
+                stat = _Stat(mask)
+            else:
+                stat = deepcopy(mask_stat)
             findex = None
             for i in range(len(self._filesig)):
                 if self._filesig[i] is None:
@@ -1203,7 +1224,11 @@ class FileExtMaskInfo(object):
                         "have a valid 'original_fname' attribute.")
 
             mask.hold()
-            self._filesig.append(_Stat(mask.original_fname))
+            if mask_stat is None:
+                stat = _Stat(mask.original_fname)
+            else:
+                stat = deepcopy(mask_stat)
+            self._filesig.append(stat)
 
         else:
             raise TypeError("Argument 'mask' can be a string file name, " \

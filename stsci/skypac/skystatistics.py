@@ -2,6 +2,10 @@
 Sky statistics computation class for `~skymatch.skymatch` and
 `~skymatch.skymatch._weighted_sky`.
 
+:Authors: Mihai Cara (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+
 """
 # THIRD PARTY
 from stsci.imagestats import ImageStats
@@ -15,7 +19,7 @@ __author__ = 'Mihai Cara'
 
 class SkyStats(object):
     """
-    This is a superclass build on top of stsci.imagestats.ImageStats.
+    This is a superclass build on top of :py:class:`stsci.imagestats.ImageStats`.
     Compared to ImageStats, SkyStats has "persistent settings" in the sense
     that object's parameters need to be set once and these settings
     will be applied to all subsequent computations on different data.
@@ -32,7 +36,7 @@ class SkyStats(object):
             `stsdas.toolbox.imgtools.gstatistics <http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?gstatistics>`_
             while `skystat`\ ='median' will compute the median of the distribution.
 
-        kwargs : dic
+        kwargs : dict
             A dictionary of optional arguments to be passed to `ImageStats`.
         """
         self.npix    = None
@@ -46,9 +50,9 @@ class SkyStats(object):
         if 'image' in self._kwargs.keys():
             del self._kwargs['image']
 
-        self._skystat = { 'mean'   : self._extract_mean, \
-                          'mode'   : self._extract_mode, \
-                          'median' : self._extract_median, \
+        self._skystat = { 'mean'   : self._extract_mean,
+                          'mode'   : self._extract_mode,
+                          'median' : self._extract_median,
                           'midpt'  : self._extract_midpt
                         }[skystat]
 
@@ -69,7 +73,7 @@ class SkyStats(object):
 
         Parameters
         -----------
-        data : numpy array
+        data : numpy.ndarray
             A numpy array of values for which the statistics needs to be computed.
 
         Returns

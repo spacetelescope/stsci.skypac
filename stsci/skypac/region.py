@@ -1,3 +1,11 @@
+"""
+Polygon filling algorithm.
+
+:Authors: Nadezhda Dencheva (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+
+"""
 # Original author: Nadezhda Dencheva
 #
 # modifications by Mihai Cara: removed functionality not needed for the

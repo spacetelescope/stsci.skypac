@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Polygon filling algorithm &mdash; SkyPac 0.7 (20-May-2014) documentation</title>
+    
+    <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7 (20-May-2014)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SkyPac 0.7 (20-May-2014) documentation" href="index.html" />
+    <link rel="next" title="Sky statistics functions for skypac." href="skystatistics.html" />
+    <link rel="prev" title="Utility functions for parsing user catalog files for skypac." href="parseat.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="skystatistics.html" title="Sky statistics functions for skypac."
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="parseat.html" title="Utility functions for parsing user catalog files for skypac."
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/stsci_logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="parseat.html"
+                        title="previous chapter">Utility functions for parsing user catalog files for skypac.</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="skystatistics.html"
+                        title="next chapter">Sky statistics functions for skypac.</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/region.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-stsci.skypac.region">
+<span id="polygon-filling-algorithm"></span><h1>Polygon filling algorithm<a class="headerlink" href="#module-stsci.skypac.region" title="Permalink to this headline">¶</a></h1>
+<p>Polygon filling algorithm.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Authors:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Nadezhda Dencheva (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">License:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><a class="reference external" href="http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE">http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE</a></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="stsci.skypac.region.Region">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.region.</tt><tt class="descname">Region</tt><big>(</big><em>rid</em>, <em>coordinate_system</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for regions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>rid</strong> : int or string</p>
+<blockquote>
+<div><p>region ID</p>
+</div></blockquote>
+<p><strong>coordinate_system</strong> : astropy.wcs.CoordinateSystem instance or a string</p>
+<blockquote class="last">
+<div><p>in the context of WCS this would be an instance of wcs.CoordinateSysem</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="stsci.skypac.region.Region.scan">
+<tt class="descname">scan</tt><big>(</big><em>mask</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Region.scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets mask values to region id for all pixels within the region.
+Subclasses must define this method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>mask</strong> : ndarray</p>
+<blockquote>
+<div><p>a byte array with the shape of the observation to be used as a mask</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>mask</strong> : array where the value of the elements is the region ID or 0 (for</p>
+<blockquote class="last">
+<div><p>pixels which are not included in any region).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stsci.skypac.region.Edge">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.region.</tt><tt class="descname">Edge</tt><big>(</big><em>name=None</em>, <em>start=None</em>, <em>stop=None</em>, <em>next=None</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Edge representation</p>
+<p>An edge has a &#8220;start&#8221; and &#8220;stop&#8221; (x,y) vertices and an entry in the
+GET table of a polygon. The GET entry is a list of these values:</p>
+<p>[ymax, x_at_ymin, delta_x/delta_y]</p>
+<dl class="method">
+<dt id="stsci.skypac.region.Edge.compute_AET_entry">
+<tt class="descname">compute_AET_entry</tt><big>(</big><em>edge</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Edge.compute_AET_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the entry for an edge in the current Active Edge Table</p>
+<p>[ymax, x_intersect, 1/m]
+note: currently 1/m is not used</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.region.Edge.compute_GET_entry">
+<tt class="descname">compute_GET_entry</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.region.Edge.compute_GET_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the entry in the Global Edge Table</p>
+<p>[ymax, <a class="reference external" href="mailto:x&#37;&#52;&#48;ymin">x<span>&#64;</span>ymin</a>, 1/m]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="stsci.skypac.region.Polygon">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.region.</tt><tt class="descname">Polygon</tt><big>(</big><em>rid</em>, <em>vertices</em>, <em>coord_system='Cartesian'</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Polygon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a 2D polygon region with multiple vertices</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>rid</strong> : string</p>
+<blockquote>
+<div><p>polygon id</p>
+</div></blockquote>
+<p><strong>vertices</strong> : list of (x,y) tuples or lists</p>
+<blockquote>
+<div><p>The list is ordered in such a way that when traversed in a
+counterclockwise direction, the enclosed area is the polygon.
+The last vertex must coincide with the first vertex, minimum
+4 vertices are needed to define a triangle</p>
+</div></blockquote>
+<p><strong>coord_system</strong> : string</p>
+<blockquote class="last">
+<div><p>coordinate system</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="stsci.skypac.region.Polygon.get_edges">
+<tt class="descname">get_edges</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.region.Polygon.get_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list of Edge objects from vertices</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.region.Polygon.scan">
+<tt class="descname">scan</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Polygon.scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the main function which scans the polygon and creates the mask</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>data</strong> : array</p>
+<blockquote>
+<div><p>the mask array
+it has all zeros initially, elements within a region are set to
+the region&#8217;s ID</p>
+</div></blockquote>
+<p><strong>Algorithm:</strong> :</p>
+<p><strong>- Set the Global Edge Table (GET)</strong> :</p>
+<p><strong>- Set y to be the smallest y coordinate that has an entry in GET</strong> :</p>
+<p><strong>- Initialize the Active Edge Table (AET) to be empty</strong> :</p>
+<p><strong>- For each scan line:</strong> :</p>
+<blockquote class="last">
+<div><ol class="arabic simple">
+<li>Add edges from GET to AET for which ymin==y</li>
+<li>Remove edges from AET fro which ymax==y</li>
+<li>Compute the intersection of the current scan line with all edges in the AET</li>
+<li>Sort on X of intersection point</li>
+<li>Set elements between pairs of X in the AET to the Edge&#8217;s ID</li>
+</ol>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.region.Polygon.update_AET">
+<tt class="descname">update_AET</tt><big>(</big><em>y</em>, <em>AET</em><big>)</big><a class="headerlink" href="#stsci.skypac.region.Polygon.update_AET" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the Active Edge Table (AET)</p>
+<p>Add edges from GET to AET for which ymin of the edge is
+equal to the y of the scan line.
+Remove edges from AET for which ymax of the edge is
+equal to y of the scan line.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="skystatistics.html" title="Sky statistics functions for skypac."
+             >next</a> |</li>
+        <li class="right" >
+          <a href="parseat.html" title="Utility functions for parsing user catalog files for skypac."
+             >previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

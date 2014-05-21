@@ -29,8 +29,8 @@ input : str, list of FileExtMaskInfo
           (see note below) and (optionally) extension specifications,
           e.g.: ``'j1234567q_flt.fits[1], j1234568q_flt.fits[sci,2]'``;
 
-        * an @-file name, e.g., ``'@files_to_match.txt'``. See notes
-          section for details on the format of the @-files.
+        * an ``@-file`` name, e.g., ``'@files_to_match.txt'``. See notes
+          section for details on the format of the ``@-files``.
 
     .. note::
         **Valid science image file names** are:
@@ -44,7 +44,7 @@ input : str, list of FileExtMaskInfo
           suffix), e.g., ``'j12345670_asn.fits'``.
 
     .. warning::
-        @-file names **MAY NOT** be followed by an extension
+        ``@-file`` names **MAY NOT** be followed by an extension
         specification.
 
     .. warning::
@@ -218,13 +218,13 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
         to the same value as the values of `skyuser_kwd` used
         in the call to :py:func:`skymatch`\ .
 
-DQFlags : int, None (Default = 0)
+dq_bits : int, None (Default = 0)
     Integer sum of all the DQ bit values from the input image's
     DQ array that should be considered "good" when building masks for
     sky computations. For example, if pixels in the DQ array can be
     combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
     "defects" having flags 2 and 4 as being acceptable for sky
-    computations, then `DQFlags` should be set to 2+4=6. Then a DQ pixel
+    computations, then `dq_bits` should be set to 2+4=6. Then a DQ pixel
     having values 2,4, or 6 will be considered a good pixel, while a
     DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
     a "bad" pixel.
@@ -233,26 +233,30 @@ DQFlags : int, None (Default = 0)
       pixels in the DQ mask to be considered "bad" pixels, and the
       corresponding image pixels will not be used for sky computations.
 
-    | Set `DQFlags` to `None` to turn off the use of image's DQ array
+    | Set `dq_bits` to `None` to turn off the use of image's DQ array
       for sky computations.
 
     .. note::
         DQ masks (if used), *will* *be* combined with user masks
-        specified in the input @-file.
+        specified in the input ``@-file``.
 
-optimize : {'balanced', 'speed'} (Default = 'balanced')
+optimize : {'balanced', 'speed', 'inmemory'} (Default = 'balanced')
     Specifies whether to optimize execution for speed (maximum memory
-    usage) or use a balanced approach in which a minimal amount of
-    image data is kept in memory and retrieved from disk as needed.
-    The default setting is recommended for most systems.
+    usage - loaded masks and images are not unloaded until the end
+    of the execution) or use a balanced approach in which a minimal
+    amount of image data is kept in memory and retrieved from
+    disk as needed. The 'inmemory' option is similar to the 'speed'
+    setting except that masks are never saved to the files on a
+    physical disk but are created in memory. The default setting
+    is recommended for most systems.
 
 clobber : bool (Default = False)
     When a input image file is in GEIS or WAIVER FITS format it must be
     converted to simple/MEF FITS file format before it can be used by
-    :py:func:`skymatch`\ . This setting specifies whether any existing
+    \ :py:func:`skymatch`. This setting specifies whether any existing
     simple/MEF files be overwritten during this conversion process. If
-    `clobber`\ =\ `False`, existing simple/MEF FITS files will be opened.
-    If `clobber`\ =\ `True`, input GEIS or WAIVER FITS will be first
+    `clobber`=`False`, existing simple/MEF FITS files will be opened.
+    If `clobber`=`True`, input GEIS or WAIVER FITS will be first
     converted to simple FITS/MEF format overwritting (if necessary)
     existing files and then these newly created simple FITS/MEF files
     will be opened.
@@ -282,9 +286,9 @@ RuntimeError
 
 TypeError
     The `input` argument must be either a Python list of
-    :py:class:`~stsci.skypac.parseat.FileExtMaskInfo` objects, or a string
+    \ :py:class:`~stsci.skypac.parseat.FileExtMaskInfo` objects, or a string
     either containing either a comma-separated list file names,
-    or an @-file name.
+    or an ``@-file`` name.
 
 Notes
 -----
@@ -460,7 +464,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
     computed as unions of such spherical polygons while overlaps
     of image pairs are found by intersecting these spherical polygons.
 
-**@-File Format:**
+**``@-File`` Format:**
   A catalog file containing a science image file
   and extension specifications and optionally followed by a
   comma-separated list of mask files and extension specifications

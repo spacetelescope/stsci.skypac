@@ -1,0 +1,738 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utility functions for parsing user catalog files for skypac. &mdash; SkyPac 0.7 (20-May-2014) documentation</title>
+    
+    <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7 (20-May-2014)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SkyPac 0.7 (20-May-2014) documentation" href="index.html" />
+    <link rel="next" title="Polygon filling algorithm" href="region.html" />
+    <link rel="prev" title="SkyLine (chip outline on the sky) management for image mosaic." href="skyline.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="region.html" title="Polygon filling algorithm"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="skyline.html" title="SkyLine (chip outline on the sky) management for image mosaic."
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/stsci_logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="skyline.html"
+                        title="previous chapter">SkyLine (chip outline on the sky) management for image mosaic.</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="region.html"
+                        title="next chapter">Polygon filling algorithm</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/parseat.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-stsci.skypac.parseat">
+<span id="utility-functions-for-parsing-user-catalog-files-for-skypac"></span><h1>Utility functions for parsing user catalog files for skypac.<a class="headerlink" href="#module-stsci.skypac.parseat" title="Permalink to this headline">¶</a></h1>
+<p>Module for parsing <tt class="docutils literal"><span class="pre">&#64;-files</span></tt> or user input strings for use
+by <tt class="xref py py-mod docutils literal"><span class="pre">stsci.skypac</span></tt> module.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Authors:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Mihai Cara (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">License:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><a class="reference external" href="http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE">http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE</a></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.parseat.</tt><tt class="descname">FileExtMaskInfo</tt><big>(</big><em>default_ext=('SCI'</em>, <em>'*')</em>, <em>default_mask_ext=0</em>, <em>clobber=False</em>, <em>doNotOpenDQ=False</em>, <em>fnamesOnly=False</em>, <em>im_fmode='update'</em>, <em>dq_fmode='readonly'</em>, <em>msk_fmode='readonly'</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class that holds image, dq, user masks, and extensions to be used with
+these files. It is designed to facilitate keeping track of user input in
+catalog files.</p>
+<p>This class is intended to be used primarily for functions such as
+<a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a> and other related functions as a return value.
+It is also used to initialize <tt class="xref py py-class docutils literal"><span class="pre">skypac.skyline.SkyLine</span></tt> objects.</p>
+<p><a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-obj docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> was designed to be used in a specific ordered
+workflow. Below is a typical use of this class:</p>
+<ol class="arabic simple">
+<li>Initialize the object with the desired settings for default
+extensions to be used with the files (when a specific extension
+for a file is not provided) and the open modes for the files;</li>
+<li>Add image file using <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.image" title="stsci.skypac.parseat.FileExtMaskInfo.image"><tt class="xref py py-meth docutils literal"><span class="pre">image()</span></tt></a>;</li>
+<li>Add image&#8217;s extension(s) using <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.append_ext" title="stsci.skypac.parseat.FileExtMaskInfo.append_ext"><tt class="xref py py-meth docutils literal"><span class="pre">append_ext()</span></tt></a>;</li>
+<li>[Optional; can be performed at any <strong>later</strong> stage] Add DQ file and
+extensions using <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.DQimage" title="stsci.skypac.parseat.FileExtMaskInfo.DQimage"><tt class="xref py py-meth docutils literal"><span class="pre">DQimage()</span></tt></a> and <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.dqext" title="stsci.skypac.parseat.FileExtMaskInfo.dqext"><tt class="xref py py-meth docutils literal"><span class="pre">dqext()</span></tt></a> methods;</li>
+<li>Append mask files and extensions using <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.append_mask" title="stsci.skypac.parseat.FileExtMaskInfo.append_mask"><tt class="xref py py-meth docutils literal"><span class="pre">append_mask()</span></tt></a>;</li>
+<li>[Optional] Finalize the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-meth docutils literal"><span class="pre">FileExtMaskInfo()</span></tt></a> object.</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>default_ext</strong> : int, tuple (Default = (&#8216;SCI&#8217;,&#8217;*&#8217;))</p>
+<blockquote>
+<div><p>Default extension to be used with image files that to not have
+an extension specified.</p>
+</div></blockquote>
+<p><strong>default_mask_ext</strong> : int, tuple (Default = 0)</p>
+<blockquote>
+<div><p>Default extension to be used with image mask files that to not have
+an extension specified.</p>
+</div></blockquote>
+<p><strong>clobber</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>If a file being appended is in GEIS or WAIVER FITS format, should
+any existing MEF files be overwritten?</p>
+</div></blockquote>
+<p><strong>doNotOpenDQ</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>Should the DQ files be oppened when simultaneously with the image
+files?</p>
+</div></blockquote>
+<p><strong>fnamesOnly</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>Return file names only, or open the files and return
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> objects?</p>
+</div></blockquote>
+<p><strong>im_fmode</strong> : str (Default = &#8216;update&#8217;)</p>
+<blockquote>
+<div><p>File mode to be used to open image FITS file. See <tt class="xref py py-obj docutils literal"><span class="pre">astropy.io.fits.open</span></tt>
+for more details.</p>
+</div></blockquote>
+<p><strong>dq_fmode</strong> : str (Default = &#8216;readonly&#8217;)</p>
+<blockquote>
+<div><p>File mode to be used to open DQ FITS file. This is valid only if the
+DQ model of the image file is &#8216;external&#8217; (see documentation for
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> for more details). For &#8216;intrinsic&#8217;
+DQ model the DQ files will use the same setting as for <tt class="xref py py-obj docutils literal"><span class="pre">im_fmode</span></tt>.</p>
+</div></blockquote>
+<p><strong>msk_fmode</strong> : str (Default = &#8216;readonly&#8217;)</p>
+<blockquote class="last">
+<div><p>File mode to be used to open mask files.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="2%" />
+<col width="1%" />
+<col width="96%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>clobber</td>
+<td>bool</td>
+<td>If a file being appended is in GEIS or WAIVER FITS format, should         any existing MEF files be overwritten?</td>
+</tr>
+<tr class="row-even"><td>dq_bits</td>
+<td>int</td>
+<td>Bitmask specifying what pixels in the mask should be removed         (or kept) with the precise interpretation being left to the user.         This flag is not used by this class but was designed to be         passed to other functions that will use <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a>.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.append_ext">
+<tt class="descname">append_ext</tt><big>(</big><em>ext</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.append_ext" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Append</em> extensions to the list of &#8220;selected&#8221; extensions for the
+image file.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This function <em>appends</em> the extensions. If it is desired             to <em>set</em> the extensions, use <tt class="xref py py-meth docutils literal"><span class="pre">replace_ext()</span></tt> instead.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>ext</strong> : int, tuple, None, list</p>
+<blockquote class="last">
+<div><p>Extension specification: None, an integer extension <em>number</em>,
+a tuple (<em>extension</em> <em>number</em>, <em>extension</em> <em>version</em>)
+where extension version can be &#8216;*&#8217; which will be replaced with
+the extension versions of all extensions having given extension
+name. If ext is None, it will be replaced with the default
+extension specification set during the initialization of the
+<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> object.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.append_mask">
+<tt class="descname">append_mask</tt><big>(</big><em>mask</em>, <em>ext</em>, <em>mask_stat=None</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.append_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append a mask image and its extension(s).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Mask files and extensions are kept in ordered lists and their             order is significant: the first mask file-extension pair is             associated with the first extension of the science image file             set with <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.append_ext" title="stsci.skypac.parseat.FileExtMaskInfo.append_ext"><tt class="xref py py-meth docutils literal"><span class="pre">append_ext()</span></tt></a> and so on.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>mask</strong> : str, ImageRef, None</p>
+<blockquote>
+<div><p>Mask image file. Can be a string file name,
+an <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> object (<em>only</em> if
+<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>), or None (to act as a place
+holder in the ordered list of extensions).</p>
+</div></blockquote>
+<p><strong>ext</strong> : int, tuple, None, list</p>
+<blockquote>
+<div><p>Extension specification: None, an integer extension <em>number</em>,
+a tuple (<em>extension</em> <em>number</em>, <em>extension</em> <em>version</em>)
+where extension version can be &#8216;*&#8217; which will be replaced with
+the extension versions of all extensions having given extension
+name. If ext is None, it will be replaced with the default
+extension specification for mask images set during
+the initialization of the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> object.</p>
+</div></blockquote>
+<p><strong>mask_stat</strong> : <tt class="xref py py-obj docutils literal"><span class="pre">os.stat_result</span></tt> (Default = None)</p>
+<blockquote>
+<div><p>An <tt class="xref py py-obj docutils literal"><span class="pre">os.stat_result</span></tt> structure for the input <tt class="xref py py-obj docutils literal"><span class="pre">mask</span></tt> file.
+If <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>, then <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.append_mask" title="stsci.skypac.parseat.FileExtMaskInfo.append_mask"><tt class="xref py py-meth docutils literal"><span class="pre">append_mask()</span></tt></a> will compute <a class="reference external" href="http://docs.python.org/library/stat.html#stat" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">stat</span></tt></a> for
+the input <tt class="xref py py-obj docutils literal"><span class="pre">mask</span></tt> file.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>RuntimeError</strong> :</p>
+<blockquote>
+<div><p>Raised if attempting to add masks when the science image             was not yet set.</p>
+</div></blockquote>
+<p><strong>AssertionError</strong> :</p>
+<blockquote>
+<div><p>Raised if <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="stsci.skypac.parseat.FileExtMaskInfo.finalized"><tt class="xref py py-attr docutils literal"><span class="pre">finalized</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>.</p>
+</div></blockquote>
+<p><strong>TypeError</strong> :</p>
+<blockquote>
+<div><p>Raised if <tt class="xref py py-obj docutils literal"><span class="pre">mask</span></tt> is an <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>             object but <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>or if <tt class="xref py py-obj docutils literal"><span class="pre">mask</span></tt>             argument is of incorrect type.</p>
+</div></blockquote>
+<p><strong>ValueError</strong> :</p>
+<blockquote class="last">
+<div><p>If <tt class="xref py py-obj docutils literal"><span class="pre">mask</span></tt> is an <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>, it must
+<em>not</em> be closed.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.clear_masks">
+<tt class="descname">clear_masks</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.clear_masks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all attached mask files and extensions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.convert2ImageRef">
+<tt class="descname">convert2ImageRef</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.convert2ImageRef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace any existing file names with opened
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>
+objects and change the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a> property to <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="stsci.skypac.parseat.FileExtMaskInfo.finalized"><tt class="xref py py-attr docutils literal"><span class="pre">finalized</span></tt></a> property will not be modified.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> must not have been finalized             (<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="stsci.skypac.parseat.FileExtMaskInfo.finalized"><tt class="xref py py-attr docutils literal"><span class="pre">finalized</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>) and must contain file
+names only (<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>).</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>AssertionError</strong> :</p>
+<blockquote class="last">
+<div><p>Raised if <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="stsci.skypac.parseat.FileExtMaskInfo.finalized"><tt class="xref py py-attr docutils literal"><span class="pre">finalized</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a> or             <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.release_all_images" title="stsci.skypac.parseat.FileExtMaskInfo.release_all_images"><tt class="xref py py-obj docutils literal"><span class="pre">release_all_images</span></tt></a></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.finalize">
+<tt class="descname">finalize</tt><big>(</big><em>toImageRef=False</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the object by trimming or extending mask image lists to
+match the number of science image extensions.</p>
+<p>In principle, the number of mask files and their extensions need not
+be equal to the number of extensions specified for the science image.
+If the number of masks/extensions is smaller than the number of
+science extensions, the list of mask extensions will be appended with
+None (if <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>) or dummy
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> (if <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a>=        <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>) until the number of mask extensions is equal to the number
+of science image extensions. If the number of mask extensions is
+larger than the number of science image extensions, the list
+of mask extensions will be trimmed to match the number of science
+image extensions. The trimmed out mask files (if represented by
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>) will be &#8220;released&#8221;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.info">
+<tt class="descname">info</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print information about the state of the object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.release_all_images">
+<tt class="descname">release_all_images</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.release_all_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Release all images if <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt></a> is <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a> and replace any
+existing <tt class="xref py py-obj docutils literal"><span class="pre">ImageRef</span></tt> with their <em>original</em> file names.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This will set the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-attr docutils literal"><span class="pre">fnamesOnly</span></tt></a> property to <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a> and             the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="stsci.skypac.parseat.FileExtMaskInfo.finalized"><tt class="xref py py-attr docutils literal"><span class="pre">finalized</span></tt></a> property to <tt class="xref py py-obj docutils literal"><span class="pre">False.</span></tt></p>
+</div>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.convert2ImageRef" title="stsci.skypac.parseat.FileExtMaskInfo.convert2ImageRef"><tt class="xref py py-obj docutils literal"><span class="pre">convert2ImageRef</span></tt></a></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.replace_fext">
+<tt class="descname">replace_fext</tt><big>(</big><em>ext</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.replace_fext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace/set image file extension list.</p>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.append_ext" title="stsci.skypac.parseat.FileExtMaskInfo.append_ext"><tt class="xref py py-obj docutils literal"><span class="pre">append_ext</span></tt></a></p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.DQimage">
+<tt class="descname">DQimage</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.DQimage" title="Permalink to this definition">¶</a></dt>
+<dd><p>DQ image (file or <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>
+object depending on the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt></a> value).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Getter :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Get the <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> DQ image object.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Setter :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">Set the DQ file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Type :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">str, ImageRef</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.count">
+<tt class="descname">count</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of extensions associated with the image file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.dqext">
+<tt class="descname">dqext</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.dqext" title="Permalink to this definition">¶</a></dt>
+<dd><p>FITS extensions associated with the DQ file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.fext">
+<tt class="descname">fext</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.fext" title="Permalink to this definition">¶</a></dt>
+<dd><p>FITS extensions associated with the image file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.finalized">
+<tt class="descname">finalized</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.finalized" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-obj docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> object finalized?</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly">
+<tt class="descname">fnamesOnly</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Was the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-obj docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> initialized to return file names or the
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> objects?</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.image">
+<tt class="descname">image</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Image file name or the associated <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>
+object (depending on the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt></a> value).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Getter :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Get the <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> image object.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Setter :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">Set the image file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Type :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">str, ImageRef, None</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Setting the image will re-initialize <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-obj docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a>. All
+previous settings will be lost and previously attached files
+will be released/deleted.</p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.mask_images">
+<tt class="descname">mask_images</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.mask_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mask image file names or <tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt>
+object depending on the <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly" title="stsci.skypac.parseat.FileExtMaskInfo.fnamesOnly"><tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt></a> value.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.parseat.FileExtMaskInfo.maskext">
+<tt class="descname">maskext</tt><a class="headerlink" href="#stsci.skypac.parseat.FileExtMaskInfo.maskext" title="Permalink to this definition">¶</a></dt>
+<dd><p>FITS extensions associated with the mask files.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="stsci.skypac.parseat.parse_at_file">
+<tt class="descclassname">stsci.skypac.parseat.</tt><tt class="descname">parse_at_file</tt><big>(</big><em>fname</em>, <em>default_ext=('SCI'</em>, <em>'*')</em>, <em>default_mask_ext=0</em>, <em>clobber=False</em>, <em>fnamesOnly=False</em>, <em>doNotOpenDQ=False</em>, <em>match2Images=None</em>, <em>im_fmode='update'</em>, <em>dq_fmode='readonly'</em>, <em>msk_fmode='readonly'</em>, <em>logfile=None</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.parse_at_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is similar to <a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>, the main
+difference being that is can parse multiple (EOL terminated) lines
+of the format described in the documentation for
+<a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>.</p>
+<p>Below we describe only differences bewtween this function and
+<a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>File name of the catalog file.</p>
+</div></blockquote>
+<p><strong>match2Images</strong> : list of str, list of ImageRef, None (Default = None)</p>
+<blockquote>
+<div><p>List of file names or ImageRef objects whose mask specifications
+are to be read from the catalog file. Mask specifications
+for other files in the catalog that do not match the files in the
+<tt class="xref py py-obj docutils literal"><span class="pre">match2Images</span></tt> list will be ignored. If <tt class="xref py py-obj docutils literal"><span class="pre">match2Images</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>,
+then all files from the catalog will be read.</p>
+</div></blockquote>
+<p><strong>logfile</strong> : str, file, MultiFileLog, None (Default = None)</p>
+<blockquote>
+<div><p>Specifies the log file to which the messages should be printed.
+It can be a file name, a file object, a MultiFileLog object, or None.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>list</strong> :</p>
+<blockquote class="last">
+<div><p>Returns a list of filenames if <tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a> or a list of
+<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> objects if <tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="stsci.skypac.parseat.parse_at_line">
+<tt class="descclassname">stsci.skypac.parseat.</tt><tt class="descname">parse_at_line</tt><big>(</big><em>fstring</em>, <em>default_ext=('SCI'</em>, <em>'*')</em>, <em>default_mask_ext=0</em>, <em>clobber=False</em>, <em>fnamesOnly=False</em>, <em>doNotOpenDQ=False</em>, <em>im_fmode='update'</em>, <em>dq_fmode='readonly'</em>, <em>msk_fmode='readonly'</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.parse_at_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a line from a catalog file containing a science image file     and extension specifications and optionally followed by a     comma-separated list of mask files and extension specifications (or None).</p>
+<p>File names will be stripped of leading and trailing white spaces. If it
+is essential to keep these spaces, file names may be enclosed in single
+or double quotation marks. Quotation marks may also be required when file
+names contain special characters used to separate file names and
+extension specifications: ,[]{}</p>
+<p>Extension specifications must follow the file name and must be delimited
+by either square or curly brackets. Curly brackets allow specifying
+multiple comma-separated extensions: integer extension numbers and/or
+tuples (&#8216;ext name&#8217;, ext version).</p>
+<dl class="docutils">
+<dt>Some possible ways of specifying extensions:</dt>
+<dd><p class="first">[1] &#8211; extension number</p>
+<p>[&#8216;sci&#8217;,2] &#8211; extension name and version</p>
+<p>{1,4,(&#8216;sci&#8217;,3)} &#8211; multiple extension specifications, including tuples</p>
+<p>{(&#8216;sci&#8217;,*)} &#8211; wildcard extension versions (i.e., all extensions with
+extension name &#8216;sci&#8217;)</p>
+<p>[&#8216;sci&#8217;] &#8211; equivalent to [&#8216;sci&#8217;,1]</p>
+<p class="last">{&#8216;sci&#8217;} &#8211; equivalent to {(&#8216;sci&#8217;,*)}</p>
+</dd>
+</dl>
+<p>For extensions in the science image for which no mask file is provided,
+the corresponding mask file names may be omitted (but a comma must still
+be used to show that no mask is provided in that position) or None can
+be used in place of the file name. NOTE: &#8216;None&#8217; (in quotation marks) will
+be interpreted as a file named None.</p>
+<dl class="docutils">
+<dt>Some examples of possible user input:</dt>
+<dd><p class="first">image1.fits{1,2,(&#8216;sci&#8217;,3)} mask1.fits,,mask3.fits[0]</p>
+<p>In this case:</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[1] is associated with <tt class="docutils literal"><span class="pre">mask1.fits</span></tt>[0];</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[2] does not have an associated mask;</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[&#8216;sci&#8217;,3] is associated with <tt class="docutils literal"><span class="pre">mask3.fits</span></tt>[0].</p>
+<p>&#8211; Assume <tt class="docutils literal"><span class="pre">image2.fits</span></tt> has 4 &#8216;SCI&#8217; extensions:</p>
+<p>image2.fits{&#8216;sci&#8217;} None,,mask3.fits</p>
+<p>In this case:</p>
+<p><tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,1] and <tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,2] <strong>and</strong>
+<tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,4] do not have an associated mask;</p>
+<p class="last"><tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,3] is associated with <tt class="docutils literal"><span class="pre">mask3.fits</span></tt>[0]</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Wildcard extension version in extension specification can be
+expanded <em>only</em> when <tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>fstring</strong> : str</p>
+<blockquote>
+<div><p>A comma-separated string describing the image file name
+and (optionally) followed by the extension specifier
+(e.g., [sci,1,2], or [sci]). The image file name may be followed
+(comma-separated) by optional mask file names (and their extension
+specifier).</p>
+<p>File and extension names may NOT contain leading and/or trailing
+spaces, commas, and/or square or curly brakets.</p>
+</div></blockquote>
+<p><strong>default_ext</strong> : int, tuple (Default = (&#8216;SCI&#8217;,&#8217;*&#8217;))</p>
+<blockquote>
+<div><p>Default extension to be used with image files that to not have
+an extension specified.</p>
+</div></blockquote>
+<p><strong>default_mask_ext</strong> : int, tuple (Default = 0)</p>
+<blockquote>
+<div><p>Default extension to be used with image mask files that to not have
+an extension specified.</p>
+</div></blockquote>
+<p><strong>fnamesOnly</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>Return file names only, or open the files and return
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> objects?</p>
+</div></blockquote>
+<p><strong>doNotOpenDQ</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>Should the DQ files be oppened when simultaneously with the image
+files?</p>
+</div></blockquote>
+<p><strong>im_fmode</strong> : str (Default = &#8216;update&#8217;)</p>
+<blockquote>
+<div><p>File mode to be used to open image FITS file. See <tt class="xref py py-obj docutils literal"><span class="pre">astropy.io.fits.open</span></tt>
+for more details.</p>
+</div></blockquote>
+<p><strong>dq_fmode</strong> : str (Default = &#8216;readonly&#8217;)</p>
+<blockquote>
+<div><p>File mode to be used to open DQ FITS file. This is valid only if the
+DQ model of the image file is &#8216;external&#8217; (see documentation for
+<tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt> for more details). For &#8216;intrinsic&#8217;
+DQ model the DQ files will use the same setting as for <tt class="xref py py-obj docutils literal"><span class="pre">im_fmode</span></tt>.</p>
+</div></blockquote>
+<p><strong>msk_fmode</strong> : str (Default = &#8216;readonly&#8217;)</p>
+<blockquote>
+<div><p>File mode to be used to open mask files.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : bool (Default = True)</p>
+<blockquote>
+<div><p>Specifies whether to print warning messages.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>FileExtMaskInfo</strong> :</p>
+<blockquote>
+<div><p>A <a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> object.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>ValueError</strong> :</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>Input argument &#8216;fstring&#8217; must be a Python string.</li>
+<li>Input argument &#8216;fstring&#8217; contains either unbalanced           or nested square brackets.</li>
+<li>Extension specification must be preceeded by a valid image           file name.</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="stsci.skypac.parseat.parse_cs_line">
+<tt class="descclassname">stsci.skypac.parseat.</tt><tt class="descname">parse_cs_line</tt><big>(</big><em>csline</em>, <em>default_ext=('SCI'</em>, <em>'*')</em>, <em>clobber=False</em>, <em>fnamesOnly=False</em>, <em>doNotOpenDQ=False</em>, <em>im_fmode='update'</em>, <em>dq_fmode='readonly'</em>, <em>msk_fmode='readonly'</em>, <em>logfile=None</em>, <em>verbose=False</em><big>)</big><a class="headerlink" href="#stsci.skypac.parseat.parse_cs_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is similar to <a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>, the main
+difference being the content of the input string: a list of
+comma-separated <em>science</em> image file names. No masks can be specified and
+file names must be valid (i.e., None is not allowed). Extension
+specifications are allowed and must folow the same sintax as
+described for <a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>.</p>
+<p>Below we describe only differences bewtween this function and
+<a class="reference internal" href="#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">parse_at_line()</span></tt></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>csline</strong> : str</p>
+<blockquote>
+<div><p>User input string that needs to be parsed containing one of the
+following:</p>
+<blockquote>
+<div><ul class="simple">
+<li>a comma-separated list of valid science image file names               (see note below) and (optionally) extension specifications,               e.g.: <tt class="docutils literal"><span class="pre">'j1234567q_flt.fits[1],</span> <span class="pre">j1234568q_flt.fits[sci,2]'</span></tt>;</li>
+<li>an &#64;-file name, e.g., <tt class="docutils literal"><span class="pre">'&#64;files_to_match.txt'</span></tt>.</li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p><strong>Valid</strong> <strong>science</strong> <strong>image</strong> <strong>file</strong> <strong>names</strong> are:</p>
+<ul class="last simple">
+<li>file names of existing FITS, GEIS, or WAIVER FITS files;</li>
+<li>partial file names containing wildcard characters, e.g.,               <tt class="docutils literal"><span class="pre">'*_flt.fits'</span></tt>;</li>
+<li>Association (ASN) tables (must have <tt class="docutils literal"><span class="pre">_asn</span></tt>, or <tt class="docutils literal"><span class="pre">_asc</span></tt>               suffix), e.g., <tt class="docutils literal"><span class="pre">'j12345670_asn.fits'</span></tt>.</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">&#64;-file names <strong>MAY</strong> <strong>NOT</strong> be followed by an extension             specification.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If an association table or a partial file name with wildcard             characters is followed by an extension specification, it will be             considered that this extension specification applies to <strong>each</strong>             file name in the association table or <strong>each</strong> file name             obtained after wildcard expansion of the partial file name.</p>
+</div>
+</div></blockquote>
+<p><strong>logfile</strong> : str, file, MultiFileLog, None (Default = None)</p>
+<blockquote>
+<div><p>Specifies the log file to which the messages should be printed.
+It can be a file name, a file object, a MultiFileLog object, or None.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>list</strong> :</p>
+<blockquote class="last">
+<div><p>Returns a list of filenames if <tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a> or a list of
+<a class="reference internal" href="#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> objects if <tt class="xref py py-obj docutils literal"><span class="pre">fnamesOnly</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="region.html" title="Polygon filling algorithm"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="skyline.html" title="SkyLine (chip outline on the sky) management for image mosaic."
+             >previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

@@ -37,38 +37,42 @@ This module provides support for working with footprints
 on the sky. Primary use case would use the following
 generalized steps:
 
-    #. Initialize `SkyLine` objects for each input image.
-       This object would be the union of all the input
-       image's individual chips WCS footprints.
+#. Initialize `SkyLine` objects for each input image.
+   This object would be the union of all the input
+   image's individual chips WCS footprints.
 
-    #. Determine overlap between all images. The
-       determination would employ a recursive operation
-       to return the extended list of all overlap values
-       computed as [img1 vs [img2,img3,...,imgN],img2 vs
-       [img3,...,imgN],...]
+#. Determine overlap between all images. The
+   determination would employ a recursive operation
+   to return the extended list of all overlap values
+   computed as [img1 vs [img2,img3,...,imgN],img2 vs
+   [img3,...,imgN],...]
 
-    #. Select the pair with the largest overlap, or the
-       pair which produces the largest overlap with the
-       first input image. This defines the initial
-       reference `SkyLine` object.
+#. Select the pair with the largest overlap, or the
+   pair which produces the largest overlap with the
+   first input image. This defines the initial
+   reference `SkyLine` object.
 
-    #. Perform some operation on the 2 images: for example,
-       match sky in intersecting regions, or aligning
-       second image with the first (reference) image.
+#. Perform some operation on the 2 images: for example,
+   match sky in intersecting regions, or aligning
+   second image with the first (reference) image.
 
-    #. Update the second image, either apply the sky value
-       or correct the WCS, then generate a new `SkyLine`
-       object for that image.
+#. Update the second image, either apply the sky value
+   or correct the WCS, then generate a new `SkyLine`
+   object for that image.
 
-    #. Create a new reference `SkyLine` object as the union
-       of the initial reference object and the newly
-       updated `SkyLine` object.
+#. Create a new reference `SkyLine` object as the union
+   of the initial reference object and the newly
+   updated `SkyLine` object.
 
-    #. Repeat Steps 2-6 for all remaining input images.
+#. Repeat Steps 2-6 for all remaining input images.
 
 This process will work reasonably fast as most operations
 are performed using the `SkyLine` objects and WCS information
 solely, not image data itself.
+
+:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
 """
 from __future__ import division, print_function, absolute_import
@@ -83,8 +87,6 @@ import numpy as np
 from stwcs import wcsutil
 from stwcs.distortion.utils import output_wcs
 from stsci.sphere.polygon import SphericalPolygon
-#from stsci.tools.fileutil import openImage
-#from drizzlepac.imageObject import imageObject
 
 # LOCAL
 from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
@@ -95,117 +97,96 @@ from .parseat import FileExtMaskInfo
 SKYLINE_DEBUG = True
 
 __all__ = ['SkyLineMember', 'SkyLine']
-__version__ = '0.6'
-__vdate__ = '12-Dec-2013'
-
-
-
-
-
-#Skylines
-#--------
-
-#Skylines are designed to capture and manipulate HST WCS image information as
-#spherical polygons. They are represented by the `~stsci.sphere.skyline.SkyLine`
-#class, which is an extension of `~stsci.sphere.polygon.SphericalPolygon` class.
-
-#Representation
-#``````````````
-#Each skyline has a list of members, `~stsci.sphere.skyline.SkyLine.members`,
-#and a composite spherical polygon, `~stsci.sphere.skyline.SkyLine.polygon`,
-#members. The polygon has all the functionalities of
-#defined by those `~stsci.sphere.polygon.SphericalPolygon`.
-
-#What is a skyline member?
-#^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#Each member in `~stsci.sphere.skyline.SkyLine.members` belongs to the
-#`~stsci.sphere.skyline.SkyLineMember` class, which contains image name (with
-#path if given), science extension(s), and composite WCS and polygon of the
-#extension(s). All skylines start out with a single member from a single image.
-#When operations are used to find composite or intersecting skylines, the
-#resulting skyline can have multiple members.
-
-#For example, a skyline from an ACS/WFC full-frame image would give 1 member,
-#which is a composite of extensions 1 and 4. A skyline from the union of 2 such
-#images would have 2 members, and so forth.
-
-#Creating skylines
-#`````````````````
-
-#`~stsci.sphere.skyline.SkyLine` constructor takes an image name and an optional
-#`extname` keyword, which defaults to "SCI". To create skyline from
-#single-extension FITS, change `extname` to "PRIMARY".
-
-#If `None` is given instead of image name, an empty skyline is created with no
-#member and an empty spherical polygon.
-
-#Operations on skylines
-#``````````````````````
-
-#`~stsci.sphere.skyline.SkyLine` has direct access to most of the
-#`~stsci.sphere.polygon.SphericalPolygon` properties and methods *except* for the
-#following (which are still accessible indirectly via
-#`~stsci.sphere.skyline.SkyLine.polygon`):
-
-  #- `~stsci.sphere.polygon.SphericalPolygon.from_radec`
-  #- `~stsci.sphere.polygon.SphericalPolygon.from_cone`
-  #- `~stsci.sphere.polygon.SphericalPolygon.from_wcs`
-  #- `~stsci.sphere.polygon.SphericalPolygon.multi_union`
-  #- `~stsci.sphere.polygon.SphericalPolygon.multi_intersection`
-
-#In addition, `~stsci.sphere.skyline.SkyLine` also has these operations available:
-
-  #- `~stsci.sphere.skyline.SkyLine.to_wcs`: Return a composite HST WCS object
-    #defined by all the members. In a skyline resulting from intersection, this
-    #does *not* return the WCS of the intersecting polygons.
-
-  #- `~stsci.sphere.skyline.SkyLine.add_image`: Return a new skyline that is the
-    #union of two skylines. This should be used, *not* `SkyLine.union` (which is
-    #actually `~sphere.polygon.SphericalPolygon.union`) that will not include
-    #members.
-
-  #- `~stsci.sphere.skyline.SkyLine.find_intersection`: Return a new skyline
-    #that is the intersection of two skylines. This should be used, *not*
-    #`SkyLine.intersection` (which is actually
-    #`~stsci.sphere.polygon.SphericalPolygon.intersection`) that will not include
-    #members.
-
-  #- `~stsci.sphere.skyline.SkyLine.find_max_overlap` and
-    #`~stsci.sphere.skyline.SkyLine.max_overlap_pair`: Return a pair of skylines
-    #that overlap the most from a given list of skylines.
-
-  #- `~stsci.sphere.skyline.SkyLine.mosaic`: Return a new skyline that is a mosaic of
-    #given skylines that overlap, a list of image names of the skylines used, and
-    #a list of image names of the excluded skylines. A pair of skylines with the
-    #most overlap is used as a starting point. Then a skyline that overlaps the
-    #most with the mosaic is used, and so forth until no overlapping skyline is
-    #found.
-
+__version__ = '0.7'
+__vdate__ = '20-May-2014'
 
 
 class SkyLineMember(object):
     """
-    Container for `SkyLine` members with these attributes:
+    Container for :py:class:`SkyLine` members that holds information about
+    properties of a *single* extension (chip) in a FITS image such as:
 
-        * `fname`: Image name (with path if given)
-        * `ext`: Tuple of extensions read
-        * `wcs`: `HSTWCS` object the composite data
-        * `polygon`: :py:class:`~stsci.sphere.polygon.SphericalPolygon`
-          object of the composite data
+    * WCS of the chip image;
+    * bounding spherical polygon;
+    * file name and extension from which the chip's image has originated;
+    * information required for unit conversions (``EXPTIME``,
+      ``PHOTFLAM``, ``BUNIT``, etc.);
+    * user mask and DQ array associated with chip's image data.
 
     """
-    def __init__(self, image, ext, DQFlags=0, dqimage=None, dqext=None,
+    def __init__(self, image, ext, dq_bits=0, dqimage=None, dqext=None,
                  usermask=None, usermask_ext=None):
         """
         Parameters
         ----------
-        fname : str
-            FITS image.
+        image : ImageRef
+            An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
+            to an open FITS file
 
-        extname : str
-            EXTNAME to use. SCI is recommended for normal
-            HST images. PRIMARY if image is single ext.
+        ext : tuple, int, str
+            Extension specification in the `image` the `SkyLineMember`
+            object will be associated with.
+
+            An int `ext` specifies extension number. A tuple in the form
+            (str, int) specifies extension name and number. A string `ext`
+            specifies extension name and the extension version is assumed
+            to be 1. See documentation for `astropy.io.fits.getData`
+            for examples.
+
+        dq_bits : int, None (Default = 0)
+            Integer sum of all the DQ bit values from the
+            input `image`'s DQ array that should be considered "good"
+            when building masks for sky computations. For example,
+            if pixels in the DQ array can be combinations of 1, 2, 4,
+            and 8 flags and one wants to consider DQ "defects" having
+            flags 2 and 4 as being acceptable for sky computations,
+            then `dq_bits` should be set to 2+4=6. Then a DQ pixel
+            having values 2,4, or 6 will be considered a good pixel,
+            while a DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc.
+            will be flagged as a "bad" pixel.
+
+            | Default value (0) will make *all* non-zero
+              pixels in the DQ mask to be considered "bad" pixels,
+              and the corresponding image pixels will not be used
+              for sky computations.
+
+            | Set `dq_bits` to `None` to turn off the use of
+              image's DQ array for sky computations.
+
+            .. note::
+                DQ masks (if used), *will be* combined with user masks
+                specified by the `usermask` parameter.
+
+        dqimage : ImageRef
+            An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
+            to an open FITS file that has DQ data of the input `image`.
+
+            .. note::
+               When DQ data are located in the same FITS file as the
+               science image data (e.g., HST/ACS, HST/WFC3, etc.),
+               `dqimage` may point to the
+               same :py:class:`~stsci.skypac.utils.ImageRef` object.
+               In this case the reference count of the
+               \ :py:class:`~stsci.skypac.utils.ImageRef` object must be
+               increased adequately.
+
+        dqext : tuple, int, str
+            Extension specification of the `dqimage` that contains
+            `image`'s DQ information. See help for `ext` for more
+            details on acceptable formats for this parameter.
+
+        usermask : ImageRef
+            An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
+            to an open FITS file that has user mask data that indicate
+            what pixels in the input `image` should be used for sky
+            computations (``1``) and which pixels should **not** be used
+            for sky computations (``0``).
+
+        usermask_ext : tuple, int, str
+            Extension specification of the `usermask` mask file that
+            contains user's mask data that should be associated with
+            the input `image` and `ext`. See help for `ext` for more
+            details on acceptable formats for this parameter.
 
         """
         assert(hasattr(self.__class__, '_initialized') and \
@@ -215,22 +196,22 @@ class SkyLineMember(object):
         # check that input images and extensions are valid --
         # either integers or tuples of strings and integers, e.g., ('sci',1):
         _check_valid_imgext(image, 'image', ext, 'ext', can_img_be_None=False)
-        if DQFlags is not None:
+        if dq_bits is not None:
             if dqimage is None:
-                DQFlags = 0
+                dq_bits = 0
             else:
                 _check_valid_imgext(dqimage, 'dqimage', dqext, 'dqext')
         _check_valid_imgext(usermask, 'usermask', usermask_ext,'usermask_ext')
 
-        # check DQFlags:
-        if DQFlags is not None and not isinstance(DQFlags,int):
+        # check dq_bits:
+        if dq_bits is not None and not isinstance(dq_bits,int):
             if image:  dqimage.release()
             if usermask: usermask.release()
             if dqimage:  dqimage.release()
-            raise TypeError("Argument 'DQFlags' must be either an integer or None.")
+            raise TypeError("Argument 'dq_bits' must be either an integer or None.")
 
         # buld mask:
-        self._buildMask(image.original_fname, ext, DQFlags,
+        self._buildMask(image.original_fname, ext, dq_bits,
                         dqimage, dqext, usermask, usermask_ext)
         if dqimage:  dqimage.release()
         if usermask: usermask.release()
@@ -280,18 +261,6 @@ class SkyLineMember(object):
         # Set polygon to be the bounding box of the chip:
         self._polygon = SphericalPolygon.from_wcs(self.wcs)
 
-    # variable class member that holds FITS header keyword used to store
-    # computed sky value:
-    #_skyuser_header_keyword = 'SKYUSER'
-
-    # variable class member that holds FITS header keyword for data units:
-    #_units_header_keyword = 'BUNIT'
-
-    # variable class member that holds 'verbose' preference:
-    #_verbose = True
-
-    # variable class member that holds MultiFileLog:
-    #_ml = sys.stdout
 
     @classmethod
     def init_class(cls, skyuser_kwd='SKYUSER', units_kwd='BUNIT',
@@ -306,9 +275,10 @@ class SkyLineMember(object):
         else:
             raise TypeError("The 'optimize' argument must be a string object.")
 
-        if not (cls._optimize == 'balanced' or cls._optimize == 'speed'):
-            raise ValueError("Currently supported values for the " \
-                             "'optimize' argument are: 'balanced' or 'speed'.")
+        if cls._optimize not in ['balanced', 'speed', 'inmemory']:
+            raise ValueError("Currently supported values for the "
+                             "'optimize' argument are: "
+                             "'balanced', 'speed', or 'inmemory'.")
 
         # Set-up log files:
         if isinstance(logfile, MultiFileLog):
@@ -360,12 +330,12 @@ class SkyLineMember(object):
         if clean: self._clean()
         self._reset()
 
-    def _buildMask(self, image_fname, ext, DQFlags, dq, dqext, msk, mskext):
-        if DQFlags is None or dq is None:
+    def _buildMask(self, image_fname, ext, dq_bits, dq, dqext, msk, mskext):
+        if dq_bits is None or dq is None:
             # we will use only the user mask:
             if msk is not None:
                 if (self._optimize == 'balanced' and msk.can_reload_data) or \
-                    self._optimize == 'speed':
+                    self._optimize == 'speed' or self._optimize == 'inmemory':
                     # nothing to do: simply re-use the user mask:
                     self._mask     = msk
                     self._maskext  = mskext
@@ -375,8 +345,8 @@ class SkyLineMember(object):
                     # so we will create a temporary fits file to hold mask data:
                     maskdata = (msk.hdu[mskext].data != 0).astype(np.uint8)
                     (root,suffix,fext)  = file_name_components(image_fname)
-                    mfname, self._mask = temp_mask_file(root, 'skymatch_mask', \
-                                                        ext, maskdata)
+                    mfname, self._mask = temp_mask_file(
+                        maskdata, root, suffix='skymatch_mask', ext=ext)
                     self._files2clean.append(mfname)
                     self._maskext = 0
 
@@ -391,27 +361,35 @@ class SkyLineMember(object):
 
         else:
             # compute a new mask by:
-            #    1. applying DQFlags to DQ array
+            #    1. applying dq_bits to DQ array
             #    2. combining previous array with the user mask data
             #
-            # If DQFlags show the "bad" bits then DQ mask should be computed
+            # If dq_bits show the "bad" bits then DQ mask should be computed
             # using:
             #
-            #dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,DQFlags))
+            #dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,dq_bits))
             #
-            # However, to keep the same convention with astrodrizzle, DQFlags
+            # However, to keep the same convention with astrodrizzle, dq_bits
             # will show the "good" bits that should be removed from the DQ array:
-            dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,~DQFlags))
+            dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,~dq_bits))
             # 2. combine with user mask:
             if msk is not None:
                 maskdata = (msk.hdu[mskext].data != 0)
                 dqmskarr = np.logical_and(dqmskarr, maskdata)
             # create a temporary file with the combined mask:
-            (root,suffix,fext)  = file_name_components(image_fname)
-            mfname, self._mask = temp_mask_file(root, 'skymatch_mask', \
-                                            ext, dqmskarr.astype(np.uint8))
+            (root, suffix, fext) = file_name_components(image_fname)
+            if self._optimize == 'inmemory':
+                self._mask = in_memory_mask(dqmskarr.astype(np.uint8))
+                strext = ext2str(ext, compact=True, default_extver=None)
+                self._mask.original_fname = "{1:s}{0:s}{2:s}{0:s}{3:s}" \
+                    .format('_', root, suffix, 'in-memory_skymatch_mask')
+            else:
+                mfname, self._mask = temp_mask_file(
+                    dqmskarr.astype(np.uint8), root,
+                    suffix='skymatch_mask', ext=ext
+                )
+                self._files2clean.append(mfname)
 
-            self._files2clean.append(mfname)
             self._maskext = 0
             self._can_free_mask = self._mask.can_reload_data
             self._mask_is_imref = True
@@ -633,7 +611,7 @@ class SkyLineMember(object):
                     "Keyword \'EXPTIME\' not found neither in the "  \
                     "Primary header nor{0:s}in the header of "       \
                     "extension ({1:s}) in file {2:s}.{0:s}"          \
-                    "*ASSUMING* image data are \"COUNT-RATE\".",     \
+                    "Variations in exposure time WILL NOT be accounted for.",\
                     os.linesep, ext2str(self.ext), self._basefname)
 
     def __repr__(self):
@@ -785,9 +763,31 @@ class SkyLine(object):
     """
     Manage outlines on the sky.
 
+    Skylines are designed to capture and manipulate HST WCS image
+    information as spherical polygons. They are represented by
+    the :py:class:`~stsci.sphere.skyline.SkyLine` class, which is an
+    extension of :py:class:`~stsci.sphere.polygon.SphericalPolygon` class.
+
+    Each skyline has a list of members, `~stsci.sphere.skyline.SkyLine.members`,
+    and a composite spherical polygon, `~stsci.sphere.skyline.SkyLine.polygon`,
+    members. The polygon has all the functionalities of
+    \ `~stsci.sphere.polygon.SphericalPolygon`.
+
     Each `SkyLine` has a list of `~SkyLine.members` and
     a composite `~SkyLine.polygon` with all the
     functionalities of `~stsci.sphere.polygon.SphericalPolygon`.
+
+    Each member in `~stsci.sphere.skyline.SkyLine.members` belongs
+    to the `~stsci.sphere.skyline.SkyLineMember` class, which contains
+    image name (with path if given), science extension(s),
+    and composite WCS and polygon of the extension(s). All skylines start
+    out with a single member from a single image. When operations are used
+    to find composite or intersecting skylines, the
+    resulting skyline can have multiple members.
+
+    For example, a skyline from an ACS/WFC full-frame image would give 1 member,
+    which is a composite of extensions 1 and 4. A skyline from the union of 2 such
+    images would have 2 members, and so forth.
 
     """
     def __init__(self, mlist):
@@ -840,7 +840,7 @@ class SkyLine(object):
             im.hold()
             if dq is not None: dq.hold()
             if um is not None: um.hold()
-            m = SkyLineMember(im, fi.fext[i], DQFlags=fi.DQFlags,
+            m = SkyLineMember(im, fi.fext[i], dq_bits=fi.dq_bits,
                               dqimage=dq, dqext=dqext[i],
                               usermask=um, usermask_ext=ume)
             if um is not None: um.release()

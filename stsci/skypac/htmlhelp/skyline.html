@@ -1,0 +1,500 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SkyLine (chip outline on the sky) management for image mosaic. &mdash; SkyPac 0.7 (20-May-2014) documentation</title>
+    
+    <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7 (20-May-2014)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SkyPac 0.7 (20-May-2014) documentation" href="index.html" />
+    <link rel="next" title="Utility functions for parsing user catalog files for skypac." href="parseat.html" />
+    <link rel="prev" title="Sky matching for image mosaic." href="skymatch.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parseat.html" title="Utility functions for parsing user catalog files for skypac."
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="skymatch.html" title="Sky matching for image mosaic."
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/stsci_logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="skymatch.html"
+                        title="previous chapter">Sky matching for image mosaic.</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="parseat.html"
+                        title="next chapter">Utility functions for parsing user catalog files for skypac.</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/skyline.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-stsci.skypac.skyline">
+<span id="skyline-chip-outline-on-the-sky-management-for-image-mosaic"></span><h1>SkyLine (chip outline on the sky) management for image mosaic.<a class="headerlink" href="#module-stsci.skypac.skyline" title="Permalink to this headline">¶</a></h1>
+<p>This module provides support for working with footprints
+on the sky. Primary use case would use the following
+generalized steps:</p>
+<ol class="arabic simple">
+<li>Initialize <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> objects for each input image.
+This object would be the union of all the input
+image&#8217;s individual chips WCS footprints.</li>
+<li>Determine overlap between all images. The
+determination would employ a recursive operation
+to return the extended list of all overlap values
+computed as [img1 vs [img2,img3,...,imgN],img2 vs
+[img3,...,imgN],...]</li>
+<li>Select the pair with the largest overlap, or the
+pair which produces the largest overlap with the
+first input image. This defines the initial
+reference <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> object.</li>
+<li>Perform some operation on the 2 images: for example,
+match sky in intersecting regions, or aligning
+second image with the first (reference) image.</li>
+<li>Update the second image, either apply the sky value
+or correct the WCS, then generate a new <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a>
+object for that image.</li>
+<li>Create a new reference <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> object as the union
+of the initial reference object and the newly
+updated <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> object.</li>
+<li>Repeat Steps 2-6 for all remaining input images.</li>
+</ol>
+<p>This process will work reasonably fast as most operations
+are performed using the <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> objects and WCS information
+solely, not image data itself.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Authors:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Mihai Cara, Warren Hack, Pey-Lian Lim (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">License:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><a class="reference external" href="http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE">http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE</a></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="stsci.skypac.skyline.SkyLineMember">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.skyline.</tt><tt class="descname">SkyLineMember</tt><big>(</big><em>image</em>, <em>ext</em>, <em>dq_bits=0</em>, <em>dqimage=None</em>, <em>dqext=None</em>, <em>usermask=None</em>, <em>usermask_ext=None</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLineMember" title="Permalink to this definition">¶</a></dt>
+<dd><p>Container for <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-class docutils literal"><span class="pre">SkyLine</span></tt></a> members that holds information about
+properties of a <em>single</em> extension (chip) in a FITS image such as:</p>
+<ul class="simple">
+<li>WCS of the chip image;</li>
+<li>bounding spherical polygon;</li>
+<li>file name and extension from which the chip&#8217;s image has originated;</li>
+<li>information required for unit conversions (<tt class="docutils literal"><span class="pre">EXPTIME</span></tt>,
+<tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt>, <tt class="docutils literal"><span class="pre">BUNIT</span></tt>, etc.);</li>
+<li>user mask and DQ array associated with chip&#8217;s image data.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>image</strong> : ImageRef</p>
+<blockquote>
+<div><p>An <a class="reference internal" href="utils.html#stsci.skypac.utils.ImageRef" title="stsci.skypac.utils.ImageRef"><tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt></a> object that refers
+to an open FITS file</p>
+</div></blockquote>
+<p><strong>ext</strong> : tuple, int, str</p>
+<blockquote>
+<div><p>Extension specification in the <tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt> the <a class="reference internal" href="#stsci.skypac.skyline.SkyLineMember" title="stsci.skypac.skyline.SkyLineMember"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLineMember</span></tt></a>
+object will be associated with.</p>
+<p>An int <tt class="xref py py-obj docutils literal"><span class="pre">ext</span></tt> specifies extension number. A tuple in the form
+(str, int) specifies extension name and number. A string <tt class="xref py py-obj docutils literal"><span class="pre">ext</span></tt>
+specifies extension name and the extension version is assumed
+to be 1. See documentation for <tt class="xref py py-obj docutils literal"><span class="pre">astropy.io.fits.getData</span></tt>
+for examples.</p>
+</div></blockquote>
+<p><strong>dq_bits</strong> : int, None (Default = 0)</p>
+<blockquote>
+<div><p>Integer sum of all the DQ bit values from the
+input <tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt>&#8216;s DQ array that should be considered &#8220;good&#8221;
+when building masks for sky computations. For example,
+if pixels in the DQ array can be combinations of 1, 2, 4,
+and 8 flags and one wants to consider DQ &#8220;defects&#8221; having
+flags 2 and 4 as being acceptable for sky computations,
+then <tt class="xref py py-obj docutils literal"><span class="pre">dq_bits</span></tt> should be set to 2+4=6. Then a DQ pixel
+having values 2,4, or 6 will be considered a good pixel,
+while a DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc.
+will be flagged as a &#8220;bad&#8221; pixel.</p>
+<div class="line-block">
+<div class="line">Default value (0) will make <em>all</em> non-zero
+pixels in the DQ mask to be considered &#8220;bad&#8221; pixels,
+and the corresponding image pixels will not be used
+for sky computations.</div>
+</div>
+<div class="line-block">
+<div class="line">Set <tt class="xref py py-obj docutils literal"><span class="pre">dq_bits</span></tt> to <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> to turn off the use of
+image&#8217;s DQ array for sky computations.</div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">DQ masks (if used), <em>will be</em> combined with user masks
+specified by the <tt class="xref py py-obj docutils literal"><span class="pre">usermask</span></tt> parameter.</p>
+</div>
+</div></blockquote>
+<p><strong>dqimage</strong> : ImageRef</p>
+<blockquote>
+<div><p>An <a class="reference internal" href="utils.html#stsci.skypac.utils.ImageRef" title="stsci.skypac.utils.ImageRef"><tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt></a> object that refers
+to an open FITS file that has DQ data of the input <tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When DQ data are located in the same FITS file as the
+science image data (e.g., HST/ACS, HST/WFC3, etc.),
+<tt class="xref py py-obj docutils literal"><span class="pre">dqimage</span></tt> may point to the
+same <a class="reference internal" href="utils.html#stsci.skypac.utils.ImageRef" title="stsci.skypac.utils.ImageRef"><tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt></a> object.
+In this case the reference count of the
+<a class="reference internal" href="utils.html#stsci.skypac.utils.ImageRef" title="stsci.skypac.utils.ImageRef"><tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt></a> object must be
+increased adequately.</p>
+</div>
+</div></blockquote>
+<p><strong>dqext</strong> : tuple, int, str</p>
+<blockquote>
+<div><p>Extension specification of the <tt class="xref py py-obj docutils literal"><span class="pre">dqimage</span></tt> that contains
+<tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt>&#8216;s DQ information. See help for <tt class="xref py py-obj docutils literal"><span class="pre">ext</span></tt> for more
+details on acceptable formats for this parameter.</p>
+</div></blockquote>
+<p><strong>usermask</strong> : ImageRef</p>
+<blockquote>
+<div><p>An <a class="reference internal" href="utils.html#stsci.skypac.utils.ImageRef" title="stsci.skypac.utils.ImageRef"><tt class="xref py py-class docutils literal"><span class="pre">ImageRef</span></tt></a> object that refers
+to an open FITS file that has user mask data that indicate
+what pixels in the input <tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt> should be used for sky
+computations (<tt class="docutils literal"><span class="pre">1</span></tt>) and which pixels should <strong>not</strong> be used
+for sky computations (<tt class="docutils literal"><span class="pre">0</span></tt>).</p>
+</div></blockquote>
+<p><strong>usermask_ext</strong> : tuple, int, str</p>
+<blockquote class="last">
+<div><p>Extension specification of the <tt class="xref py py-obj docutils literal"><span class="pre">usermask</span></tt> mask file that
+contains user&#8217;s mask data that should be associated with
+the input <tt class="xref py py-obj docutils literal"><span class="pre">image</span></tt> and <tt class="xref py py-obj docutils literal"><span class="pre">ext</span></tt>. See help for <tt class="xref py py-obj docutils literal"><span class="pre">ext</span></tt> for more
+details on acceptable formats for this parameter.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="stsci.skypac.skyline.SkyLine">
+<em class="property">class </em><tt class="descclassname">stsci.skypac.skyline.</tt><tt class="descname">SkyLine</tt><big>(</big><em>mlist</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manage outlines on the sky.</p>
+<p>Skylines are designed to capture and manipulate HST WCS image
+information as spherical polygons. They are represented by
+the <tt class="xref py py-class docutils literal"><span class="pre">SkyLine</span></tt> class, which is an
+extension of <tt class="xref py py-class docutils literal"><span class="pre">SphericalPolygon</span></tt> class.</p>
+<p>Each skyline has a list of members, <tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt>,
+and a composite spherical polygon, <tt class="xref py py-obj docutils literal"><span class="pre">polygon</span></tt>,
+members. The polygon has all the functionalities of
+<tt class="xref py py-obj docutils literal"><span class="pre">SphericalPolygon</span></tt>.</p>
+<p>Each <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> has a list of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a> and
+a composite <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.polygon" title="stsci.skypac.skyline.SkyLine.polygon"><tt class="xref py py-obj docutils literal"><span class="pre">polygon</span></tt></a> with all the
+functionalities of <tt class="xref py py-obj docutils literal"><span class="pre">SphericalPolygon</span></tt>.</p>
+<p>Each member in <tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt> belongs
+to the <tt class="xref py py-obj docutils literal"><span class="pre">SkyLineMember</span></tt> class, which contains
+image name (with path if given), science extension(s),
+and composite WCS and polygon of the extension(s). All skylines start
+out with a single member from a single image. When operations are used
+to find composite or intersecting skylines, the
+resulting skyline can have multiple members.</p>
+<p>For example, a skyline from an ACS/WFC full-frame image would give 1 member,
+which is a composite of extensions 1 and 4. A skyline from the union of 2 such
+images would have 2 members, and so forth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>fname</strong> : str</p>
+<blockquote>
+<div><p>FITS image. <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> to create empty <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a>.</p>
+</div></blockquote>
+<p class="last"><strong>ext</strong> : a list of tuples (&#8216;extname&#8217;,extver).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="stsci.skypac.skyline.SkyLine.add_image">
+<tt class="descname">add_image</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.add_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> that is the union of <em>self</em>
+and <em>other</em>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine.union</span></tt> only returns <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.polygon" title="stsci.skypac.skyline.SkyLine.polygon"><tt class="xref py py-obj docutils literal"><span class="pre">polygon</span></tt></a>
+without <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a>.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><strong>other</strong> : <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> object</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s1</span> <span class="o">=</span> <span class="n">SkyLine</span><span class="p">(</span><span class="s">&#39;image1.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s2</span> <span class="o">=</span> <span class="n">SkyLine</span><span class="p">(</span><span class="s">&#39;image2.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s3</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.skyline.SkyLine.find_intersection">
+<tt class="descname">find_intersection</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.find_intersection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> that is the intersection of
+<em>self</em> and <em>other</em>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine.intersection</span></tt> only returns
+<a class="reference internal" href="#stsci.skypac.skyline.SkyLine.polygon" title="stsci.skypac.skyline.SkyLine.polygon"><tt class="xref py py-obj docutils literal"><span class="pre">polygon</span></tt></a> without <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a>.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><strong>other</strong> : <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> object</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s1</span> <span class="o">=</span> <span class="n">SkyLine</span><span class="p">(</span><span class="s">&#39;image1.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s2</span> <span class="o">=</span> <span class="n">SkyLine</span><span class="p">(</span><span class="s">&#39;image2.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s3</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">find_intersection</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.skyline.SkyLine.find_max_overlap">
+<tt class="descname">find_max_overlap</tt><big>(</big><em>skylines</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.find_max_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> from a list of <em>skylines</em> that overlaps
+the most with <em>self</em>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skylines</strong> : list</p>
+<blockquote>
+<div><p>A list of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> instances.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>max_skyline</strong> : <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> instance or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a></p>
+<blockquote>
+<div><p><a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> that overlaps the most or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> if no
+overlap found. This is <em>not</em> a copy.</p>
+</div></blockquote>
+<p><strong>max_overlap_area</strong> : float</p>
+<blockquote class="last">
+<div><p>Area of intersection.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="stsci.skypac.skyline.SkyLine.max_overlap_pair">
+<em class="property">static </em><tt class="descname">max_overlap_pair</tt><big>(</big><em>skylines</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.max_overlap_pair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find a pair of skylines with maximum overlap.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skylines</strong> : list</p>
+<blockquote>
+<div><p>A list of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> instances.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>max_pair</strong> : tuple</p>
+<blockquote class="last">
+<div><p>Pair of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> objects with max overlap
+among given <em>skylines</em>. If no overlap found,
+return <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>. These are <em>not</em> copies.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="stsci.skypac.skyline.SkyLine.mosaic">
+<em class="property">classmethod </em><tt class="descname">mosaic</tt><big>(</big><em>skylines</em>, <em>verbose=True</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.mosaic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mosaic all overlapping <em>skylines</em>.</p>
+<p>A pair of skylines with the most overlap is used as
+a starting point. Then a skyline that overlaps the
+most with the mosaic is used, and so forth until no
+overlapping skyline is found.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skylines</strong> : list</p>
+<blockquote>
+<div><p>A list of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> objects.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : bool</p>
+<blockquote>
+<div><p>Print info to screen.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Returns :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>mosaic</strong> : <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> instance or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a></p>
+<blockquote>
+<div><p>Union of all overlapping <em>skylines</em>, or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> if
+no overlap found.</p>
+</div></blockquote>
+<p><strong>included</strong> : list</p>
+<blockquote>
+<div><p>List of image names added to mosaic in the order
+of addition.</p>
+</div></blockquote>
+<p><strong>excluded</strong> : list</p>
+<blockquote class="last">
+<div><p>List of image names excluded because they do not
+overlap with mosaic.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="stsci.skypac.skyline.SkyLine.to_wcs">
+<tt class="descname">to_wcs</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.to_wcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine <tt class="xref py py-obj docutils literal"><span class="pre">HSTWCS</span></tt> objects from all <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a> and return
+a new <tt class="xref py py-obj docutils literal"><span class="pre">HSTWCS</span></tt> object. If no <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a>, return <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This cannot return WCS of intersection.</p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.skyline.SkyLine.is_mf_mosaic">
+<tt class="descname">is_mf_mosaic</tt><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.is_mf_mosaic" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns <em>True</em> if <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> members are from distinct image files
+(multi-file mosaic) and <em>False</em> otherwise.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.skyline.SkyLine.members">
+<tt class="descname">members</tt><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.members" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of <a class="reference internal" href="#stsci.skypac.skyline.SkyLineMember" title="stsci.skypac.skyline.SkyLineMember"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLineMember</span></tt></a> objects that belong to <em>self</em>.
+Duplicate members are discarded. Members are kept in
+the order of their additions to <em>self</em>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="stsci.skypac.skyline.SkyLine.polygon">
+<tt class="descname">polygon</tt><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.polygon" title="Permalink to this definition">¶</a></dt>
+<dd><p><tt class="xref py py-obj docutils literal"><span class="pre">SphericalPolygon</span></tt> portion of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a>
+that contains the composite skyline from <a class="reference internal" href="#stsci.skypac.skyline.SkyLine.members" title="stsci.skypac.skyline.SkyLine.members"><tt class="xref py py-obj docutils literal"><span class="pre">members</span></tt></a>
+belonging to <em>self</em>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parseat.html" title="Utility functions for parsing user catalog files for skypac."
+             >next</a> |</li>
+        <li class="right" >
+          <a href="skymatch.html" title="Sky matching for image mosaic."
+             >previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

@@ -14,6 +14,12 @@ from stsci.tools import teal
 teal.print_tasknames(__name__, os.path.dirname(__file__))
 
 
+__taskname__ = 'skymatch'
+__version__ = '0.7'
+__vdate__ = '20-May-2014'
+__author__ = 'Mihai Cara'
+
+
 def help():
     msg = \
 """ The SkyPac package contains the following tasks that allow users perform sky level matching on user images.

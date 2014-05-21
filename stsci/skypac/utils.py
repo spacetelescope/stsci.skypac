@@ -1,3 +1,12 @@
+"""
+This module provides utility functions for use
+by :py:mod:`stsci.skypac` module.
+
+:Authors: Mihai Cara (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+
+"""
 import sys, os, weakref, tempfile
 from astropy.io import fits
 from os import path
@@ -10,7 +19,7 @@ __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',     \
            'count_extensions', 'get_ext_list', 'get_extver_list', \
            'file_name_components', 'temp_mask_file' ]
 __version__ = '0.1'
-__vdate__ = '20-Dec-2013'
+__vdate__ = '21-Dec-2013'
 __author__ = 'Mihai Cara'
 
 
@@ -77,10 +86,51 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
     return (root, suffix, fext)
 
 
+def in_memory_mask(data):
+    """
+    Creates an ImageRef object with that embeds an in memory
+    (i.e., not attached to a file) HDUList containing the supplied mask data.
+
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Data to be used to create an in-memory FITS file. Data will be
+        written in the primary HDU.
+
+
+    Returns
+    -------
+    ImageRef
+        An open :py:class:`~skypac.utils.ImageRef` object of a temporary
+        and in-memory (not attached to a file on disk) FITS file.
+        Mask data will be in the Primary HDU.
+
+
+    Examples
+    --------
+    >>> import numpy np
+    >>> from stsci import skypac
+    >>> skypac.utils.in_memory_mask(data=mask)
+    <skypac.utils.ImageRef object at 0x101f5a3d0>
+
+    """
+    # create HDUList object
+    hdu      = fits.PrimaryHDU(data)
+    hdulist  = fits.HDUList([hdu])
+    imageref = ImageRef(ResourceRefCount(hdulist))
+    imageref.memmap = False
+    imageref.can_reload_data = False
+    return imageref
+
+
 ######################################################
 ## Returned mask file is a simple FITS and the data are in the
 ## primary HDU (ext=0).
-def temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=False):
+def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
+                   ext=('sci',1), randomize_prefix=True,
+                   sep='_', dir=os.path.curdir,
+                   fnameOnly=False):
     """
     temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=False)
     Saves 2D data array to temporary simple FITS file.
@@ -88,18 +138,38 @@ def temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=Fa
 
     Parameters
     ----------
-    rootname : str
-        Root name of the file.
-
-    suffix : str
-        Suffix to be added to the root name.
-
-    ext : int, str, or tuple of the form (str, int)
-        Extention to be added to the temporary file after suffix.
-
     data : numpy array
         Data to be written to the temporary FITS file. Data will be
         written in the primary HDU.
+
+    rootname : str
+        Root name of the file.
+
+    prefix : str (Default = 'tmp')
+        Prefix to be added in front of the root name. If `randomize_prefix`
+        is `True`, then a random string will be added to the right of the
+        string specified by `prefix` (with no separator between them).
+        Prefix (or the randomized prefix) will be separated from the
+        root name by the string specified in `sep`. If prefix is an empty
+        string (``''``) then no prefix will be prepended to the root file
+        name.
+
+    suffix : str (Default = 'mask')
+        Suffix to be added to the root name. Suffix will be separated from
+        the root name by the string specified in `sep`.
+
+    ext : int, str, or tuple of the form (str, int)
+        Extention to be added to the temporary file *after* the suffix.
+        Extension name string will be separated from
+        the suffix by the string specified in `sep`.
+
+    sep : str (Default = '_')
+        Separator string to be inserted between (randomized) prefix
+        and root name, root name and suffix, and suffix and extension.
+
+    randomize_prefix : bool (Default = True)
+        Specifies whether to add (postpend) a random string to string
+        specified by `prefix`.
 
     dir : str (Default = os.path.curdir)
         Directory to which the temporary file should be written. If directory
@@ -124,6 +194,9 @@ def temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=Fa
         FITS file. This is returned as a tuple together with the file name
         only when `fnameOnly`\ =\ `False`.
 
+        .. note::
+            Mask data will be in the Primary HDU.
+
     Raises
     ------
     TypeError
@@ -133,15 +206,17 @@ def temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=Fa
     Examples
     --------
     >>> import numpy np
+    >>> from stsci import skypac
     >>> mask=np.ones((800,800),dtype=np.uint8)
-    >>> skypac.utils.temp_mask_file('ua0x5001m','skymatch_mask',('sci',4),\
-data=mask,dir='/data/m87',fnameOnly=True)
+    >>> skypac.utils.temp_mask_file(mask, 'ua0x5001m',
+    ...     suffix='skymatch_mask', ext=('sci',4), dir='/data/m87',
+    ...     fnameOnly=True)
     '/data/m87/tmp39gCpw_ua0x5001m_skymatch_mask_sci4.fits'
-    >>> skypac.utils.temp_mask_file('ua0x5001m','skymatch_mask',('sci',4),\
-data=mask,dir='.',fnameOnly=True)
+    >>> skypac.utils.temp_mask_file(mask, 'ua0x5001m',
+    ...     suffix='skymatch_mask', ext=('sci',4), dir='.', fnameOnly=True)
     'tmpxl7LTO_ua0x5001m_skymatch_mask_sci4.fits'
-    >>> skypac.utils.temp_mask_file('ua0x5001m','skymatch_mask',('sci',4),\
-data=mask,dir='.',fnameOnly=False)
+    >>> skypac.utils.temp_mask_file(mask, 'ua0x5001m',
+    ...     suffix='skymatch_mask', ext=('sci',4), dir='.',fnameOnly=False)
     ('tmpxMcL5g_ua0x5001m_skymatch_mask_sci4.fits', \
 <skypac.utils.ImageRef object at 0x101f5a3d0>)
 
@@ -153,21 +228,39 @@ data=mask,dir='.',fnameOnly=False)
         raise TypeError("Extension specifier must be either an integer, " \
                          "a string, or a tuple of the form (\'str\', int).")
 
-    # new suffix for the temporary file:
-    newbase = "_{:s}_{:s}_{:s}{:s}{:s}".format(rootname, suffix, \
-                                               strext, os.extsep, 'fits')
-    # new temporary file handle:
-    fh = tempfile.NamedTemporaryFile(prefix='tmp', suffix=newbase,
-                                     dir=dir, delete=False)
+    if prefix is None:
+        prefix = ''
+
+    dir = os.path.expanduser(dir)
+
+    if randomize_prefix:
+        # new suffix for the temporary file:
+        newbase = "{0:s}{1:s}{0:s}{2:s}{0:s}{3:s}{4:s}{5:s}" \
+            .format(sep, rootname, suffix, strext, os.extsep, 'fits')
+        # new temporary file handle:
+        fh = tempfile.NamedTemporaryFile(prefix=prefix, suffix=newbase,
+                                         dir=dir, delete=False)
+    else:
+        if prefix == '':
+            fname = "{1:s}{0:s}{2:s}{0:s}{3:s}{4:s}{5:s}" \
+                .format(sep, rootname, suffix, strext, os.extsep, 'fits')
+        else:
+            fname = "{1:s}{0:s}{2:s}{0:s}{3:s}{0:s}{4:s}{5:s}{6:s}" \
+                .format(sep, prefix, rootname, suffix, strext,
+                        os.extsep, 'fits')
+        full_name = os.path.join(dir, fname)
+        fh = open(full_name, 'w')
 
     # simplify path if 'dir' is current working directory:
     (pth, fname) = os.path.split(os.path.relpath(fh.name))
     if dir != os.path.curdir and not (pth == os.path.curdir or pth == ''):
         fname = fh.name
 
-    # write data to the "temporary" file
+    # create HDUList object
     hdu      = fits.PrimaryHDU(data)
     hdulist  = fits.HDUList([hdu])
+
+    # write data to the "temporary" file
     hdulist.writeto(fh)
 
     # clean-up
@@ -190,7 +283,7 @@ data=mask,dir='.',fnameOnly=False)
 def get_extver_list(img, extname='SCI'):
     """
     Return a list of all extension versions with `extname` extension
-    names. If `extname` is `None`\ , return extension **numbers** of all
+    names. If `extname` is `None`, return extension **numbers** of all
     image-like extensions.
 
     .. note::
@@ -203,19 +296,19 @@ def get_extver_list(img, extname='SCI'):
         Input image object. If `img` is a string object (file name) then that
         file will be opened. If the file pointed to by the file name is a
         GEIS or WAIVER FITS file, it will be converted to a simple/MEF FITS
-        format if `clobber`\ =\ `True`.
+        format if `clobber`=`True`.
 
     extname : str (Default = 'SCI')
         Indicates extension *name* for which all existing extension *versions*
-        should be found. If `extname`\ =\ `None`\ , then
+        should be found. If `extname`=`None`, then
         `~skypac.utils.get_extver_list` will return a list of extension
         *numbers* of all image-like extensions.
 
     Returns
     -------
     extver : list
-        List of extension versions corresponding to the input `extname`\ .
-        If `extname`\ =\ `None`\ , it will return a list of extension
+        List of extension versions corresponding to the input `extname`.
+        If `extname`=`None`, it will return a list of extension
         *numbers* of all image-like extensions.
 
     Raises
@@ -1087,6 +1180,7 @@ class ResourceRefCount(object):
                 if self._resource is not None:
                     self._res_close()
                 self._res_close = None
+                del self._resource
                 self._resource  = None
                 self._close_notify = {}
 
@@ -1638,6 +1732,7 @@ def _getDQHDUList(dqimage, dqfile, doOpen, ftype, basicChk, openOrigFn,
     dqimage.filename = None
     return None
 
+
 def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
                 saveAsMEF=True, output_base_fitsname=None, clobber=True,
                 imageOnly=False, openImageHDU=True, openDQHDU=False,
@@ -1710,7 +1805,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
         standard output.
 
     Returns
-    _______
+    -------
     (img, dqimg) : (ImageRef, ImageRef)
         A tuple of :py:class:`ImageRef` objects corresponding to the science
         image and to the DQ image. Each object in the returned tuple open

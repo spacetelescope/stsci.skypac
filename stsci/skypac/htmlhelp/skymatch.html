@@ -1,0 +1,789 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Sky matching for image mosaic. &mdash; SkyPac 0.7 (20-May-2014) documentation</title>
+    
+    <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7 (20-May-2014)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="SkyPac 0.7 (20-May-2014) documentation" href="index.html" />
+    <link rel="next" title="SkyLine (chip outline on the sky) management for image mosaic." href="skyline.html" />
+    <link rel="prev" title="Welcome to skypac’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="skyline.html" title="SkyLine (chip outline on the sky) management for image mosaic."
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to skypac’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/stsci_logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to skypac&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="skyline.html"
+                        title="next chapter">SkyLine (chip outline on the sky) management for image mosaic.</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/skymatch.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-stsci.skypac.skymatch">
+<span id="sky-matching-for-image-mosaic"></span><h1>Sky matching for image mosaic.<a class="headerlink" href="#module-stsci.skypac.skymatch" title="Permalink to this headline">¶</a></h1>
+<p>A module that provides functions for matching sky in overlapping images.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Authors:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Mihai Cara, Warren Hack, Pey-Lian Lim (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">License:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><a class="reference external" href="http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE">http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE</a></td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="stsci.skypac.skymatch.TEAL_SkyMatch">
+<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">TEAL_SkyMatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>logfile='skymatch_log.txt'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.TEAL_SkyMatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>TEAL interface for <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Most parameters are identical
+to those of the <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Here we mention only the differences:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>logfile</strong> : str (Default = &#8216;skymatch_log.txt&#8217;)</p>
+<blockquote class="last">
+<div><p>Store execution log in this file. Always openned in append mode.
+If not given (<tt class="xref py py-obj docutils literal"><span class="pre">logfile</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>), print to screen instead.
+NOTE: Unlike <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>, <tt class="xref py py-obj docutils literal"><span class="pre">logfile</span></tt> can <em>only</em> be either
+a string file name or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="stsci.skypac.skymatch.skymatch">
+<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">skymatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>flog='skymatch_log.txt'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.skymatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standalone task to compute and/or &#8220;equalize&#8221; sky in input images.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Sky matching (&#8220;equalization&#8221;) is possible only for <strong>overlapping</strong>
+exposures.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">When <tt class="xref py py-obj docutils literal"><span class="pre">readonly</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>, image headers will be modified
+and image data will be background-subtracted if <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> is
+<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>. Remember to back up original copies as desired.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Unlike previous sky subtraction algorithm used by
+<a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>, <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> accounts for differences
+in chip sensitivities by performing sky computations on data multiplied
+by inverse sensitivity (e.g., value of <tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt> in image headers
+&#8211; see &#8220;Notes&#8221; section below).</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>input</strong> : str, list of FileExtMaskInfo</p>
+<blockquote>
+<div><p>A list of of <a class="reference internal" href="parseat.html#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> objects
+or a string containing one of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li>a comma-separated list of valid science image file names
+(see note below) and (optionally) extension specifications,
+e.g.: <tt class="docutils literal"><span class="pre">'j1234567q_flt.fits[1],</span> <span class="pre">j1234568q_flt.fits[sci,2]'</span></tt>;</li>
+<li>an &#64;-file name, e.g., <tt class="docutils literal"><span class="pre">'&#64;files_to_match.txt'</span></tt>. See notes
+section for details on the format of the &#64;-files.</li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p><strong>Valid science image file names</strong> are:</p>
+<ul class="last simple">
+<li>file names of existing FITS, GEIS, or WAIVER FITS files;</li>
+<li>partial file names containing wildcard characters, e.g.,
+<tt class="docutils literal"><span class="pre">'*_flt.fits'</span></tt>;</li>
+<li>Association (ASN) tables (must have <tt class="docutils literal"><span class="pre">_asn</span></tt>, or <tt class="docutils literal"><span class="pre">_asc</span></tt>
+suffix), e.g., <tt class="docutils literal"><span class="pre">'j12345670_asn.fits'</span></tt>.</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">&#64;-file names <strong>MAY NOT</strong> be followed by an extension
+specification.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If an association table or a partial file name with wildcard
+characters is followed by an extension specification, it will be
+considered that this extension specification applies to <strong>each</strong>
+file name in the association table or <strong>each</strong> file name
+obtained after wildcard expansion of the partial file name.</p>
+</div>
+</div></blockquote>
+<p><strong>skymethod</strong> : {&#8216;localmin&#8217;, &#8216;globalmin+match&#8217;, &#8216;globalmin&#8217;, &#8216;match&#8217;} (Default = &#8216;globalmin+match&#8217;)</p>
+<blockquote>
+<div><p>Select the algorithm for sky computation:</p>
+<ul>
+<li><p class="first"><strong>&#8216;localmin&#8217;</strong>: compute a common sky for all members of
+<em>an exposure</em> (see &#8220;Notes&#8221; section below). For a typical use, it
+will compute sky values for each chip/image extension (marked for
+sky subtraction in the <a class="reference external" href="http://docs.python.org/library/functions.html#input" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">input</span></tt></a> parameter) in an input image,
+and it will subtract the previously found minimum sky value
+from all chips (marked for sky subtraction) in that image.
+This process is repeated for each input image.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This setting is recommended when regions of overlap between images
+are dominated by &#8220;pure&#8221; sky (as opposite to extended, diffuse
+sources).</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is similar to the &#8220;skysub&#8221; algorithm used in previous
+versions of astrodrizzle.</p>
+</div>
+</li>
+<li><p class="first"><strong>&#8216;globalmin&#8217;</strong>: compute a common sky value for all members of
+<em>all exposures</em> (see &#8220;Notes&#8221; section below). It will compute
+sky values for each chip/image extension (marked for sky
+subtraction in the <tt class="xref py py-attr docutils literal"><span class="pre">input</span></tt> parameter) in <strong>all</strong> input
+images, find the minimum sky value, and then it will
+subtract the <strong>same</strong> minimum sky value from <strong>all</strong> chips
+(marked for sky subtraction) in <strong>all</strong> images. This method <em>may</em>
+useful when input images already have matched background values.</p>
+</li>
+<li><p class="first"><strong>&#8216;match&#8217;</strong>: compute differences in sky values between images
+in common (pair-wise) sky regions. In this case computed sky values
+will be relative (delta) to the sky computed in one of the
+input images whose sky value will be set to (reported to be) 0.
+This setting will &#8220;equalize&#8221; sky values between the images in
+large mosaics. However, this method is not recommended when used
+in conjunction with <a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a> because it
+computes relative sky values while <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt> needs
+&#8220;measured&#8221; sky values for median image generation and CR rejection.</p>
+</li>
+<li><p class="first"><strong>&#8216;globalmin+match&#8217;</strong>: first find a minimum &#8220;global&#8221; sky value
+in all input images and then use <strong>&#8216;match&#8217;</strong> method to
+equalize sky values between images.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is the <em>recommended</em> setting for images
+containing diffuse sources (e.g., galaxies, nebulae)
+covering significant parts of the image.</p>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>skystat</strong> : {&#8216;mode&#8217;, &#8216;median&#8217;, &#8216;mode&#8217;, &#8216;midpt&#8217;} (Default = &#8216;mode&#8217;)</p>
+<blockquote>
+<div><p>Statistical method for determining the sky value from the image
+pixel values. See <tt class="xref py py-obj docutils literal"><span class="pre">computeSky</span></tt> for more detals.</p>
+</div></blockquote>
+<p><strong>lower</strong> : float, None (Default = None)</p>
+<blockquote>
+<div><p>Lower limit of usable pixel values for computing the sky.
+This value should be specified in the units of the input image(s).</p>
+</div></blockquote>
+<p><strong>upper</strong> : float, None (Default = None)</p>
+<blockquote>
+<div><p>Upper limit of usable pixel values for computing the sky.
+This value should be specified in the units of the input image(s).</p>
+</div></blockquote>
+<p><strong>nclip</strong> : int (Default = 5)</p>
+<blockquote>
+<div><p>A non-negative number of clipping iterations to use when computing
+the sky value.</p>
+</div></blockquote>
+<p><strong>lsigma</strong> : float (Default = 4.0)</p>
+<blockquote>
+<div><p>Lower clipping limit, in sigma, used when computing the sky value.</p>
+</div></blockquote>
+<p><strong>usigma</strong> : float (Default = 4.0)</p>
+<blockquote>
+<div><p>Upper clipping limit, in sigma, used when computing the sky value.</p>
+</div></blockquote>
+<p><strong>binwidth</strong> : float (Default = 0.1)</p>
+<blockquote>
+<div><p>Bin width, in sigma, used to sample the distribution of pixel
+brightness values in order to compute the sky background statistics.</p>
+</div></blockquote>
+<p><strong>skyuser_kwd</strong> : str (Default = &#8216;SKYUSER&#8217;)</p>
+<blockquote>
+<div><p>Name of header keyword which records the sky value previously
+<em>subtracted</em> (if <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>) from the image data or
+the <em>computed</em> (if <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>) sky value.
+This keyword&#8217;s value will be updated by <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>(if
+<tt class="xref py py-obj docutils literal"><span class="pre">readonly</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>When <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a> then <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> is treated as a
+<strong>cummulative</strong> value. That is, subtracted sky value will be
+<strong>added</strong> to the <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> value and thus <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt>
+represents <em>total</em> sky <em>subtracted</em> from the image by the user
+over the entire &#8220;history&#8221; of the image.
+If <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> is missing in the input image,
+&#8220;previous&#8221; sky value will be considered to be 0.0.</p>
+<p>When <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a> then <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> represents
+<strong>computed</strong> sky value and it is <strong>not</strong> treated as a
+<strong>cummulative</strong> value. Any previous value of the <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt>
+header keyword will be <strong>overwritten</strong> with the newly computed
+value.</p>
+<p class="last">Because of different meanings of the value represented by the
+<tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> header keyword depending on the value of the
+<tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> parameter, it is important to be consistent
+and not to mix the two modes when using <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>
+multiple times on the same images.</p>
+</div>
+</div></blockquote>
+<p><strong>units_kwd</strong> : str (Default = &#8216;BUNIT&#8217;)</p>
+<blockquote>
+<div><p>Name of header keyword which records the units of the data in the
+image.</p>
+</div></blockquote>
+<p><strong>readonly</strong> : bool (Default = True)</p>
+<blockquote>
+<div><p>Report the sky matching values but do not modify the input files.</p>
+</div></blockquote>
+<p><strong>subtractsky</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>Subtract computed sky value from image data and add this value to the
+existing value represented by <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> (<strong>subtracted sky</strong>)
+or simply report the computed sky value in the header keyword
+specified by <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> (<strong>computed sky</strong>).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>Because <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> changes the <em>meaning</em> of the value of the
+header keyword <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> it is important to be consistent
+in using <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> parameter: inconsistent use may lead
+to sky values reported in <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> header keyword that do not
+reflect correct sky value <em>computed for</em> or <em>subtracted from</em>
+flat-fielded images. A possible workaround is to use different
+keywords for subtracted and computed sky, keeping in mind that the
+order of operation will affect reported <em>computed</em> sky values.</p>
+<p class="last">Also see warning for <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> parameter.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When <tt class="xref py py-obj docutils literal"><span class="pre">readonly</span></tt> is <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>, reported sky values will be consistent
+with the setting specified by <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> (as if <tt class="xref py py-obj docutils literal"><span class="pre">readonly</span></tt> is
+<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>), however sky values will <strong>NOT</strong> be subtracted from
+the image data when <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p><a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>
+does not subtract computed sky values from input
+flat-fielded images. Therefore, when using <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> on
+images that subsequently will be processed by
+<a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>
+it is <em>recommended</em> to use the following suggestions:</p>
+<ul class="last simple">
+<li>If one plans to turn on sky subtraction step in
+<a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a> that will
+involve additional sky computation (as opposite to using
+<tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>&#8216;s <tt class="xref py py-obj docutils literal"><span class="pre">skyuser</span></tt> or <tt class="xref py py-obj docutils literal"><span class="pre">skyfile</span></tt> parameters), then it is
+recommended to set <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> to <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a> and set
+<tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> to the default value used by <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>:
+<tt class="docutils literal"><span class="pre">MDRIZSKY</span></tt>.</li>
+<li>If one wants to effectively subtract the computed sky values
+from the flat-fielded image data, then it is recommended to
+set <tt class="xref py py-obj docutils literal"><span class="pre">subtractsky</span></tt> to <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>, <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> parameter to
+something different from <tt class="docutils literal"><span class="pre">MDRIZSKY</span></tt>, (e.g., <tt class="docutils literal"><span class="pre">SKYUSER</span></tt>),
+and set <tt class="xref py py-obj docutils literal"><span class="pre">skyuser</span></tt> parameter in <a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>
+to the same value as the values of <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> used
+in the call to <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>.</li>
+</ul>
+</div>
+</div></blockquote>
+<p><strong>dq_bits</strong> : int, None (Default = 0)</p>
+<blockquote>
+<div><p>Integer sum of all the DQ bit values from the input image&#8217;s
+DQ array that should be considered &#8220;good&#8221; when building masks for
+sky computations. For example, if pixels in the DQ array can be
+combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
+&#8220;defects&#8221; having flags 2 and 4 as being acceptable for sky
+computations, then <tt class="xref py py-obj docutils literal"><span class="pre">dq_bits</span></tt> should be set to 2+4=6. Then a DQ pixel
+having values 2,4, or 6 will be considered a good pixel, while a
+DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
+a &#8220;bad&#8221; pixel.</p>
+<div class="line-block">
+<div class="line">Default value (0) will make <em>all</em> non-zero
+pixels in the DQ mask to be considered &#8220;bad&#8221; pixels, and the
+corresponding image pixels will not be used for sky computations.</div>
+</div>
+<div class="line-block">
+<div class="line">Set <tt class="xref py py-obj docutils literal"><span class="pre">dq_bits</span></tt> to <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> to turn off the use of image&#8217;s DQ array
+for sky computations.</div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">DQ masks (if used), <em>will</em> <em>be</em> combined with user masks
+specified in the input &#64;-file.</p>
+</div>
+</div></blockquote>
+<p><strong>optimize</strong> : {&#8216;balanced&#8217;, &#8216;speed&#8217;} (Default = &#8216;balanced&#8217;)</p>
+<blockquote>
+<div><p>Specifies whether to optimize execution for speed (maximum memory
+usage) or use a balanced approach in which a minimal amount of
+image data is kept in memory and retrieved from disk as needed.
+The default setting is recommended for most systems.</p>
+</div></blockquote>
+<p><strong>clobber</strong> : bool (Default = False)</p>
+<blockquote>
+<div><p>When a input image file is in GEIS or WAIVER FITS format it must be
+converted to simple/MEF FITS file format before it can be used by
+<a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. This setting specifies whether any existing
+simple/MEF files be overwritten during this conversion process. If
+<tt class="xref py py-obj docutils literal"><span class="pre">clobber</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>, existing simple/MEF FITS files will be opened.
+If <tt class="xref py py-obj docutils literal"><span class="pre">clobber</span></tt>=<a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>, input GEIS or WAIVER FITS will be first
+converted to simple FITS/MEF format overwritting (if necessary)
+existing files and then these newly created simple FITS/MEF files
+will be opened.</p>
+</div></blockquote>
+<p><strong>clean</strong> : bool (Default = True)</p>
+<blockquote>
+<div><p>Specifies whether to delete at the end of the execution any temporary
+files created by <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : bool (Default = True)</p>
+<blockquote>
+<div><p>Specifies whether to print warning messages.</p>
+</div></blockquote>
+<p><strong>flog</strong> : str, file object, MultiFileLog, None (Default = &#8216;skymatch_log.txt&#8217;)</p>
+<blockquote>
+<div><p>Log file to which messages shoul be written. It can be a file name,
+file object, or a MultiFileLog object. The later two allow the
+log to be written to an existing open output stream passed
+from the calling function such as
+<a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>.
+Log file is always openned in append mode.
+If not provided (None), print messages to screen only.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises :</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>RuntimeError</strong> :</p>
+<blockquote>
+<div><p>Could not add an image to mosaic. Possibly this SkyLine does
+not intersect the mosaic.</p>
+</div></blockquote>
+<p><strong>TypeError</strong> :</p>
+<blockquote class="last">
+<div><p>The <a class="reference external" href="http://docs.python.org/library/functions.html#input" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">input</span></tt></a> argument must be either a Python list of
+<a class="reference internal" href="parseat.html#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> objects, or a string
+either containing either a comma-separated list file names,
+or an &#64;-file name.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p><a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> provides new algorithms for sky value computations
+and enhances previously available algorithms used by, e.g.,
+<a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a>.</p>
+<p>First, the standard sky computation algorithm
+(see <tt class="xref py py-obj docutils literal"><span class="pre">skymethod</span></tt> = <tt class="docutils literal"><span class="pre">'localmin'</span></tt>) was upgraded to be able to use
+DQ flags and user supplied masks to remove &#8220;bad&#8221; pixels from being
+used for sky statistics computations.</p>
+<p>Second, two new methods have been introduced: <tt class="docutils literal"><span class="pre">'globalmin'</span></tt> and
+<tt class="docutils literal"><span class="pre">'match'</span></tt>, as well as a combination of the two &#8211; <tt class="docutils literal"><span class="pre">'globalmin+match'</span></tt>.</p>
+<ul>
+<li><p class="first">The <tt class="docutils literal"><span class="pre">'globalmin'</span></tt> method computes the minimum sky value across <em>all</em>
+chips in <em>all</em> input images. That sky value is then considered to be
+the background in all input images.</p>
+</li>
+<li><p class="first">The <tt class="docutils literal"><span class="pre">'match'</span></tt> algorithm (described in more details below) is somewhat
+similar to the traditional sky subtraction method (<tt class="xref py py-obj docutils literal"><span class="pre">skymethod</span></tt>=      <tt class="docutils literal"><span class="pre">'localmin'</span></tt>) in the sense that it measures the sky indipendently
+in input images (or detector chips). The major differences are that,
+unlike the traditional method,</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><tt class="docutils literal"><span class="pre">'match'</span></tt> algorithm computes <em>relative</em> sky values with regard
+to the sky in a reference image chosen from the input list
+of images; <em>and</em></li>
+<li>sky statistics is computed only in the part of the image
+that intersects other images.</li>
+</ol>
+</div></blockquote>
+<p>This makes <tt class="docutils literal"><span class="pre">'match'</span></tt> sky computation algorithm particularly useful
+for &#8220;equalizing&#8221; sky values in large mosaics in which one may have
+only (at least) pair-wise intersection of images without having
+a common intersection region (on the sky) in all images.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Because this method computes relative sky values compared to a
+reference image (which will have its sky value set to 0), the sky
+values computed with this method usually are smaller than the
+&#8220;absolute&#8221; sky values computed, e.g., with the <tt class="docutils literal"><span class="pre">'localmin'</span></tt>
+algorithm. Since <a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a> expects &#8220;true&#8221;
+(as opposite to <em>relative</em>) sky values in order to correctly
+compute the median image or to perform cosmic-ray detection, this
+algorithm in not recommended to be used <em>alone</em> for sky computations
+to be used with <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>.</p>
+</div>
+</li>
+<li><p class="first">The <tt class="docutils literal"><span class="pre">'globalmin+match'</span></tt> algorithm combines <tt class="docutils literal"><span class="pre">'match'</span></tt> and
+<tt class="docutils literal"><span class="pre">'globalmin'</span></tt> methods in order to overcome the limitation of the
+<tt class="docutils literal"><span class="pre">'match'</span></tt> method described in the note above: it uses <tt class="docutils literal"><span class="pre">'globalmin'</span></tt>
+algorithm to find a baseline sky value common to all input images
+and the <tt class="docutils literal"><span class="pre">'match'</span></tt> algorithm to &#8220;equalize&#8221; sky values in the mosaic.
+Thus, the sky value of the &#8220;reference&#8221; image will be equal to the
+baseline sky value (instead of 0 in <tt class="docutils literal"><span class="pre">'match'</span></tt> algorithm alone)
+making this method acceptable for use in conjunction with
+<tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>.</p>
+</li>
+</ul>
+<dl class="docutils">
+<dt><strong>Outline of the Sky Match (Equalization) Algorithm:</strong></dt>
+<dd><ol class="first last arabic simple">
+<li>Among all input images, find two <em>exposures</em> with the greatest
+overlap <em>on the sky</em>. The <em>footprint</em> of each
+exposure is the union of the footprints
+of selected chips (FITS extensions) from those exposures.</li>
+<li>Compute sky in both exposures but only in the region of the
+overlap of the two exposures.</li>
+<li>Compute the difference in the sky values.</li>
+<li>Record this difference in the &#8216;SCI&#8217; headers of the exposure
+with the highest sky value as the value of the header
+keyword specified by the <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt> parameter.
+(Optionally, subtract computed sky value from image data.)</li>
+<li>Combine the two exposures into a single
+exposure (<em>mosaic</em>). The footprint of the &#8220;mosaic&#8221; exposure
+is formed by computing the union of the
+footprints of each chip in the two exposures.</li>
+<li>Repeat the above steps for all remaining exposures
+using the newly created mosaic footprint as one of
+the exposures and using the sky value for this newly
+created footprint as one of the values. There is no need to
+recompute its sky value &#8211; it is the same as the sky value of the
+first (<em>reference</em>) image.</li>
+</ol>
+</dd>
+<dt><strong>&#8220;Surface Brightness&#8221;:</strong></dt>
+<dd><p class="first"><a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> converts &#8220;raw&#8221; sky values (in image data units)
+obtained directly from image data to &#8220;surface brightness&#8221;-like units and
+all computations are performed in these units. Computed sky surface
+brightness values are converted back to image data units before being
+subtracted from the image data and/or reported in the <tt class="xref py py-obj docutils literal"><span class="pre">skyuser_kwd</span></tt>
+in the image header.</p>
+<p>This conversion from image data units to &#8220;surface brightness&#8221;-like units
+is necessary in order to perform correct sky computations for data
+from various intsruments/detectors. It accounts for differences in
+exposure times (if image data are in &#8220;counts&#8221; units) in each input
+image, differences in pixel scales of different detector chips
+(instruments), and detector sensitivities.</p>
+<p>For images with data in &#8220;counts&#8221;-like units, the conversion from data
+units to surface brightness is given by:</p>
+<div class="math">
+<p><img src="_images/math/357717a4f5e5dd4212cc5c9b3d50ef0d32ae1c13.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / (\mathrm{pixel\: Area}^2 \cdot           \mathrm{EXPTIME})"/></p>
+</div><p>and for image data in &#8220;count-rate&#8221;-like units, this conversion is given
+by:</p>
+<div class="last math">
+<p><img src="_images/math/7095c59dffc631e3745c072d0cec483e5137a622.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / \mathrm{pixel\: Area}^2 ."/></p>
+</div></dd>
+<dt><strong>Important Header Keywords:</strong></dt>
+<dd><p class="first">As discussed above, <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> uses values of various keywords
+in image headers to perform conversion of sky values to/from data units
+from/to surface brightness units. The most important keywords are:</p>
+<ul class="last">
+<li><p class="first"><tt class="docutils literal"><span class="pre">BUNIT</span></tt> describes the units of the image data. The units of data are
+determined from the <tt class="docutils literal"><span class="pre">BUNIT</span></tt> header keyword by searching its value
+for the division sign &#8216;/&#8217;. If the division sign is not found, then
+the units are assumed to be &#8220;counts&#8221;. If the division sign is found
+in the <tt class="docutils literal"><span class="pre">BUNIT</span></tt> value and if the numerator is one of the following:
+<tt class="docutils literal"><span class="pre">'ELECTRONS'</span></tt>, <tt class="docutils literal"><span class="pre">'COUNTS'</span></tt>, or <tt class="docutils literal"><span class="pre">'DN'</span></tt>, and denumerator is
+either <tt class="docutils literal"><span class="pre">'S'</span></tt>, <tt class="docutils literal"><span class="pre">'SEC'</span></tt>, or <tt class="docutils literal"><span class="pre">'SECOND'</span></tt>, then
+the units are assumed to be count-rate.</p>
+<p>If <tt class="docutils literal"><span class="pre">BUNIT</span></tt> is missing then for non-<tt class="docutils literal"><span class="pre">HST</span></tt> images the units will
+be assumed to be &#8220;count-rate&#8221;, while for <tt class="docutils literal"><span class="pre">HST</span></tt> images
+(header keyword <tt class="docutils literal"><span class="pre">TELESCOP</span></tt>= <tt class="docutils literal"><span class="pre">'HST'</span></tt>) the <tt class="docutils literal"><span class="pre">'INSTRUME'</span></tt>
+and <tt class="docutils literal"><span class="pre">'DETECTOR'</span></tt> keywords will be used to infer the units. For the
+<tt class="docutils literal"><span class="pre">NICMOS</span></tt> instrument, <tt class="docutils literal"><span class="pre">'UNITCORR'</span></tt> will be used to infer the units.
+If relevant keywords are missing, the units of image data will
+be assumed to be &#8220;count-rate&#8221;. Check the log file for selected units.</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">EXPTIME</span></tt> &#8211; total exposure time, assumed to be in seconds. While
+the units of <tt class="docutils literal"><span class="pre">EXPTIME</span></tt> are not important for sky computation, it is
+important that all input images to <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> use <em>the same</em>
+units. This keyword is used only when inferred units for image
+data are &#8220;count-rates&#8221;. If <tt class="docutils literal"><span class="pre">EXPTIME</span></tt> is missing when image data
+units are counts, then variations in exposure time <strong>WILL NOT</strong> be
+accounted for. First, the primary header of the image file is
+searched for <tt class="docutils literal"><span class="pre">EXPTIME</span></tt> and if it is not found in the primary header,
+then image extension is searched for the presense of <tt class="docutils literal"><span class="pre">EXPTIME</span></tt>
+keyword.</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt> &#8211; inverse sensitivity of the detector. At first
+<a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> will try to detect <tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt> in the image
+extension header and if not found, it will look for <tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt>
+in the primary header. If <tt class="docutils literal"><span class="pre">PHOTFLAM</span></tt> is not
+present at all, the variations in detector sensitivity <strong>WILL NOT</strong>
+be accounted for.</p>
+</li>
+</ul>
+</dd>
+<dt><strong>Glossary:</strong></dt>
+<dd><p class="first"><strong>Exposure</strong> &#8211; a <em>subset</em> of FITS image extensions in an input image
+that correspond to different chips in the detector used to acquire
+the image. The subset of image extensions that form an exposure
+is defined by specifying extensions to be used with input images
+(see parameter <a class="reference external" href="http://docs.python.org/library/functions.html#input" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">input</span></tt></a>).</p>
+<p>See help for <a class="reference internal" href="parseat.html#stsci.skypac.parseat.parse_at_line" title="stsci.skypac.parseat.parse_at_line"><tt class="xref py py-func docutils literal"><span class="pre">stsci.skypac.parseat.parse_at_line()</span></tt></a> for details
+on how to specify image extensions.</p>
+<p><strong>Footprint</strong> &#8211; the outline (edge) of the projection of a chip or
+of an exposure on the celestial sphere.</p>
+<div class="last admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>Footprints are managed by the
+<tt class="xref py py-class docutils literal"><span class="pre">SphericalPolygon</span></tt> class.</li>
+<li>Both footprints <em>and</em> associated exposures (image data, WCS
+information, and other header information) are managed by the
+<a class="reference internal" href="skyline.html#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-class docutils literal"><span class="pre">SkyLine</span></tt></a> class.</li>
+<li>Each <a class="reference internal" href="skyline.html#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-class docutils literal"><span class="pre">SkyLine</span></tt></a> object contains one
+or more <a class="reference internal" href="skyline.html#stsci.skypac.skyline.SkyLineMember" title="stsci.skypac.skyline.SkyLineMember"><tt class="xref py py-class docutils literal"><span class="pre">SkyLineMember</span></tt></a> objects
+that manage both footprints <em>and</em> associated <em>chip</em> data that
+form an exposure.</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Remarks:</strong></dt>
+<dd><ul class="first last">
+<li><p class="first">The computation of the sky is performed using weighted mean
+of the (clipped) mode, mean, or median <em>from all chips</em>
+(selected by the user by specifying desired FITS extensions that
+need to be processed) in the
+exposure (but only in the region of the overlap of the two exposures
+whose sky values are to be compared).
+For mosaiced exposures, all chips that belong to the &#8220;elementary&#8221;
+exposures that formed the mosaic are used to compute the sky value.</p>
+</li>
+<li><p class="first"><a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> works directly on <em>geometrically distorted</em>
+flat-fielded images thus avoiding the need to perform an additional
+drizzle step to perform distortion correction of input images.</p>
+<p>Initially, the footprint of a chip in an image is aproximated by a
+2D planar rectangle representing the borders of chip&#8217;s distorted
+image. After applying distortion model to this rectangle and
+progecting it onto the celestial sphere, it is approximated by
+spherical polygons. Footprints of exposures and mosaics are
+computed as unions of such spherical polygons while overlaps
+of image pairs are found by intersecting these spherical polygons.</p>
+</li>
+</ul>
+</dd>
+<dt><strong>&#64;-File Format:</strong></dt>
+<dd><p class="first">A catalog file containing a science image file
+and extension specifications and optionally followed by a
+comma-separated list of mask files and extension specifications
+(or None).</p>
+<p>File names will be stripped of leading and trailing white spaces. If it
+is essential to keep these spaces, file names may be enclosed in single
+or double quotation marks. Quotation marks may also be required when
+file names contain special characters used to separate file names and
+extension specifications: ,[]{}</p>
+<p>Extension specifications must follow the file name and must be delimited
+by either square or curly brackets. Curly brackets allow specifying
+multiple comma-separated extensions: integer extension numbers and/or
+tuples (&#8216;ext name&#8217;, ext version).</p>
+<dl class="docutils">
+<dt>Some possible ways of specifying extensions:</dt>
+<dd><p class="first">[1] &#8211; extension number</p>
+<p>[&#8216;sci&#8217;,2] &#8211; extension name and version</p>
+<p>{1,4,(&#8216;sci&#8217;,3)} &#8211; multiple extension specifications, including tuples</p>
+<p>{(&#8216;sci&#8217;,*)} &#8211; wildcard extension versions (i.e., all extensions with
+extension name &#8216;sci&#8217;)</p>
+<p>[&#8216;sci&#8217;] &#8211; equivalent to [&#8216;sci&#8217;,1]</p>
+<p class="last">{&#8216;sci&#8217;} &#8211; equivalent to {(&#8216;sci&#8217;,*)}</p>
+</dd>
+</dl>
+<p>For extensions in the science image for which no mask file is provided,
+the corresponding mask file names may be omitted (but a comma must still
+be used to show that no mask is provided in that position) or None can
+be used in place of the file name. NOTE: &#8216;None&#8217; (in quotation marks)
+will be interpreted as a file named None.</p>
+<dl class="last docutils">
+<dt>Some examples of possible user input:</dt>
+<dd><p class="first">image1.fits{1,2,(&#8216;sci&#8217;,3)} mask1.fits,,mask3.fits[0]</p>
+<p>In this case:</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[1] is associated with <tt class="docutils literal"><span class="pre">mask1.fits</span></tt>[0];</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[2] does not have an associated mask;</p>
+<p><tt class="docutils literal"><span class="pre">image1.fits</span></tt>[&#8216;sci&#8217;,3] is associated with <tt class="docutils literal"><span class="pre">mask3.fits</span></tt>[0].</p>
+<p>&#8211; Assume <tt class="docutils literal"><span class="pre">image2.fits</span></tt> has 4 &#8216;SCI&#8217; extensions:</p>
+<p>image2.fits{&#8216;sci&#8217;} None,,mask3.fits</p>
+<p>In this case:</p>
+<p><tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,1] and <tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,2] <strong>and</strong>
+<tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,4] do not have an associated mask;</p>
+<p class="last"><tt class="docutils literal"><span class="pre">image2.fits</span></tt>[&#8216;sci&#8217;,3] is associated with <tt class="docutils literal"><span class="pre">mask3.fits</span></tt>[0]</p>
+</dd>
+</dl>
+</dd>
+<dt><strong>Limitations and Discussions:</strong></dt>
+<dd><p class="first">Primary reason for introducing &#8220;sky match&#8221; algorithm was to try to
+equalize the sky in large mosaics in which computation of the
+&#8220;absolute&#8221; sky is difficult due to the presence of large diffuse
+sources in the image. As discussed above, <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>
+accomplishes this by comparing &#8220;sky values&#8221; in a pair of images in the
+overlap region (that is common to both images). Quite obviously the
+quality of sky &#8220;matching&#8221; will depend on how well these &#8220;sky values&#8221;
+can be estimated. We use quotation marks around <em>sky values</em> because
+for some image &#8220;true&#8221; background may not be present at all and the
+measured sky may be the surface brightness of large galaxy, nebula, etc.</p>
+<p>Here is a brief list of possible limitations/factors that can affect
+the outcome of the matching (sky subtraction in general) algorithm:</p>
+<ul class="last simple">
+<li>Since sky subtraction is performed on <em>flat-fielded</em> but
+<em>not distortion corrected</em> images, it is important to keep in mind
+that flat-fielding is performed to obtain uniform surface brightness
+and not flux. This distinction is important for images that have
+not been distortion corrected. As a consequence, it is advisable that
+point-like sources be masked through the user-supplied mask files.
+Alternatively, one can use <tt class="xref py py-obj docutils literal"><span class="pre">upper</span></tt> parameter to limit the use of
+bright objects in sky computations.</li>
+<li>Normally, distorted flat-fielded images contain cosmic rays. This
+algorithm does not perform CR cleaning. A possible way of minimizing
+the effect of the cosmic rays on sky computations is to use
+clipping (<tt class="xref py py-obj docutils literal"><span class="pre">nclip</span></tt> &gt; 0) and/or set <tt class="xref py py-obj docutils literal"><span class="pre">upper</span></tt> parameter to a value
+larger than most of the sky background (or extended source) but
+lower than the values of most CR pixels.</li>
+<li>In general, clipping is a good way of eliminating &#8220;bad&#8221; pixels:
+pixels affected by CR, hot/dead pixels, etc. However, for
+images with complicated backgrounds (extended galaxies, nebulae,
+etc.), affected by CR and noise, clipping process may mask different
+pixels in different images. If variations in the background are
+too strong, clipping may converge to different sky values in
+different images even when factoring in the &#8220;true&#8221; difference
+in the sky background between the two images.</li>
+<li>In general images can have different &#8220;true&#8221; background values
+(we could measure it if images were not affected by large diffuse
+sources). However, arguments such as <tt class="xref py py-obj docutils literal"><span class="pre">lower</span></tt> and <tt class="xref py py-obj docutils literal"><span class="pre">upper</span></tt> will
+apply to all images regardless of the intrinsic differences
+in sky levels.</li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<ol class="arabic">
+<li><p class="first">This task can be used to match skies of a set of ACS
+images simply with:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">stsci.skypac</span> <span class="kn">import</span> <span class="n">skymatch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skymatch</span><span class="o">.</span><span class="n">skymatch</span><span class="p">(</span><span class="s">&#39;j*q_flt.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">The TEAL GUI can be used to run this task using:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">stsci.skypac</span> <span class="kn">import</span> <span class="n">skymatch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">epar</span> <span class="n">skymatch</span>
+</pre></div>
+</div>
+<p>or from a general Python command line:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">stsci.skypac</span> <span class="kn">import</span> <span class="n">skymatch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">stsci.tools</span> <span class="kn">import</span> <span class="n">teal</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">teal</span><span class="o">.</span><span class="n">teal</span><span class="p">(</span><span class="s">&#39;skymatch&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="skyline.html" title="SkyLine (chip outline on the sky) management for image mosaic."
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to skypac’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

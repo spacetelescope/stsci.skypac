@@ -1,4 +1,11 @@
-"""Sky matching module."""
+"""
+A module that provides functions for matching sky in overlapping images.
+
+:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim (contact: help@stsci.edu)
+
+:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+
+"""
 from __future__ import division, print_function
 
 # STDLIB
@@ -11,10 +18,6 @@ import copy
 import numpy as np
 from astropy.io import fits
 
-#from stsci.tools import parseinput
-from .skyline import SkyLineMember, SkyLine
-from . import region
-
 try:
     from stsci.tools import teal
 except ImportError:
@@ -24,15 +27,13 @@ except ImportError:
 from .skystatistics import SkyStats
 from .utils import ext2str, MultiFileLog, ImageRef
 from .parseat import FileExtMaskInfo, parse_cs_line, parse_at_file
-
-#DEBUG
-from .utils import temp_mask_file
-
+from .skyline import SkyLineMember, SkyLine
+from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.6'
-__vdate__ = '12-Dec-2013'
+__version__ = '0.7'
+__vdate__ = '20-May-2014'
 __author__ = 'Mihai Cara'
 
 # DEBUG - Can remove this when sphere is stable
@@ -46,7 +47,7 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match',
                   skystat='mode', lower=None, upper=None,
                   nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
                   skyuser_kwd='SKYUSER', units_kwd='BUNIT',
-                  readonly=True, subtractsky=False, DQFlags=None,
+                  readonly=True, subtractsky=False, dq_bits=None,
                   optimize='balanced', clobber=False, clean=True,
                   verbose=True, logfile='skymatch_log.txt'):
     """
@@ -76,7 +77,7 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match',
                  nclip=nclip, lsigma=lsigma, usigma=usigma, binwidth=binwidth,
                  skyuser_kwd = skyuser_kwd, units_kwd=units_kwd,
                  readonly=readonly, subtractsky = subtractsky,
-                 DQFlags=DQFlags, optimize=optimize,
+                 dq_bits=dq_bits, optimize=optimize,
                  clobber=clobber, clean=clean, verbose=verbose, flog=mluncl)
         # sanity check:
         assert(ml.count == mluncl.count)
@@ -90,7 +91,7 @@ def skymatch(input, skymethod='globalmin+match',
              skystat='mode', lower=None, upper=None,
              nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
              skyuser_kwd='SKYUSER', units_kwd='BUNIT',
-             readonly=True, subtractsky=False, DQFlags=None,
+             readonly=True, subtractsky=False, dq_bits=None,
              optimize='balanced', clobber=False, clean=True,
              verbose=True, flog='skymatch_log.txt',
              _taskname4history='SkyMatch'):
@@ -98,7 +99,7 @@ def skymatch(input, skymethod='globalmin+match',
     skymatch(input, skymethod='globalmin+match', \
 skystat='mode', lower=None, upper=None, nclip=5, lsigma=4.0, usigma=4.0, \
 binwidth=0.1, skyuser_kwd='SKYUSER', units_kwd='BUNIT', readonly=True, \
-subtractsky=False, DQFlags=None, optimize='balanced', clobber=False, \
+subtractsky=False, dq_bits=None, optimize='balanced', clobber=False, \
 clean=True, verbose=True, flog='skymatch_log.txt')
     Standalone task to compute and/or "equalize" sky in input images.
 
@@ -316,13 +317,13 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
             to the same value as the values of `skyuser_kwd` used
             in the call to :py:func:`skymatch`\ .
 
-    DQFlags : int, None (Default = 0)
+    dq_bits : int, None (Default = 0)
         Integer sum of all the DQ bit values from the input image's
         DQ array that should be considered "good" when building masks for
         sky computations. For example, if pixels in the DQ array can be
         combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
         "defects" having flags 2 and 4 as being acceptable for sky
-        computations, then `DQFlags` should be set to 2+4=6. Then a DQ pixel
+        computations, then `dq_bits` should be set to 2+4=6. Then a DQ pixel
         having values 2,4, or 6 will be considered a good pixel, while a
         DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
         a "bad" pixel.
@@ -331,7 +332,7 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
           pixels in the DQ mask to be considered "bad" pixels, and the
           corresponding image pixels will not be used for sky computations.
 
-        | Set `DQFlags` to `None` to turn off the use of image's DQ array
+        | Set `dq_bits` to `None` to turn off the use of image's DQ array
           for sky computations.
 
         .. note::
@@ -503,11 +504,40 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
       in image headers to perform conversion of sky values to/from data units
       from/to surface brightness units. The most important keywords are:
 
-      * `BUNIT`
+      * ``BUNIT`` describes the units of the image data. The units of data are
+        determined from the ``BUNIT`` header keyword by searching its value
+        for the division sign '/'. If the division sign is not found, then
+        the units are assumed to be "counts". If the division sign is found
+        in the ``BUNIT`` value and if the numerator is one of the following:
+        ``'ELECTRONS'``\ , ``'COUNTS'``\ , or ``'DN'``\ , and denumerator is
+        either ``'S'``\ , ``'SEC'``\ , or ``'SECOND'``\ , then
+        the units are assumed to be count-rate.
 
-      * `EXPTIME`
+        If ``BUNIT`` is missing then for non-\ ``HST`` images the units will
+        be assumed to be "count-rate", while for ``HST`` images
+        (header keyword ``TELESCOP``\ = \ ``'HST'``\ ) the ``'INSTRUME'``
+        and ``'DETECTOR'`` keywords will be used to infer the units. For the
+        ``NICMOS`` instrument, ``'UNITCORR'`` will be used to infer the units.
+        If relevant keywords are missing, the units of image data will
+        be assumed to be "count-rate". Check the log file for selected units.
 
-      * `PHOTFLAM`
+      * ``EXPTIME`` -- total exposure time, assumed to be in seconds. While
+        the units of ``EXPTIME`` are not important for sky computation, it is
+        important that all input images to :py:func:`skymatch` use *the same*
+        units. This keyword is used only when inferred units for image
+        data are "count-rates". If ``EXPTIME`` is missing when image data
+        units are counts, then variations in exposure time **WILL NOT** be
+        accounted for. First, the primary header of the image file is
+        searched for ``EXPTIME`` and if it is not found in the primary header,
+        then image extension is searched for the presense of ``EXPTIME``
+        keyword.
+
+      * ``PHOTFLAM`` -- inverse sensitivity of the detector. At first
+        :py:func:`skymatch` will try to detect ``PHOTFLAM`` in the image
+        extension header and if not found, it will look for ``PHOTFLAM``
+        in the primary header. If ``PHOTFLAM`` is not
+        present at all, the variations in detector sensitivity **WILL NOT**
+        be accounted for.
 
     **Glossary:**
       **Exposure** -- a *subset* of FITS image extensions in an input image
@@ -673,8 +703,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
 
     #. The TEAL GUI can be used to run this task using::
 
-           --> from stsci.skypac import skymatch
-           --> epar skymatch
+           >>> from stsci.skypac import skymatch
+           >>> epar skymatch
 
        or from a general Python command line:
 
@@ -731,6 +761,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
                 os.linesep, skyuser_kwd.upper(), units_kwd.upper(), skip=1)
 
     SkyLineMember.init_class(skyuser_kwd=skyuser_kwd, units_kwd=units_kwd,
+                             optimize=optimize,
                              verbose=verbose, logfile=mlcopy)
 
     # Parse input to get list of filenames to process
@@ -750,9 +781,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
             cpfi.finalize()
             finfo.append(cpfi)
 
-        if DQFlags is not None:
+        if dq_bits is not None:
             for fi in finfo:
-                fi.DQFlags = DQFlags
+                fi.dq_bits = dq_bits
 
     elif isinstance(input, str):
         input = input.strip()
@@ -761,14 +792,14 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
         finfo = parse_cs_line(input, default_ext=('SCI','*'),
                               clobber=False,
                               fnamesOnly=False,
-                              doNotOpenDQ=DQFlags is None,
+                              doNotOpenDQ=dq_bits is None,
                               im_fmode='readonly' if readonly else 'update',
                               dq_fmode='readonly',
                               msk_fmode='readonly',
                               logfile=mlcopy,
                               verbose=verbose)
         for fi in finfo:
-            fi.DQFlags = DQFlags
+            fi.dq_bits = dq_bits
 
     else:
         raise ValueError(errmsg)
@@ -876,12 +907,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
 
         skylines.append( sl )
         ml.skip()
-
-    ########################################################
-    ##     cannot subtract from data in read-only mode:   ##
-    ########################################################
-    #if readonly:
-        #subtractsky = False
 
     #-----------------------------------------------------------#
     # 1a. Compute the minimum sky background value in each      #
@@ -1413,6 +1438,9 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
             '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
                                       __version__, __vdate__))
 
+def _add_new_history(header, comment):
+    pass
+
 
 #--------------------------
 # TEAL Interface functions
@@ -1432,7 +1460,7 @@ def run(configObj):
                   units_kwd   = configObj['units_kwd'],
                   readonly    = configObj['readonly'],
                   subtractsky = configObj['subtractsky'],
-                  DQFlags     = configObj['DQFlags'],
+                  dq_bits     = configObj['dq_bits'],
                   optimize    = configObj['optimize'],
                   clobber     = configObj['clobber'],
                   clean       = configObj['clean'],
