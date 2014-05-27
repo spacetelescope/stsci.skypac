@@ -37,7 +37,7 @@ __vdate__ = '20-May-2014'
 __author__ = 'Mihai Cara'
 
 # DEBUG - Can remove this when sphere is stable
-__local_debug__ = False
+__local_debug__ = True
 
 #if __local_debug__:
     #from .utils import ext2str
@@ -1197,7 +1197,7 @@ def _debug_write_region(fname, vert):
     fh.close()
 
 
-def _weighted_sky(skyline, ra, dec, skystat, readonly, subtractsky, _dbg_name):
+def _calc_sky(s1, s2, skystat, readonly, subtractsky):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -1222,69 +1222,77 @@ def _weighted_sky(skyline, ra, dec, skystat, readonly, subtractsky, _dbg_name):
     sky : float
 
     """
-    w_sky = 0.0
-    w_tot = 0.0
+    w_sky1 = 0.0
+    w_tot1 = 0
+    w_sky2 = 0.0
+    w_tot2 = 0
 
-    for member in skyline.members:
-        wcs = member.wcs
-        # All pixels along intersection boundary for that chip
-        sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
-        ivert = zip(*[map(int,sparse_x),map(int,sparse_y)])
+    for m1 in s1.members:
+        for m2 in s2.members:
+            intersect_poly = m1.polygon.intersection(m2.polygon)
+            if intersect_poly.points.shape[0] < 1:
+                continue
+            ra, dec = intersect_poly.to_radec()
+            sky1, npix1 = _member_sky(m1, ra, dec, skystat, readonly, subtractsky, m2.id)
+            sky2, npix2 = _member_sky(m2, ra, dec, skystat, readonly, subtractsky, m1.id)
+            w_sky1 += npix1*sky1
+            w_tot1 += npix1
+            w_sky2 += npix2*sky2
+            w_tot2 += npix2
 
-        if __local_debug__:
-            #print("{}".format(ivert))
-            fn = member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'-'+_dbg_name.split('_')[0]+'.reg'
-            _debug_write_region(fn, ivert)
-
-        fill_mask = np.zeros((wcs.naxis2, wcs.naxis1), dtype=np.uint8)
-        pol = region.Polygon(1, ivert)
-        fill_mask = pol.scan(fill_mask)
-
-        if __local_debug__:
-            print("** NPIX={}".format(np.count_nonzero(fill_mask)))
-
-        dqmask = member.mask_data # may be a combination of DQ data and user mask
-        if dqmask is not None:
-            fill_mask *= dqmask
-            member.free_mask_data()
-            del dqmask
-
-        if __local_debug__:
-            fn = member.basefname.split('_')[0]+'_'+\
-                ext2str(member.ext,True)+'-'+_dbg_name.split('_')[0]+'.fits'
-            if os.path.exists(fn):
-                os.remove(fn)
-            # write data to the "temporary" file
-            hdu      = fits.PrimaryHDU(fill_mask)
-            hdulist  = fits.HDUList([hdu])
-            hdulist.writeto(fn)
-            # clean-up
-            hdulist.close()
-            del hdu, hdulist
-
-        # Calculate sky
-        if np.count_nonzero(fill_mask) == 0:
-            continue
-
-        if __local_debug__:
-            sky, npix = skystat.calc_sky(member.image_data)
-            print("** FULL SKY: {}   NPIX: {}".format(sky, npix))
-
-        dat = member.image_data[np.where(fill_mask)]
-        sky, npix = skystat.calc_sky(dat)
-        if readonly or not subtractsky:
-            sky = member.data2brightness(sky-member.skyuser_delta)
-        else:
-            sky = member.data2brightness(sky)
-        if npix > 1:
-            w_sky += npix * sky
-            w_tot += npix
-
-    if w_tot == 0:
+    if w_tot1 < 1 or w_tot2 < 1:
         raise ValueError('_weighted_sky has invalid weight for '
-                         '({}, {}, {})'.format(skyline, ra, dec))
+                         '({}, {})'.format(s1, s2))
     else:
-        return w_sky / w_tot
+        return (w_sky1/w_tot1, w_sky2/w_tot2)
+
+
+def _member_sky(member, ra, dec, skystat, readonly, subtractsky, _dbg_name):
+    wcs = member.wcs
+    # All pixels along intersection boundary for that chip
+    sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
+    ivert = zip(*[map(round,sparse_x), map(round,sparse_y)])
+
+    if __local_debug__:
+        ivert1 = zip(*[map(round,sparse_x+1), map(round,sparse_y+1)])
+        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'.reg'
+        _debug_write_region(fn, ivert1)
+
+    fill_mask = np.zeros((wcs._naxis2, wcs._naxis1), dtype=np.uint8)
+    pol = region.Polygon(1, ivert)
+    fill_mask = pol.scan(fill_mask)
+
+    dqmask = member.mask_data # may be a combination of DQ data and user mask
+    if dqmask is not None:
+        fill_mask *= dqmask
+        member.free_mask_data()
+        del dqmask
+
+    if __local_debug__:
+        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'.fits'
+        if os.path.exists(fn):
+            os.remove(fn)
+        # write data to the "temporary" file
+        hdu      = fits.PrimaryHDU(fill_mask)
+        hdulist  = fits.HDUList([hdu])
+        hdulist.writeto(fn)
+        # clean-up
+        hdulist.close()
+        del hdu, hdulist
+
+    # Calculate sky
+    if np.count_nonzero(fill_mask) == 0:
+        return (0, 0)
+
+    dat = member.image_data[np.where(fill_mask)]
+    sky, npix = skystat.calc_sky(dat)
+
+    if readonly or not subtractsky:
+        sky = member.data2brightness(sky-member.skyuser_delta)
+    else:
+        sky = member.data2brightness(sky)
+
+    return sky, npix
 
 
 def _minsky(skyline, skystat, readonly, subtractsky, mlog):
@@ -1351,41 +1359,6 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
             minsky = sky
 
     return minsky
-
-
-def _calc_sky(s1, s2, skystat, readonly, subtractsky):
-    """
-    Calculate weighted sky values and their difference in
-    overlapping regions of given skylines.
-
-    Parameters
-    ----------
-    s1, s2 : `SkyLine` objects
-
-    skystat : A SkyStats object
-        Class for sky calculations.
-
-    Returns
-    -------
-    sky1, sky2 : float
-        Weighted sky values for `s1` and `s2`.
-
-    """
-    intersect = s1.find_intersection(s2)
-    intersect_ra, intersect_dec = intersect.to_radec()
-
-    #DEBUG
-    def make_name(s):
-        from .utils import ext2str
-        b = s.basefname
-        e = s.ext
-        fn = b + '_'+e
-        return fn
-
-    sky1 = _weighted_sky(s1, intersect_ra, intersect_dec, skystat, readonly, subtractsky, s2.id)
-    sky2 = _weighted_sky(s2, intersect_ra, intersect_dec, skystat, readonly, subtractsky, s1.id)
-
-    return sky1, sky2
 
 
 def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,

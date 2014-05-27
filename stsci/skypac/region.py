@@ -223,7 +223,7 @@ class Polygon(Region):
             scan_line = Edge('scan_line', start=[self._bbox[0], y],
                              stop=[self._bbox[0]+self._bbox[2], y])
             x = [np.ceil(e.compute_AET_entry(scan_line)[1]) for e in AET if e is not None]
-            xnew=np.sort(x)
+            xnew = np.sort(x)
             if y+self._shifty < 0 or y+self._shifty >= ny:
                 y += 1
                 continue
@@ -257,10 +257,10 @@ class Polygon(Region):
 
     def __contains__(self, px):
         """even-odd algorithm or smth else better sould be used"""
-        minx = self._vertices[:,0].min()
-        maxx = self._vertices[:,0].max()
-        miny = self._vertices[:,1].min()
-        maxy = self._vertices[:,1].max()
+        #minx = self._vertices[:,0].min()
+        #maxx = self._vertices[:,0].max()
+        #miny = self._vertices[:,1].min()
+        #maxy = self._vertices[:,1].max()
         return px[0] >= self._bbox[0] and px[0] <= self._bbox[0]+self._bbox[2] and \
                px[1] >=self._bbox[1] and px[1] <=self._bbox[1]+self._bbox[3]
 

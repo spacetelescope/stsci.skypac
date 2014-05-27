@@ -259,7 +259,7 @@ class SkyLineMember(object):
         self._init_skyuser(image.hdu[ext].header)
 
         # Set polygon to be the bounding box of the chip:
-        self._polygon = SphericalPolygon.from_wcs(self.wcs)
+        self._polygon = SphericalPolygon.from_wcs(self.wcs,steps=1)
 
 
     @classmethod
