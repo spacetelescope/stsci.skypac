@@ -1,7 +1,7 @@
 """
 Polygon filling algorithm.
 
-:Authors: Nadezhda Dencheva (contact: help@stsci.edu)
+:Authors: Nadezhda Dencheva, Mihai Cara (contact: help@stsci.edu)
 
 :License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
@@ -14,7 +14,8 @@ Polygon filling algorithm.
 # *internally* (to region.py) rounded to integers so that Polygon will not
 # crash when input vertices are floats. Fixed a bug in _construct_ordered_GET
 # that was causing varying polygon filling for different ordering of the
-# vertices.
+# vertices. Finally, modified the algorithm to fill the right-most pixels
+# as well as top-most row of the polygon.
 #
 # NOTE: Algorithm description can be found, e.g., here:
 #    http://www.cs.rit.edu/~icss571/filling/how_to.html
@@ -27,9 +28,9 @@ import numpy as np
 
 __all__ = ['Region','Edge','Polygon']
 __taskname__ = 'region'
-__version__ = '0.1'
-__vdate__ = '13-Dec-2013'
-__author__ = 'Nadezhda Dencheva'
+__version__ = '0.2'
+__vdate__ = '29-05-2014'
+__author__ = 'Nadezhda Dencheva, Mihai Cara'
 
 
 class ValidationError(Exception):
@@ -128,15 +129,15 @@ class Polygon(Region):
         self._shifty = int(round(self._shifty))
 
         self._bbox = self._get_bounding_box()
-        self._scan_line_range=range(self._bbox[1], self._bbox[3]+self._bbox[1]+1)
+        self._scan_line_range=range(self._bbox[1], self._bbox[3]+self._bbox[1])
         #constructs a Global Edge Table (GET) in bbox coordinates
         self._GET = self._construct_ordered_GET()
 
     def _get_bounding_box(self):
         x = self._vertices[:,0].min()
         y = self._vertices[:,1].min()
-        w = self._vertices[:,0].max() - x
-        h = self._vertices[:,1].max() - y
+        w = self._vertices[:,0].max() - x + 1
+        h = self._vertices[:,1].max() - y + 1
         return (x, y, w, h)
 
     def  _construct_ordered_GET(self):
@@ -219,7 +220,8 @@ class Polygon(Region):
         AET = []
         scline = self._scan_line_range[-1]
         while y <=scline:
-            AET = self.update_AET(y, AET)
+            if y < scline:
+                AET = self.update_AET(y, AET)
             scan_line = Edge('scan_line', start=[self._bbox[0], y],
                              stop=[self._bbox[0]+self._bbox[2], y])
             x = [np.ceil(e.compute_AET_entry(scan_line)[1]) for e in AET if e is not None]

@@ -33,14 +33,11 @@ from . import region
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
 __version__ = '0.7'
-__vdate__ = '28-May-2014'
+__vdate__ = '29-May-2014'
 __author__ = 'Mihai Cara'
 
-# DEBUG - Can remove this when sphere is stable
+#DEBUG
 __local_debug__ = False
-
-#if __local_debug__:
-    #from .utils import ext2str
 
 
 def TEAL_SkyMatch(input, skymethod='globalmin+match',

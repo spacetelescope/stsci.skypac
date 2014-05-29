@@ -346,7 +346,9 @@ class SkyLineMember(object):
                     maskdata = (msk.hdu[mskext].data != 0).astype(np.uint8)
                     (root,suffix,fext)  = file_name_components(image_fname)
                     mfname, self._mask = temp_mask_file(
-                        maskdata, root, suffix='skymatch_mask', ext=ext)
+                        maskdata, root, prefix='',
+                        suffix='skymatch_mask',
+                        ext=ext, randomize_prefix=False)
                     self._files2clean.append(mfname)
                     self._maskext = 0
 
@@ -386,7 +388,8 @@ class SkyLineMember(object):
             else:
                 mfname, self._mask = temp_mask_file(
                     dqmskarr.astype(np.uint8), root,
-                    suffix='skymatch_mask', ext=ext
+                    prefix='', suffix='skymatch_mask', ext=ext,
+                    randomize_prefix=False
                 )
                 self._files2clean.append(mfname)
 

@@ -231,6 +231,9 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
     if prefix is None:
         prefix = ''
 
+    if not (prefix.isupper() and rootname.isupper() and suffix.isupper()):
+        strext = strext.lower()
+
     dir = os.path.expanduser(dir)
 
     if randomize_prefix:
