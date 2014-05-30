@@ -16,7 +16,7 @@ teal.print_tasknames(__name__, os.path.dirname(__file__))
 
 __taskname__ = 'skymatch'
 __version__ = '0.7'
-__vdate__ = '20-May-2014'
+__vdate__ = '30-May-2014'
 __author__ = 'Mihai Cara'
 
 

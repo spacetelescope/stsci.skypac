@@ -2,7 +2,7 @@
 Polygon filling algorithm
 ******************************
 
-.. moduleauthor:: Nadezhda Dencheva <help@stsci.edu>
+.. moduleauthor:: Nadezhda Dencheva, Mihai Cara <help@stsci.edu>
 
 .. currentmodule:: stsci.skypac.region
 

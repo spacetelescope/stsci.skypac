@@ -29,7 +29,7 @@ import numpy as np
 __all__ = ['Region','Edge','Polygon']
 __taskname__ = 'region'
 __version__ = '0.2'
-__vdate__ = '29-05-2014'
+__vdate__ = '30-05-2014'
 __author__ = 'Nadezhda Dencheva, Mihai Cara'
 
 
@@ -129,15 +129,16 @@ class Polygon(Region):
         self._shifty = int(round(self._shifty))
 
         self._bbox = self._get_bounding_box()
-        self._scan_line_range=range(self._bbox[1], self._bbox[3]+self._bbox[1])
+        self._scan_line_range=range(self._bbox[1],
+                                    self._bbox[3]+self._bbox[1]+1)
         #constructs a Global Edge Table (GET) in bbox coordinates
         self._GET = self._construct_ordered_GET()
 
     def _get_bounding_box(self):
         x = self._vertices[:,0].min()
         y = self._vertices[:,1].min()
-        w = self._vertices[:,0].max() - x + 1
-        h = self._vertices[:,1].max() - y + 1
+        w = self._vertices[:,0].max() - x
+        h = self._vertices[:,1].max() - y
         return (x, y, w, h)
 
     def  _construct_ordered_GET(self):

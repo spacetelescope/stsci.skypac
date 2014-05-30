@@ -33,7 +33,7 @@ from . import region
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
 __version__ = '0.7'
-__vdate__ = '29-May-2014'
+__vdate__ = '30-May-2014'
 __author__ = 'Mihai Cara'
 
 #DEBUG
@@ -420,18 +420,22 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
       only (at least) pair-wise intersection of images without having
       a common intersection region (on the sky) in all images.
 
-      .. note::
+      .. warning::
 
-        Because this method computes relative sky values compared to a
+        Because this method computes *relative sky values* compared to a
         reference image (which will have its sky value set to 0), the sky
         values computed with this method usually are smaller than the
         "absolute" sky values computed, e.g., with the ``'localmin'``
-        algorithm. Since `astrodrizzle <http://stsdas.stsci.edu/\
-stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects "true"
-        (as opposite to *relative*) sky values in order to correctly
-        compute the median image or to perform cosmic-ray detection, this
-        algorithm in not recommended to be used *alone* for sky computations
-        to be used with `astrodrizzle`\ .
+        algorithm. Since `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ expects
+        "true" (as opposite to *relative*) sky values in order to
+        correctly compute the median image or to perform cosmic-ray
+        detection, this algorithm in not recommended to be used *alone*
+        for sky computations to be used with `astrodrizzle`.
+
+        For the same reason, IVM weighting in `astrodrizzle` should **not**
+        be used with ``'match'`` method: sky values reported in ``MDRIZSKY``
+        header keyword will be relative sky values (sky offsets) and derived
+        weights will be incorrect.
 
     - The ``'globalmin+match'`` algorithm combines ``'match'`` and
       ``'globalmin'`` methods in order to overcome the limitation of the

@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Sky matching for image mosaic. &mdash; SkyPac 0.7 (20-May-2014) documentation</title>
+    <title>Sky matching for image mosaic. &mdash; SkyPac 0.7 (30-May-2014) documentation</title>
     
     <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.7 (20-May-2014)',
+        VERSION:     '0.7 (30-May-2014)',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SkyPac 0.7 (20-May-2014) documentation" href="index.html" />
+    <link rel="top" title="SkyPac 0.7 (30-May-2014) documentation" href="index.html" />
     <link rel="next" title="SkyLine (chip outline on the sky) management for image mosaic." href="skyline.html" />
     <link rel="prev" title="Welcome to skypac’s documentation!" href="index.html" /> 
   </head>
@@ -45,7 +45,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to skypac’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+        <li><a href="index.html">SkyPac 0.7 (30-May-2014) documentation</a> &raquo;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar">
@@ -479,17 +479,21 @@ that intersects other images.</li>
 for &#8220;equalizing&#8221; sky values in large mosaics in which one may have
 only (at least) pair-wise intersection of images without having
 a common intersection region (on the sky) in all images.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Because this method computes relative sky values compared to a
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>Because this method computes <em>relative sky values</em> compared to a
 reference image (which will have its sky value set to 0), the sky
 values computed with this method usually are smaller than the
 &#8220;absolute&#8221; sky values computed, e.g., with the <tt class="docutils literal"><span class="pre">'localmin'</span></tt>
-algorithm. Since <a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a> expects &#8220;true&#8221;
-(as opposite to <em>relative</em>) sky values in order to correctly
-compute the median image or to perform cosmic-ray detection, this
-algorithm in not recommended to be used <em>alone</em> for sky computations
-to be used with <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>.</p>
+algorithm. Since <a class="reference external" href="http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html">astrodrizzle</a> expects
+&#8220;true&#8221; (as opposite to <em>relative</em>) sky values in order to
+correctly compute the median image or to perform cosmic-ray
+detection, this algorithm in not recommended to be used <em>alone</em>
+for sky computations to be used with <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt>.</p>
+<p class="last">For the same reason, IVM weighting in <tt class="xref py py-obj docutils literal"><span class="pre">astrodrizzle</span></tt> should <strong>not</strong>
+be used with <tt class="docutils literal"><span class="pre">'match'</span></tt> method: sky values reported in <tt class="docutils literal"><span class="pre">MDRIZSKY</span></tt>
+header keyword will be relative sky values (sky offsets) and derived
+weights will be incorrect.</p>
 </div>
 </li>
 <li><p class="first">The <tt class="docutils literal"><span class="pre">'globalmin+match'</span></tt> algorithm combines <tt class="docutils literal"><span class="pre">'match'</span></tt> and
@@ -778,7 +782,7 @@ images simply with:</p>
         <li class="right" >
           <a href="index.html" title="Welcome to skypac’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.7 (20-May-2014) documentation</a> &raquo;</li> 
+        <li><a href="index.html">SkyPac 0.7 (30-May-2014) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
