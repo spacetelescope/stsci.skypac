@@ -90,7 +90,7 @@ from stsci.sphere.polygon import SphericalPolygon
 
 # LOCAL
 from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
-     file_name_components, temp_mask_file
+     file_name_components, temp_mask_file, in_memory_mask
 from .parseat import FileExtMaskInfo
 
 # DEBUG

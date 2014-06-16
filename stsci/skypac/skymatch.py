@@ -336,11 +336,15 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
             DQ masks (if used), *will* *be* combined with user masks
             specified in the input @-file.
 
-    optimize : {'balanced', 'speed'} (Default = 'balanced')
+    optimize : {'balanced', 'speed', 'inmemory'} (Default = 'balanced')
         Specifies whether to optimize execution for speed (maximum memory
-        usage) or use a balanced approach in which a minimal amount of
-        image data is kept in memory and retrieved from disk as needed.
-        The default setting is recommended for most systems.
+        usage - loaded masks and images are not unloaded until the end
+        of the execution) or use a balanced approach in which a minimal
+        amount of image data is kept in memory and retrieved from
+        disk as needed. The 'inmemory' option is similar to the 'speed'
+        setting except that masks are never saved to the files on a
+        physical disk but are created in memory. The default setting
+        is recommended for most systems.
 
     clobber : bool (Default = False)
         When a input image file is in GEIS or WAIVER FITS format it must be
