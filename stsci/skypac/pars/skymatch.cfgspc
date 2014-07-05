@@ -1,6 +1,7 @@
 _task_name_ = string_kw(default="skymatch")
 input = string_kw(default="*_flt.fits", comment="Input image names")
 skymethod = option_kw("globalmin+match","localmin", "globalmin", "match", default="globalmin+match", comment="Sky computation method")
+match_down = boolean_kw(default=True, comment= "Match to the image with lowest or highest sky?")
 skystat = option_kw("mean", "median", "mode", "midpt", default="mode", comment="Sky statistics function")
 lower = float_or_none_kw(default=None, comment= "Lower limit of usable data for sky (always in data units)")
 upper = float_or_none_kw(default=None, comment= "Upper limit of usable data for sky (always in data units)")

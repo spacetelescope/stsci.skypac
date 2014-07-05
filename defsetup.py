@@ -16,9 +16,9 @@ pkg =  "stsci.skypac"
 #ext = [ distutils.core.Extension('', [], include_dirs = [pythoninc,numpyinc]) ]
 
 setupargs = {
-    'version' : "0.6",
+    'version' : "0.8",
     'description' : "Sky matching on image mosaic",
-    'author' : "Mihai Cara, Pey Lian Lim",
+    'author' : "Mihai Cara, Warren Hack, Pey Lian Lim",
     'author_email' : "help@stsci.edu",
     'license' : "http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE",
     'data_files' : [(pkg+"/pars", ['lib/pars/*']),

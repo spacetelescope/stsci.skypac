@@ -406,6 +406,9 @@ class SkyLineMember(object):
             self._skyuser = 0.0
         self._skyuser_delta = 0.0
 
+    def reset_skyuser_from_header(self):
+        self._init_skyuser(self._image.hdu[self._ext].header)
+
     def _get_pixel_scale(self):
         if hasattr(self._wcs, 'idcscale') and self._wcs.idcscale is not None:
             #TODO: it is not clear why astrodrizzle uses "comanded" pixel scale
@@ -808,6 +811,8 @@ class SkyLine(object):
         else:
             self.members = mlist
 
+        self._skydiff = None
+
     def init_from_imextmask_info(self, fi):
         if fi.fnamesOnly:
             fi.convert2ImageRef()
@@ -903,6 +908,14 @@ class SkyLine(object):
     def polygon(self, value):
         assert isinstance(value, SphericalPolygon)
         self._polygon = copy(value)  # Deep copy
+
+    @property
+    def skydiff(self):
+        return self._skydiff
+
+    @skydiff.setter
+    def skydiff(self, sky):
+        self._skydiff = sky
 
     @property
     def id(self):

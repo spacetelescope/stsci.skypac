@@ -32,15 +32,15 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.7'
-__vdate__ = '30-May-2014'
+__version__ = '0.8'
+__vdate__ = '05-July-2014'
 __author__ = 'Mihai Cara'
 
 #DEBUG
 __local_debug__ = False
 
 
-def TEAL_SkyMatch(input, skymethod='globalmin+match',
+def TEAL_SkyMatch(input, skymethod='globalmin+match', match_down=True,
                   skystat='mode', lower=None, upper=None,
                   nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
                   skyuser_kwd='SKYUSER', units_kwd='BUNIT',
@@ -69,7 +69,7 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match',
     mluncl = ml.unclose_copy()
 
     try:
-        skymatch(input, skymethod=skymethod,
+        skymatch(input, skymethod=skymethod, match_down=match_down,
                  skystat=skystat, lower=lower, upper=upper,
                  nclip=nclip, lsigma=lsigma, usigma=usigma, binwidth=binwidth,
                  skyuser_kwd = skyuser_kwd, units_kwd=units_kwd,
@@ -84,7 +84,7 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match',
         ml.close()
 
 
-def skymatch(input, skymethod='globalmin+match',
+def skymatch(input, skymethod='globalmin+match', match_down=True,
              skystat='mode', lower=None, upper=None,
              nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
              skyuser_kwd='SKYUSER', units_kwd='BUNIT',
@@ -200,6 +200,17 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
             This is the *recommended* setting for images
             containing diffuse sources (e.g., galaxies, nebulae)
             covering significant parts of the image.
+
+    match_down : bool (Default = True)
+        Specifies whether the sky *differences* should be subtracted from
+        images with higher sky values (`match_down` = `True`) to match the
+        image with the lowest sky or sky differences should be added to the
+        images with lower sky values to match the sky of the image with the
+        highest sky value (`match_down` = `False`).
+
+        .. note::
+          This setting applies *only* when `skymethod` parameter is
+          either `'match'` or `'globalmin+match'`.
 
     skystat : {'mode', 'median', 'mode', 'midpt'} (Default = 'mode')
         Statistical method for determining the sky value from the image
@@ -1018,6 +1029,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #---------------------------------------------------------#
 
     remaining = skylines
+    orig_skylines = [s for s in skylines]
 
     ml.skip()
     ml.logentry("-----  Computing differences in sky values in " \
@@ -1046,8 +1058,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     # 4. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
 
-    sky1, sky2 = _calc_sky(s1, s2, sky_stat, readonly, subtractsky)
-    diff_sky   = np.abs(sky1 - sky2)
+    sky1, sky2 = _calc_sky(s1, s2, sky_stat, True, subtractsky)
+    diff_sky = sky2 - sky1
 
     #---------------------------------------------------------#
     # 5. Record that difference in the header of the exposure #
@@ -1055,26 +1067,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #    the SCI headers. Also subtract from SCI data.        #
     #---------------------------------------------------------#
 
-    if sky1 < sky2:
-        skyline2zero   = s1
-        skyline2update = s2
-        sv0 = sky1
-        svu = sky2
-    else:
-        skyline2zero   = s2
-        skyline2update = s1
-        sv0 = sky2
-        svu = sky1
-
-    _set_skyuser(skyline2zero, minsky, readonly, subtractsky,
-                 _taskname4history)  # Avoid Astrodrizzle crash
+    # Avoid Astrodrizzle crash:
+    _set_skyuser(s1, minsky, True, subtractsky, _taskname4history)
+    s1.skydiff = 0
 
     ml.logentry("    Image 1: \'{0}\'  --  SKY = {1:E} (brightness units){5}"
                 "    Image 2: \'{2}\'  --  SKY = {3:E} (brightness units){5}"
                 "    Updating Image 1: \'{4}\'  (values are in data units):",
-                skyline2zero.id, sv0, skyline2update.id, svu, skyline2zero.id, os.linesep)
+                s1.id, sky1, s2.id, sky2, s1.id, os.linesep)
 
-    for m in skyline2zero.members:
+    for m in s1.members:
         if subtractsky:
             new_sky = m.skyuser + m.skyuser_delta
         else:
@@ -1087,12 +1089,12 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                     m.skyuser_delta, new_sky)
 
     ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
-                skyline2update.id)
+                s2.id)
 
-    _set_skyuser(skyline2update, minsky + diff_sky, readonly, subtractsky,
-                 _taskname4history)
+    _set_skyuser(s2, minsky + diff_sky, True, subtractsky, _taskname4history)
+    s2.skydiff = diff_sky
 
-    for m in skyline2update.members:
+    for m in s2.members:
         if subtractsky:
             new_sky = m.skyuser + m.skyuser_delta
         else:
@@ -1120,6 +1122,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #---------------------------------------------------------#
     while len(remaining) > 0:
         next_skyline, i_area = mosaic.find_max_overlap(remaining)
+        assert(next_skyline in orig_skylines)
 
         if next_skyline is None:
             for r in remaining:
@@ -1127,10 +1130,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             break
 
         sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat,
-                               readonly, subtractsky)
+                               True, subtractsky)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(next_skyline, diff_sky, readonly, subtractsky,
+        _set_skyuser(next_skyline, diff_sky, True, subtractsky,
                      _taskname4history)
 
         ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"  \
@@ -1168,6 +1171,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                         "Possibly this SkyLine does not intersect the " \
                         "mosaic.".format(next_skyline.id))
         else:
+            next_skyline.skydiff = diff_sky - minsky
             mosaic = new_mos
             remaining.remove(next_skyline)
             ml.logentry("    Added \'{}\' to mosaic.", next_skyline.id)
@@ -1179,6 +1183,46 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             ml.error("Could not process SkyLine \'{}\'.", sl.id)
             sl.close(clean=clean)
 
+    #---------------------------------------------------------#
+    # 8. Recompute sky too match "Up" or "Down".              #
+    #---------------------------------------------------------#
+
+    # find reference (min or max) sky
+    sl2update = [s for s in orig_skylines if s.skydiff is not None]
+    if match_down:
+        refsky = min([s.skydiff for s in sl2update])
+    else:
+        refsky = max([s.skydiff for s in sl2update])
+
+    ml.logentry("-----  Adjusting computed sky \"{}\" by {} "
+                "[brightness units]:  -----",
+                "DOWN" if match_down else "UP", abs(refsky), skip=1)
+    for s in sl2update:
+        # store old sky value and then reset sky values in SkyLineMember:
+        old_skyuser = {}
+        for m in s.members:
+            if subtractsky and not readonly:
+                old_skyuser[m] = m.skyuser + m.skyuser_delta
+            else:
+                old_skyuser[m] = m.skyuser_delta
+            m.reset_skyuser_from_header()
+
+        # update image's header and data (if requested):
+        _set_skyuser(s, minsky+s.skydiff-refsky, readonly, subtractsky,
+                     _taskname4history)
+
+        ml.logentry("Final sky for {} [image units]:", s.id)
+
+        # adjust sky up or down:
+        for m in s.members:
+            if subtractsky and not readonly:
+                new_skyuser = m.skyuser + m.skyuser_delta
+            else:
+                new_skyuser = m.skyuser_delta
+            ml.logentry("  #  EXT={}:   {} --> {}", ext2str(m.ext),
+                        old_skyuser[m], new_skyuser)
+
+    ml.skip()
     mosaic.close(clean=clean)
 
     # Time it
@@ -1386,8 +1430,6 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
     if skyline.is_mf_mosaic or len(skyline.members) < 1:
         return
 
-    hdr_keyword = skyline.members[0].get_skyuser_kwd()
-
     if readonly_mode:
         for m in skyline.members:
             skyuser_delta = m.brightness2data(skyval_brightness)
@@ -1395,15 +1437,17 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
         return
 
     # if not readonly_mode => apply sky differences to data:
+    hdr_keyword = skyline.members[0].get_skyuser_kwd()
+
     for m in skyline.members:
-        ext = m.ext
         skyuser_delta = m.brightness2data(skyval_brightness)
         m.update_skydelta(skyuser_delta)
         if subtractsky:
-            m.image_hdulist[ext].data -= skyuser_delta
+            m.image_hdulist[m.ext].data -= skyuser_delta
             new_sky = m.skyuser + m.skyuser_delta
         else:
             new_sky = m.skyuser_delta
+
         comment='Sky value computed by {:s}'.format(_taskname4history)
         m.image_header[hdr_keyword] = (new_sky, comment)
 
@@ -1416,7 +1460,11 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
             '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
                                       __version__, __vdate__))
 
+
 def _add_new_history(header, comment):
+    #TODO: This function should be able to detect if the comment to be
+    # added to the header is already in the header, and if so, it should
+    # not add the same comment again.
     pass
 
 
@@ -1427,6 +1475,7 @@ def run(configObj):
 
     TEAL_SkyMatch(input       = configObj['input'],
                   skymethod   = configObj['skymethod'],
+                  match_down  = configObj['match_down'],
                   skystat     = configObj['skystat'],
                   lower       = configObj['lower'],
                   upper       = configObj['upper'],
