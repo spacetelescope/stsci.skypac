@@ -43,10 +43,10 @@ __local_debug__ = False
 def TEAL_SkyMatch(input, skymethod='globalmin+match', match_down=True,
                   skystat='mode', lower=None, upper=None,
                   nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
-                  skyuser_kwd='SKYUSER', units_kwd='BUNIT',
+                  skyuser_kwd='SKYUSER', units_kwd='BUNIT', invsens_kwd=None,
                   readonly=True, subtractsky=False, dq_bits=None,
                   optimize='balanced', clobber=False, clean=True,
-                  verbose=True, logfile='skymatch_log.txt'):
+                  verbose=True, logfile='skymatch.log'):
     """
     TEAL interface for :py:func:`skymatch`. Most parameters are identical
     to those of the :py:func:`skymatch`. Here we mention only the differences:
@@ -72,7 +72,8 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match', match_down=True,
         skymatch(input, skymethod=skymethod, match_down=match_down,
                  skystat=skystat, lower=lower, upper=upper,
                  nclip=nclip, lsigma=lsigma, usigma=usigma, binwidth=binwidth,
-                 skyuser_kwd = skyuser_kwd, units_kwd=units_kwd,
+                 skyuser_kwd=skyuser_kwd, units_kwd=units_kwd,
+                 invsens_kwd=invsens_kwd,
                  readonly=readonly, subtractsky = subtractsky,
                  dq_bits=dq_bits, optimize=optimize,
                  clobber=clobber, clean=clean, verbose=verbose, flog=mluncl)
@@ -87,10 +88,10 @@ def TEAL_SkyMatch(input, skymethod='globalmin+match', match_down=True,
 def skymatch(input, skymethod='globalmin+match', match_down=True,
              skystat='mode', lower=None, upper=None,
              nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1,
-             skyuser_kwd='SKYUSER', units_kwd='BUNIT',
+             skyuser_kwd='SKYUSER', units_kwd='BUNIT', invsens_kwd=None,
              readonly=True, subtractsky=False, dq_bits=None,
              optimize='balanced', clobber=False, clean=True,
-             verbose=True, flog='skymatch_log.txt',
+             verbose=True, flog='skymatch.log',
              _taskname4history='SkyMatch'):
     """
     skymatch(input, skymethod='globalmin+match', \
@@ -269,6 +270,18 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
     units_kwd : str (Default = 'BUNIT')
         Name of header keyword which records the units of the data in the
         image.
+
+    invsens_kwd : str, None (Default = '')
+        Name of header keyword which records the inverse sensitivity of the
+        detector used to acquire data. For `HST` detectors, `'PHOTFLAM` is
+        proportional to detector's inverse sensitivity. It is used
+        to convert electron counts-like to photon counts by multiplying
+        count-like data (or count-rates) by the value indicated by this
+        keyword.
+
+        By performing matching using photon counts ("flux units"), one can
+        match images from heterogeneous instruments. Default value `''`
+        or `None` turns off use of inverse sensitivity.
 
     readonly : bool (Default = True)
         Report the sky matching values but do not modify the input files.
@@ -749,35 +762,40 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     if readonly:
         ml.logentry("\'skymatch\' task will be run in read-only mode.",
                     skip=1)
-        ml.logentry("NOTE: Computed sky values WILL NOT be subtracted from "\
-                    "image data (\'readonly\'=True).{0:s}" \
-                    "Computed sky values will be reported in the specified " \
+        ml.logentry("NOTE: Computed sky values WILL NOT be subtracted from "
+                    "image data (\'readonly\'=True).{0:s}"
+                    "Computed sky values will be reported in the specified "
                     "log file.", os.linesep, skip=1)
     else:
-        ml.logentry("\'skymatch\' task will apply computed sky differences " \
+        ml.logentry("\'skymatch\' task will apply computed sky differences "
                     "to input image file(s).", skip=1)
         if subtractsky:
-            ml.logentry("NOTE: Computed sky values WILL be subtracted from "\
-                        "image data (\'subtractsky\'=True).{0:s}" \
-                        "\'{1:s}\' header keyword will represent sky value " \
+            ml.logentry("NOTE: Computed sky values WILL be subtracted from "
+                        "image data (\'subtractsky\'=True).{0:s}"
+                        "\'{1:s}\' header keyword will represent sky value "
                         "*subtracted* from data.",
                         os.linesep, skyuser_kwd, skip=1)
         else:
-            ml.logentry("NOTE: Computed sky values WILL NOT be subtracted "\
-                        "from image data (\'subtractsky\'=False).{0:s}" \
-                        "\'{1:s}\' header keyword will represent sky value " \
+            ml.logentry("NOTE: Computed sky values WILL NOT be subtracted "
+                        "from image data (\'subtractsky\'=False).{0:s}"
+                        "\'{1:s}\' header keyword will represent sky value "
                         "*computed* from data.",
                         os.linesep, skyuser_kwd, skip=1)
 
+    # Process inverse sensitivity parameter:
+    if invsens_kwd is not None:
+        invsens_kwd = invsens_kwd.strip()
+        if invsens_kwd == '':
+            invsens_kwd = None
 
     # Initialize SkyLineMember *class* with common to all objects settings:
-    ml.logentry("-----  User specified keywords:  -----{0}"   \
-                "       Sky Value Keyword:  \'{1:s}\'{0}"     \
-                "       Data Units Keyword: \'{2:s}\'", \
+    ml.logentry("-----  User specified keywords:  -----{0}"
+                "       Sky Value Keyword:  \'{1:s}\'{0}"
+                "       Data Units Keyword: \'{2:s}\'",
                 os.linesep, skyuser_kwd.upper(), units_kwd.upper(), skip=1)
 
     SkyLineMember.init_class(skyuser_kwd=skyuser_kwd, units_kwd=units_kwd,
-                             optimize=optimize,
+                             invsens_kwd=invsens_kwd, optimize=optimize,
                              verbose=verbose, logfile=mlcopy)
 
     # Parse input to get list of filenames to process
@@ -864,20 +882,20 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                         nclip = nclip, lsig = lsigma, usig = usigma,
                         binwidth = binwidth)
 
-    ml.logentry("-----  Sky statistics parameters:  -----{8}" \
-                "{9}statistics function: \'{0}\'{8}" \
-                "{9}lower = {2}{8}"  \
-                "{9}upper = {3}{8}"  \
-                "{9}nclip = {4}{8}"  \
-                "{9}lsigma = {5}{8}" \
-                "{9}usigma = {6}{8}" \
+    ml.logentry("-----  Sky statistics parameters:  -----{8}"
+                "{9}statistics function: \'{0}\'{8}"
+                "{9}lower = {2}{8}"
+                "{9}upper = {3}{8}"
+                "{9}nclip = {4}{8}"
+                "{9}lsigma = {5}{8}"
+                "{9}usigma = {6}{8}"
                 "{9}binwidth = {7}",
                 skystat, skystat, lower, upper, nclip, lsigma, usigma,
                 binwidth, os.linesep,"       ", skip=1)
 
     # Initialize skylines
     skylines = []
-    ml.logentry("-----  Data->Brightness conversion parameters " \
+    ml.logentry("-----  Data->Brightness conversion parameters "
                 "for input files:  -----", skip=1)
 
     for fi in finfo:
@@ -900,26 +918,37 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             else:
                 unittype = "COUNT-RATE" if m.is_countrate else "COUNTS"
 
-            # PHOTFLAM:
-            photflam = "UNKNOWN" if m.photflam == None else str(m.photflam)
-
-            if m.is_countrate:
-                ml.logentry("{1}EXT = {3}{0}" \
-                            "{2}Data units type: {4}{0}" \
-                            "{2}PHOTFLAM: {5} [flux units/data units]{0}" \
-                            "{2}Conversion factor (data->brightness):  {6}", \
-                            os.linesep, "       ", "             ", \
-                            ext2str(m.ext), unittype, photflam,
-                            m.data2brightness_conv)
+            # inverse sensitivity:
+            if invsens_kwd is None:
+                invs_str = ''
             else:
-                ml.logentry("{1}EXT = {3}{0}" \
-                            "{2}Data units type: {4}{0}" \
-                            "{2}PHOTFLAM: {5} [flux units/(data units/time)]{0}"\
-                            "{2}EXPTIME: {6} [s]{0}" \
-                            "{2}Conversion factor (data->brightness): {7}", \
-                            os.linesep, "       ", "             ", \
-                            ext2str(m.ext), unittype, photflam, exptime, \
-                            m.data2brightness_conv)
+                if m.inv_sensitivity == None:
+                    invs_str = "{:s}Inverse Sensitivity: UNAVAILABLE\n" \
+                        .format(13*' ')
+                else:
+                    invskwd = m.get_inv_sensitivity_kwd()
+                    # rate or counts? derive units for inverse sensitivity:
+                    if m.is_countrate:
+                        invs_str = "{:s}Inverse Sensitivity [{:s}]: {} " \
+                            "[flux units/data units]\n" \
+                            .format(13*' ', invskwd, m.inv_sensitivity)
+                    else:
+                        invs_str = "Inverse Sensitivity [{:s}]: {} " \
+                            "[flux units/(data units/time)]\n" \
+                            .format(13*' ', invskwd, m.inv_sensitivity)
+            # exptime:
+            if m.is_countrate:
+                expt_str = ''
+            else:
+                expt_str = "{:s}EXPTIME: {} [s]\n".format(13*' ', exptime)
+
+            # add a log entry with units and conversion factors:
+            ml.logentry("{0:s}EXT = {2}\n"
+                        "{1:s}Data units type: {3}\n"
+                        "{4:s}{5:s}"
+                        "{1:s}Conversion factor (data->brightness):  {6}",
+                        7*' ', 13*' ', ext2str(m.ext), unittype,
+                        invs_str, expt_str, m.data2brightness_conv)
 
         skylines.append( sl )
         ml.skip()
@@ -935,7 +964,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #-----------------------------------------------------------#
     if skymethod == 'localmin':
         ml.skip()
-        ml.logentry("-----  Computing sky values requested image " \
+        ml.logentry("-----  Computing sky values requested image "
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
             sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
@@ -948,11 +977,16 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             _set_skyuser(sl, sky, readonly, subtractsky, _taskname4history)
 
             for m in sl.members:
-                ml.logentry("        EXT = {0:s}"      \
-                            "   delta({1:s}) = {2:G}"  \
-                            "   NEW {1:s} = {3:G}", \
-                            ext2str(m.ext), m.get_skyuser_kwd(),    \
-                            m.skyuser_delta, m.skyuser)
+                if subtractsky:
+                    new_sky = m.skyuser + m.skyuser_delta
+                else:
+                    new_sky = m.skyuser_delta
+
+                ml.logentry("        EXT = {0:s}"
+                            "   delta({1:s}) = {2:G}"
+                            "   NEW {1:s} = {3:G}",
+                            ext2str(m.ext), m.get_skyuser_kwd(),
+                            m.skyuser_delta, new_sky)
 
             sl.close(clean=clean)
 
@@ -978,7 +1012,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
     if skymethod == 'globalmin+match' or skymethod == 'globalmin':
         ml.skip()
-        ml.logentry("-----  Computing \"global\" sky on requested image " \
+        ml.logentry("-----  Computing \"global\" sky on requested image "
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
             sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
@@ -992,17 +1026,21 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         # update skyuser and return (no sky matching requested):
         if minsky is None: minsky = 0.0
         for sl in skylines:
-            ml.logentry("    Computed sky change (data units) " \
+            ml.logentry("    Computed sky change (data units) "
                         "for image {:s}:", sl.id)
 
             _set_skyuser(sl, minsky, readonly, subtractsky, _taskname4history)
 
             for m in sl.members:
-                ml.logentry("        EXT = {0:s}"      \
-                            "   delta({1:s}) = {2:G}"  \
-                            "   NEW {1:s} = {3:G}", \
-                            ext2str(m.ext), m.get_skyuser_kwd(),    \
-                            m.skyuser_delta, m.skyuser)
+                if subtractsky:
+                    new_sky = m.skyuser + m.skyuser_delta
+                else:
+                    new_sky = m.skyuser_delta
+                ml.logentry("        EXT = {0:s}"
+                            "   delta({1:s}) = {2:G}"
+                            "   NEW {1:s} = {3:G}",
+                            ext2str(m.ext), m.get_skyuser_kwd(),
+                            m.skyuser_delta, new_sky)
 
             sl.close(clean=clean)
 
@@ -1032,7 +1070,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     orig_skylines = [s for s in skylines]
 
     ml.skip()
-    ml.logentry("-----  Computing differences in sky values in " \
+    ml.logentry("-----  Computing differences in sky values in "
                 "overlapping regions:  -----", skip=1)
 
     starting_pair = SkyLine.max_overlap_pair(skylines)
@@ -1082,10 +1120,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         else:
             new_sky = m.skyuser_delta
 
-        ml.logentry("        EXT = {0:s}"      \
-                    "   delta({1:s}) = {2:G}"  \
-                    "   NEW {1:s} = {3:G}", \
-                    ext2str(m.ext), m.get_skyuser_kwd(),    \
+        ml.logentry("        EXT = {0:s}"
+                    "   delta({1:s}) = {2:G}"
+                    "   NEW {1:s} = {3:G}",
+                    ext2str(m.ext), m.get_skyuser_kwd(),
                     m.skyuser_delta, new_sky)
 
     ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
@@ -1100,10 +1138,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         else:
             new_sky = m.skyuser_delta
 
-        ml.logentry("        EXT = {0:s}"      \
-                    "   delta({1:s}) = {2:G}"  \
-                    "   NEW {1:s} = {3:G}", \
-                    ext2str(m.ext), m.get_skyuser_kwd(),    \
+        ml.logentry("        EXT = {0:s}"
+                    "   delta({1:s}) = {2:G}"
+                    "   NEW {1:s} = {3:G}",
+                    ext2str(m.ext), m.get_skyuser_kwd(),
                     m.skyuser_delta, new_sky)
     ml.skip()
 
@@ -1136,10 +1174,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         _set_skyuser(next_skyline, diff_sky, True, subtractsky,
                      _taskname4history)
 
-        ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"  \
-                    "    Image     \'{1:s}\' SKY = {2:G} " \
-                    "[brightness units]{3}" \
-                    "    Updating Image (values are in data units):",  \
+        ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"
+                    "    Image     \'{1:s}\' SKY = {2:G} "
+                    "[brightness units]{3}"
+                    "    Updating Image (values are in data units):",
                     sky1, next_skyline.id, sky2, os.linesep)
 
         for m in next_skyline.members:
@@ -1148,10 +1186,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             else:
                 new_sky = m.skyuser_delta
 
-            ml.logentry("        EXT = {0:s}"                   \
-                        "   delta({1:s}) = {2:G}"  \
-                        "   NEW {1:s} = {3:G}", \
-                        ext2str(m.ext), m.get_skyuser_kwd(),    \
+            ml.logentry("        EXT = {0:s}"
+                        "   delta({1:s}) = {2:G}"
+                        "   NEW {1:s} = {3:G}",
+                        ext2str(m.ext), m.get_skyuser_kwd(),
                         m.skyuser_delta, new_sky)
 
         try:
@@ -1167,8 +1205,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                 mosaic.close(clean=clean)
                 ml.print_endlog_msg()
                 ml.close()
-                raise RuntimeError("Could not add \'{}\' to mosaic. " \
-                        "Possibly this SkyLine does not intersect the " \
+                raise RuntimeError("Could not add \'{}\' to mosaic. "
+                        "Possibly this SkyLine does not intersect the "
                         "mosaic.".format(next_skyline.id))
         else:
             next_skyline.skydiff = diff_sky - minsky
@@ -1282,8 +1320,10 @@ def _calc_sky(s1, s2, skystat, readonly, subtractsky):
             if intersect_poly.points.shape[0] < 1:
                 continue
             ra, dec = intersect_poly.to_radec()
-            sky1, npix1 = _member_sky(m1, ra, dec, skystat, readonly, subtractsky, m2.id)
-            sky2, npix2 = _member_sky(m2, ra, dec, skystat, readonly, subtractsky, m1.id)
+            sky1, npix1 = _member_sky(m1, ra, dec, skystat, readonly,
+                                      subtractsky, m2.id)
+            sky2, npix2 = _member_sky(m2, ra, dec, skystat, readonly,
+                                      subtractsky, m1.id)
             w_sky1 += npix1*sky1
             w_tot1 += npix1
             w_sky2 += npix2*sky2
@@ -1304,37 +1344,39 @@ def _member_sky(member, ra, dec, skystat, readonly, subtractsky, _dbg_name):
 
     if __local_debug__:
         ivert1 = zip(*[map(round,sparse_x+1), map(round,sparse_y+1)])
-        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'.reg'
+        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+\
+            '_'+ext2str(member.ext,True)+'.reg'
         _debug_write_region(fn, ivert1)
 
-    fill_mask = np.zeros((wcs._naxis2, wcs._naxis1), dtype=np.uint8)
-    pol = region.Polygon(1, ivert)
+    fill_mask = np.zeros((wcs._naxis2, wcs._naxis1), dtype=bool)
+    pol = region.Polygon(True, ivert)
     fill_mask = pol.scan(fill_mask)
 
     dqmask = member.mask_data # may be a combination of DQ data and user mask
     if dqmask is not None:
-        fill_mask *= dqmask
+        fill_mask = np.logical_and(fill_mask, dqmask)
         member.free_mask_data()
         del dqmask
 
     if __local_debug__:
-        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+'_'+ext2str(member.ext,True)+'.fits'
+        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+\
+            '_'+ext2str(member.ext,True)+'.fits'
         if os.path.exists(fn):
             os.remove(fn)
         # write data to the "temporary" file
-        hdu      = fits.PrimaryHDU(fill_mask)
-        hdulist  = fits.HDUList([hdu])
+        hdu = fits.PrimaryHDU(fill_mask.astype(np.uint8))
+        hdulist = fits.HDUList([hdu])
         hdulist.writeto(fn)
         # clean-up
         hdulist.close()
         del hdu, hdulist
 
     # Calculate sky
-    if np.count_nonzero(fill_mask) == 0:
+    try:
+        dat = member.image_data[fill_mask]
+        sky, npix = skystat.calc_sky(dat)
+    except ValueError:
         return (0, 0)
-
-    dat = member.image_data[np.where(fill_mask)]
-    sky, npix = skystat.calc_sky(dat)
 
     if readonly or not subtractsky:
         sky = member.data2brightness(sky-member.skyuser_delta)
@@ -1376,7 +1418,7 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
         if dqmask is None:
             dat = member.image_data
         else:
-            dat = member.image_data[np.where(dqmask)]
+            dat = member.image_data[np.asarray(dqmask, dtype=bool)]
             member.free_mask_data()
             del dqmask
 
@@ -1387,13 +1429,18 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
             continue
 
         # Calculate sky
-        sky, npix = skystat.calc_sky(dat)
+        try:
+            sky, npix = skystat.calc_sky(dat)
+        except ValueError:
+            sky = 0
+            npix = 0
+
         if __local_debug__:
-            print("_minsky : raw sky stat : fields = \'{}\',  npix = {}, sky = {}"\
+            print("_minsky : raw sky stat : fields = \'{}\',  npix = {}, sky = {}"
                   .format(skystat._fields, npix, sky))
         if npix < 1:
             # we need at least 1 valid pixel to do statistics
-            mlog.warning("Not enough data points to compute sky for " \
+            mlog.warning("Not enough data points to compute sky for "
                          "\'{}\' after clipping was applied.",
                          member.id)
             continue
@@ -1452,7 +1499,7 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
         m.image_header[hdr_keyword] = (new_sky, comment)
 
         if _taskname4history == 'SkyMatch' and subtractsky:
-            m.image_header.add_history('{} {:E} subtracted from image by {:s}'\
+            m.image_header.add_history('{} {:E} subtracted from image by {:s}'
                 .format(hdr_keyword, new_sky, _taskname4history))
 
     if skyline.members and _taskname4history == 'SkyMatch':
@@ -1473,6 +1520,15 @@ def _add_new_history(header, comment):
 #--------------------------
 def run(configObj):
 
+    if configObj['invsens_kwd'] is None:
+        invsens_kwd = None
+    else:
+        s = configObj['invsens_kwd'].strip()
+        if s == '':
+            invsens_kwd = None
+        else:
+            invsens_kwd = s
+
     TEAL_SkyMatch(input       = configObj['input'],
                   skymethod   = configObj['skymethod'],
                   match_down  = configObj['match_down'],
@@ -1485,6 +1541,7 @@ def run(configObj):
                   binwidth    = configObj['binwidth'],
                   skyuser_kwd = configObj['skyuser_kwd'],
                   units_kwd   = configObj['units_kwd'],
+                  invsens_kwd = configObj['invsens_kwd'],
                   readonly    = configObj['readonly'],
                   subtractsky = configObj['subtractsky'],
                   dq_bits     = configObj['dq_bits'],

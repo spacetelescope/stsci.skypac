@@ -100,7 +100,7 @@
 </table>
 <dl class="function">
 <dt id="stsci.skypac.skymatch.TEAL_SkyMatch">
-<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">TEAL_SkyMatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>match_down=True</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>logfile='skymatch_log.txt'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.TEAL_SkyMatch" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">TEAL_SkyMatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>match_down=True</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>invsens_kwd=None</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>logfile='skymatch.log'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.TEAL_SkyMatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>TEAL interface for <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Most parameters are identical
 to those of the <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Here we mention only the differences:</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -319,6 +319,18 @@ multiple times on the same images.</p>
 <blockquote>
 <div><p>Name of header keyword which records the units of the data in the
 image.</p>
+</div></blockquote>
+<p><strong>invsens_kwd</strong> : str, None (Default = &#8216;&#8217;)</p>
+<blockquote>
+<div><p>Name of header keyword which records the inverse sensitivity of the
+detector used to acquire data. For <tt class="xref py py-obj docutils literal"><span class="pre">HST</span></tt> detectors, <tt class="xref py py-obj docutils literal"><span class="pre">'PHOTFLAM</span></tt> is
+proportional to detector&#8217;s inverse sensitivity. It is used
+to convert electron counts-like to photon counts by multiplying
+count-like data (or count-rates) by the value indicated by this
+keyword.</p>
+<p>By performing matching using photon counts (&#8220;flux units&#8221;), one can
+match images from heterogeneous instruments. Default value <tt class="xref py py-obj docutils literal"><span class="pre">''</span></tt>
+or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> turns off use of inverse sensitivity.</p>
 </div></blockquote>
 <p><strong>readonly</strong> : bool (Default = True)</p>
 <blockquote>
