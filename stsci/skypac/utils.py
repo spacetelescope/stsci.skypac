@@ -356,7 +356,7 @@ def get_extver_list(img, extname='SCI'):
         assert(img.hdu is not None)
         img.hold()
         hdulist = img.hdu
-        doRelease = False
+        doRelease = True
     else:
         raise TypeError("Argument 'img' must be either a file name (string), "  \
                         "an ImageRef, or a `astropy.io.fits.HDUList` object.")

@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.7 (30-May-2014)',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -102,14 +100,14 @@
 </table>
 <dl class="function">
 <dt id="stsci.skypac.skymatch.TEAL_SkyMatch">
-<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">TEAL_SkyMatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>logfile='skymatch_log.txt'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.TEAL_SkyMatch" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">stsci.skypac.skymatch.</tt><tt class="descname">TEAL_SkyMatch</tt><big>(</big><em>input</em>, <em>skymethod='globalmin+match'</em>, <em>match_down=True</em>, <em>skystat='mode'</em>, <em>lower=None</em>, <em>upper=None</em>, <em>nclip=5</em>, <em>lsigma=4.0</em>, <em>usigma=4.0</em>, <em>binwidth=0.1</em>, <em>skyuser_kwd='SKYUSER'</em>, <em>units_kwd='BUNIT'</em>, <em>invsens_kwd=None</em>, <em>readonly=True</em>, <em>subtractsky=False</em>, <em>dq_bits=None</em>, <em>optimize='balanced'</em>, <em>clobber=False</em>, <em>clean=True</em>, <em>verbose=True</em>, <em>logfile='skymatch.log'</em><big>)</big><a class="headerlink" href="#stsci.skypac.skymatch.TEAL_SkyMatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>TEAL interface for <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Most parameters are identical
 to those of the <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a>. Here we mention only the differences:</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
 <tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>logfile</strong> : str (Default = &#8216;skymatch_log.txt&#8217;)</p>
 <blockquote class="last">
 <div><p>Store execution log in this file. Always openned in append mode.
@@ -150,7 +148,7 @@ by inverse sensitivity (e.g., value of <tt class="docutils literal"><span class=
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">Parameters :</th></tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
 <tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>input</strong> : str, list of FileExtMaskInfo</p>
 <blockquote>
 <div><p>A list of of <a class="reference internal" href="parseat.html#stsci.skypac.parseat.FileExtMaskInfo" title="stsci.skypac.parseat.FileExtMaskInfo"><tt class="xref py py-class docutils literal"><span class="pre">FileExtMaskInfo</span></tt></a> objects
@@ -243,6 +241,19 @@ covering significant parts of the image.</p>
 </li>
 </ul>
 </div></blockquote>
+<p><strong>match_down</strong> : bool (Default = True)</p>
+<blockquote>
+<div><p>Specifies whether the sky <em>differences</em> should be subtracted from
+images with higher sky values (<tt class="xref py py-obj docutils literal"><span class="pre">match_down</span></tt> = <a class="reference external" href="http://docs.python.org/library/constants.html#True" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">True</span></tt></a>) to match the
+image with the lowest sky or sky differences should be added to the
+images with lower sky values to match the sky of the image with the
+highest sky value (<tt class="xref py py-obj docutils literal"><span class="pre">match_down</span></tt> = <a class="reference external" href="http://docs.python.org/library/constants.html#False" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">False</span></tt></a>).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This setting applies <em>only</em> when <tt class="xref py py-obj docutils literal"><span class="pre">skymethod</span></tt> parameter is
+either <tt class="xref py py-obj docutils literal"><span class="pre">'match'</span></tt> or <tt class="xref py py-obj docutils literal"><span class="pre">'globalmin+match'</span></tt>.</p>
+</div>
+</div></blockquote>
 <p><strong>skystat</strong> : {&#8216;mode&#8217;, &#8216;median&#8217;, &#8216;mode&#8217;, &#8216;midpt&#8217;} (Default = &#8216;mode&#8217;)</p>
 <blockquote>
 <div><p>Statistical method for determining the sky value from the image
@@ -308,6 +319,18 @@ multiple times on the same images.</p>
 <blockquote>
 <div><p>Name of header keyword which records the units of the data in the
 image.</p>
+</div></blockquote>
+<p><strong>invsens_kwd</strong> : str, None (Default = &#8216;&#8217;)</p>
+<blockquote>
+<div><p>Name of header keyword which records the inverse sensitivity of the
+detector used to acquire data. For <tt class="xref py py-obj docutils literal"><span class="pre">HST</span></tt> detectors, <tt class="xref py py-obj docutils literal"><span class="pre">'PHOTFLAM</span></tt> is
+proportional to detector&#8217;s inverse sensitivity. It is used
+to convert electron counts-like to photon counts by multiplying
+count-like data (or count-rates) by the value indicated by this
+keyword.</p>
+<p>By performing matching using photon counts (&#8220;flux units&#8221;), one can
+match images from heterogeneous instruments. Default value <tt class="xref py py-obj docutils literal"><span class="pre">''</span></tt>
+or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> turns off use of inverse sensitivity.</p>
 </div></blockquote>
 <p><strong>readonly</strong> : bool (Default = True)</p>
 <blockquote>
@@ -390,12 +413,16 @@ for sky computations.</div>
 specified in the input &#64;-file.</p>
 </div>
 </div></blockquote>
-<p><strong>optimize</strong> : {&#8216;balanced&#8217;, &#8216;speed&#8217;} (Default = &#8216;balanced&#8217;)</p>
+<p><strong>optimize</strong> : {&#8216;balanced&#8217;, &#8216;speed&#8217;, &#8216;inmemory&#8217;} (Default = &#8216;balanced&#8217;)</p>
 <blockquote>
 <div><p>Specifies whether to optimize execution for speed (maximum memory
-usage) or use a balanced approach in which a minimal amount of
-image data is kept in memory and retrieved from disk as needed.
-The default setting is recommended for most systems.</p>
+usage - loaded masks and images are not unloaded until the end
+of the execution) or use a balanced approach in which a minimal
+amount of image data is kept in memory and retrieved from
+disk as needed. The &#8216;inmemory&#8217; option is similar to the &#8216;speed&#8217;
+setting except that masks are never saved to the files on a
+physical disk but are created in memory. The default setting
+is recommended for most systems.</p>
 </div></blockquote>
 <p><strong>clobber</strong> : bool (Default = False)</p>
 <blockquote>
@@ -430,7 +457,7 @@ If not provided (None), print messages to screen only.</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Raises :</th></tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises:</th></tr>
 <tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>RuntimeError</strong> :</p>
 <blockquote>
 <div><p>Could not add an image to mosaic. Possibly this SkyLine does
@@ -549,11 +576,11 @@ image, differences in pixel scales of different detector chips
 <p>For images with data in &#8220;counts&#8221;-like units, the conversion from data
 units to surface brightness is given by:</p>
 <div class="math">
-<p><img src="_images/math/357717a4f5e5dd4212cc5c9b3d50ef0d32ae1c13.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / (\mathrm{pixel\: Area}^2 \cdot           \mathrm{EXPTIME})"/></p>
+<p><img src="_images/math/d7b2e157d45d5cab5efac3cdb1101a91c4667572.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / (\mathrm{pixel\: Area}^2 \cdot           \mathrm{EXPTIME})"/></p>
 </div><p>and for image data in &#8220;count-rate&#8221;-like units, this conversion is given
 by:</p>
 <div class="last math">
-<p><img src="_images/math/7095c59dffc631e3745c072d0cec483e5137a622.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / \mathrm{pixel\: Area}^2 ."/></p>
+<p><img src="_images/math/b56827b75b0989e3fc8fadd99a69c9cdcc56220f.png" alt="sky_{\mathrm{surface\: brightness}} = sky_{\mathrm{data\: units}}           \cdot \mathrm{PHOTFLAM} / \mathrm{pixel\: Area}^2 ."/></p>
 </div></dd>
 <dt><strong>Important Header Keywords:</strong></dt>
 <dd><p class="first">As discussed above, <a class="reference internal" href="#stsci.skypac.skymatch.skymatch" title="stsci.skypac.skymatch.skymatch"><tt class="xref py py-func docutils literal"><span class="pre">skymatch()</span></tt></a> uses values of various keywords
@@ -787,7 +814,7 @@ images simply with:</p>
     </div>
     <div class="footer">
         &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

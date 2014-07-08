@@ -105,6 +105,17 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_ because it
         containing diffuse sources (e.g., galaxies, nebulae)
         covering significant parts of the image.
 
+match_down : bool (Default = True)
+    Specifies whether the sky *differences* should be subtracted from
+    images with higher sky values (`match_down` = `True`) to match the
+    image with the lowest sky or sky differences should be added to the
+    images with lower sky values to match the sky of the image with the
+    highest sky value (`match_down` = `False`).
+
+    .. note::
+      This setting applies *only* when `skymethod` parameter is
+      either `'match'` or `'globalmin+match'`.
+
 skystat : {'mode', 'median', 'mode', 'midpt'} (Default = 'mode')
     Statistical method for determining the sky value from the image
     pixel values. See `~stsci.skypac.computeSky` for more detals.
@@ -162,6 +173,18 @@ skyuser_kwd : str (Default = 'SKYUSER')
 units_kwd : str (Default = 'BUNIT')
     Name of header keyword which records the units of the data in the
     image.
+
+invsens_kwd : str, None (Default = '')
+    Name of header keyword which records the inverse sensitivity of the
+    detector used to acquire data. For `HST` detectors, `'PHOTFLAM` is
+    proportional to detector's inverse sensitivity. It is used
+    to convert electron counts-like to photon counts by multiplying
+    count-like data (or count-rates) by the value indicated by this
+    keyword.
+
+    By performing matching using photon counts ("flux units"), one can
+    match images from heterogeneous instruments. Default value `''`
+    or `None` turns off use of inverse sensitivity.
 
 readonly : bool (Default = True)
     Report the sky matching values but do not modify the input files.

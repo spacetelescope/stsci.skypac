@@ -264,10 +264,12 @@ class SkyLineMember(object):
 
     @classmethod
     def init_class(cls, skyuser_kwd='SKYUSER', units_kwd='BUNIT',
+                   invsens_kwd=None,
                    verbose=True, logfile=sys.stdout, clobber=False,
                    optimize='balanced'):
         cls._skyuser_header_keyword = skyuser_kwd
         cls._units_header_keyword   = units_kwd
+        cls._inv_sensitivity_kwd    = invsens_kwd
         cls._verbose                = verbose
         cls._clobber                = clobber
         if isinstance(optimize,str):
@@ -301,22 +303,22 @@ class SkyLineMember(object):
                                      "\'{:s}\'.", f)
 
     def _reset(self):
-        self._image         = None
-        self._ext           = None
-        self._mask          = None
-        self._maskext       = None
-        self._files2clean   = []
-        self._can_free_mask = False
-        self._mask_is_imref = False
-        self._id            = ''
-        self._pixscale      = 1.0
-        self._is_countrate  = False
-        self._skyuser       = 0.0
-        self._skyuser_delta = 0.0
-        self._polygon       = None
-        self._wcs           = None
-        self._photflam      = 1.0
-        self._exptime       = 1.0
+        self._image           = None
+        self._ext             = None
+        self._mask            = None
+        self._maskext         = None
+        self._files2clean     = []
+        self._can_free_mask   = False
+        self._mask_is_imref   = False
+        self._id              = ''
+        self._pixscale        = 1.0
+        self._is_countrate    = False
+        self._skyuser         = 0.0
+        self._skyuser_delta   = 0.0
+        self._polygon         = None
+        self._wcs             = None
+        self._inv_sensitivity = None
+        self._exptime         = 1.0
         self._data2brightness_conv= 1.0
 
     def _release_all(self):
@@ -406,6 +408,9 @@ class SkyLineMember(object):
             self._skyuser = 0.0
         self._skyuser_delta = 0.0
 
+    def reset_skyuser_from_header(self):
+        self._init_skyuser(self._image.hdu[self._ext].header)
+
     def _get_pixel_scale(self):
         if hasattr(self._wcs, 'idcscale') and self._wcs.idcscale is not None:
             #TODO: it is not clear why astrodrizzle uses "comanded" pixel scale
@@ -459,6 +464,8 @@ class SkyLineMember(object):
         sci_header = hdulist[self.ext].header
         primary_header = hdulist[primHDUname].header
 
+        inv_sensitivity_kwd = self.get_inv_sensitivity_kwd()
+
         # start with pixel-area scaling and add other conversion factors later
         self._data2brightness_conv = 1.0/(pscale**2)
 
@@ -480,9 +487,9 @@ class SkyLineMember(object):
 
         # Initially assume that PHOTCORR was performed. For non-HST images
         # or unsupported instruments, we assume that PHOTCORR was performed,
-        # and in the end we will check if PHOTFLAM has a reasonable value (>0)
-        # if present.
-        photcorr = True
+        # and in the end we will check if PHOTFLAM (inverse sensitivity)
+        # has a reasonable value (>0) if present.
+        photcorr = inv_sensitivity_kwd is not None
 
         if 'TELESCOP' in primary_header:
             telescope = primary_header['TELESCOP'].strip().upper()
@@ -515,7 +522,8 @@ class SkyLineMember(object):
                 raise KeyError(errmsg)
 
         # see if photometric correction step was performed:
-        if telescope is not None and instrument is not None:
+        if telescope is not None and instrument is not None and \
+           inv_sensitivity_kwd is not None:
             phot_switch = photcorr_kwd[instrument][0]
             phot_done   = photcorr_kwd[instrument][1]
 
@@ -528,7 +536,7 @@ class SkyLineMember(object):
                         "Variations in detector sensitivity WILL NOT " \
                         "be accounted for.",
                         os.linesep, self._basefname)
-                    self._photflam = None
+                    self._inv_sensitivity = None
             else:
                 # For HST instruments we expect ~'PHOTCORR' to be present
                 # in the primary header.
@@ -540,42 +548,44 @@ class SkyLineMember(object):
                 raise KeyError(errmsg)
 
         if photcorr:
-            if 'PHOTFLAM' in sci_header:
-                self._photflam = sci_header['PHOTFLAM']
-                if self._photflam > 0.0:
-                    self._data2brightness_conv *= self._photflam
+            if inv_sensitivity_kwd in sci_header:
+                self._inv_sensitivity = sci_header[inv_sensitivity_kwd]
+                if self._inv_sensitivity > 0.0:
+                    self._data2brightness_conv *= self._inv_sensitivity
                 else:
                     self._ml.warning(
-                        "\'PHOTFLAM\' value must be a *strictly* positive "  \
-                        "number.{0:s}Found: \'PHOTFLAM\' = {1} in extension "\
-                        "{2:s} in data file \'{3:s}\'.{0:s}\'PHOTFLAM\' "    \
+                        "\'{4:s}\' value must be a *strictly* positive "  \
+                        "number.{0:s}Found: \'{4:s}\' = {1} in extension "\
+                        "{2:s} in data file \'{3:s}\'.{0:s}\'{4:s}\' "    \
                         "value will be ignored.{0:s}Variations in detector " \
                         "sensitivity WILL NOT be accounted for.",            \
-                        os.linesep, self._photflam, ext2str(self.ext),
-                        self._basefname)
-                    self._photflam = None
-            elif 'PHOTFLAM' in primary_header:
-                self._photflam = primary_header['PHOTFLAM']
-                if self._photflam > 0.0:
-                    self._data2brightness_conv *= self._photflam
+                        os.linesep, self._inv_sensitivity, ext2str(self.ext),
+                        self._basefname, inv_sensitivity_kwd)
+                    self._inv_sensitivity = None
+            elif inv_sensitivity_kwd in primary_header:
+                self._inv_sensitivity = primary_header[inv_sensitivity_kwd]
+                if self._inv_sensitivity > 0.0:
+                    self._data2brightness_conv *= self._inv_sensitivity
                 else:
                     self._ml.warning(
-                        "\'PHOTFLAM\' value must be a *strictly* positive "  \
-                        "number.{0}Found: \'PHOTFLAM\' = {1} in the primary "\
-                        "header in data file \'{2:s}\'.{0:s}\'PHOTFLAM\' "   \
+                        "\'{3:s}\' value must be a *strictly* positive "  \
+                        "number.{0}Found: \'{3:s}\' = {1} in the primary "\
+                        "header in data file \'{2:s}\'.{0:s}\'{3:s}\' "   \
                         "value will be ignored.{0:s}Variations in detector " \
                         "sensitivity WILL NOT be accounted for.",            \
-                        os.linesep, self._photflam, self._basefname)
-                    self._photflam = None
+                        os.linesep, self._inv_sensitivity, self._basefname,
+                        inv_sensitivity_kwd)
+                    self._inv_sensitivity = None
             else:
-                self._photflam = None
+                self._inv_sensitivity = None
                 self._ml.warning(
-                    "Keyword \'PHOTFLAM\' not found neither in the " \
+                    "Keyword \'{3:s}\' not found neither in the " \
                     "Primary header nor{0:s}in the header of "       \
                     "extension ({1:s}) in file {2:s}.{0:s}"          \
                     "Variations in detector sensitivity WILL NOT "   \
                     "be accounted for.",                             \
-                    os.linesep, ext2str(self.ext), self._basefname)
+                    os.linesep, ext2str(self.ext), self._basefname,
+                    inv_sensitivity_kwd)
 
         # retrieve EXPTIME:
         if 'EXPTIME' in primary_header:
@@ -636,6 +646,14 @@ class SkyLineMember(object):
     @classmethod
     def set_units_kwd(cls, kwd):
         cls._units_header_keyword = kwd
+
+    @classmethod
+    def get_inv_sensitivity_kwd(cls):
+        return cls._inv_sensitivity_kwd
+
+    @classmethod
+    def set_inv_sensitivity_kwd(cls, kwd):
+        cls._inv_sensitivity_kwd = kwd
 
     @classmethod
     def is_verbose(cls):
@@ -707,8 +725,8 @@ class SkyLineMember(object):
         return self._polygon
 
     @property
-    def photflam(self):
-        return self._photflam
+    def inv_sensitivity(self):
+        return self._inv_sensitivity
 
     @property
     def exptime(self):
@@ -808,6 +826,8 @@ class SkyLine(object):
         else:
             self.members = mlist
 
+        self._skydiff = None
+
     def init_from_imextmask_info(self, fi):
         if fi.fnamesOnly:
             fi.convert2ImageRef()
@@ -903,6 +923,14 @@ class SkyLine(object):
     def polygon(self, value):
         assert isinstance(value, SphericalPolygon)
         self._polygon = copy(value)  # Deep copy
+
+    @property
+    def skydiff(self):
+        return self._skydiff
+
+    @skydiff.setter
+    def skydiff(self, sky):
+        self._skydiff = sky
 
     @property
     def id(self):
