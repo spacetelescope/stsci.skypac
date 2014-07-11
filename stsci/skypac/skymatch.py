@@ -915,8 +915,10 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             # Units *TYPE* (counts or rate?):
             if m.is_countrate == None:
                 unittype = "UNKNOWN"
+                invs_units = "flux units/data units"
             else:
                 unittype = "COUNT-RATE" if m.is_countrate else "COUNTS"
+                invs_units = "flux units/(data units/time)"
 
             # inverse sensitivity:
             if invsens_kwd is None:
@@ -928,14 +930,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                 else:
                     invskwd = m.get_inv_sensitivity_kwd()
                     # rate or counts? derive units for inverse sensitivity:
-                    if m.is_countrate:
-                        invs_str = "{:s}Inverse Sensitivity [{:s}]: {} " \
-                            "[flux units/data units]\n" \
-                            .format(13*' ', invskwd, m.inv_sensitivity)
-                    else:
-                        invs_str = "Inverse Sensitivity [{:s}]: {} " \
-                            "[flux units/(data units/time)]\n" \
-                            .format(13*' ', invskwd, m.inv_sensitivity)
+                    invs_str = "{:s}Inverse Sensitivity [{:s}]: {} [{:s}]\n"\
+                        .format(13*' ', invskwd, m.inv_sensitivity, invs_units)
+
             # exptime:
             if m.is_countrate:
                 expt_str = ''
@@ -1519,16 +1516,6 @@ def _add_new_history(header, comment):
 # TEAL Interface functions
 #--------------------------
 def run(configObj):
-
-    if configObj['invsens_kwd'] is None:
-        invsens_kwd = None
-    else:
-        s = configObj['invsens_kwd'].strip()
-        if s == '':
-            invsens_kwd = None
-        else:
-            invsens_kwd = s
-
     TEAL_SkyMatch(input       = configObj['input'],
                   skymethod   = configObj['skymethod'],
                   match_down  = configObj['match_down'],
