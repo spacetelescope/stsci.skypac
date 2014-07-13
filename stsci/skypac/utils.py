@@ -756,9 +756,15 @@ def get_instrument_info(image, ext):
     # get detector info:
     detector = None
     if 'DETECTOR' in sci_header:
-        detector = sci_header['DETECTOR'].strip().upper()
+        if isinstance(sci_header['DETECTOR'], str):
+            detector = sci_header['DETECTOR'].strip().upper()
+        else:
+            detector = sci_header['DETECTOR']
     elif 'DETECTOR' in primary_header:
-        detector = primary_header['DETECTOR'].strip().upper()
+        if isinstance(primary_header['DETECTOR'], str):
+            detector = primary_header['DETECTOR'].strip().upper()
+        else:
+            detector = primary_header['DETECTOR']
 
     return (telescope, instrument, detector)
 
