@@ -82,16 +82,20 @@ import sys, os
 from copy import copy, deepcopy
 from os.path import basename, split, splitext
 import numpy as np
+import math
 
 # THIRD-PARTY
 from stwcs import wcsutil
+from astropy import wcs as pywcs
 from stwcs.distortion.utils import output_wcs
 from stsci.sphere.polygon import SphericalPolygon
 
 # LOCAL
 from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
-     file_name_components, temp_mask_file, in_memory_mask
+     file_name_components, temp_mask_file, in_memory_mask, \
+     get_instrument_info
 from .parseat import FileExtMaskInfo
+from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 
 # DEBUG
 SKYLINE_DEBUG = True
@@ -203,6 +207,10 @@ class SkyLineMember(object):
                 _check_valid_imgext(dqimage, 'dqimage', dqext, 'dqext')
         _check_valid_imgext(usermask, 'usermask', usermask_ext,'usermask_ext')
 
+        # get telescope, instrument, and detector info:
+        self.telescope, self.instrument, self.detector = get_instrument_info(
+            image, ext)
+
         # check dq_bits:
         if dq_bits is not None and not isinstance(dq_bits,int):
             if image:  dqimage.release()
@@ -230,36 +238,39 @@ class SkyLineMember(object):
             raise ValueError("Unexpected extension type \'{}\' for file {}.".\
                              format(ext,self._basefname))
 
-        self._id    = "{:s}[{:s}]".format(self._basefname, extstr)
+        self._id = "{:s}[{:s}]".format(self._basefname, extstr)
 
         # extract WCS for bounding-box computation
         try:
             if hasattr(image.hdu[ext], 'wcs'):
                 self._wcs = image.hdu[ext].wcs
             else:
-                self._wcs = wcsutil.HSTWCS(image.hdu, ext)
+                if self.telescope in supported_telescopes:
+                    self._wcs = wcsutil.HSTWCS(image.hdu, ext)
+                else:
+                    self._wcs = pywcs.WCS(image.hdu[ext].header, image.hdu)
             if self._wcs is None:
                 raise Exception("Invalid WCS.")
         except:
-            msg = "Unable to obtain WCS information for the file {:s}.".format(self._id)
+            msg = "Unable to obtain WCS information for the file {:s}." \
+                .format(self._id)
             self._ml.error(msg)
             self._ml.flush()
             self._release_all()
             raise
-            #raise RuntimeError(msg)
 
         # determine pixel scale:
         self._get_pixel_scale()
 
         # see if image data are in counts or count-rate
         # and compute count(-rate) to flux (per arcsec^2) conversion factor:
-        self._brightness_conv_from_hdu(image.hdu, self._pixscale)
+        self._brightness_conv_from_hdu(image.hdu, self._idcscale)
 
         # process Sky user's keyword and its value:
         self._init_skyuser(image.hdu[ext].header)
 
         # Set polygon to be the bounding box of the chip:
-        self._polygon = SphericalPolygon.from_wcs(self.wcs,steps=1)
+        self._polygon = SphericalPolygon.from_wcs(self.wcs, steps=1)
 
 
     @classmethod
@@ -412,33 +423,55 @@ class SkyLineMember(object):
         self._init_skyuser(self._image.hdu[self._ext].header)
 
     def _get_pixel_scale(self):
+        self._idcscale = None
+        nominal_pscale = None
+
         if hasattr(self._wcs, 'idcscale') and self._wcs.idcscale is not None:
-            #TODO: it is not clear why astrodrizzle uses "comanded" pixel scale
-            # instead of the "distorted" scale for sky subraction. Talk to INS?
-            self._pixscale = self._wcs.idcscale
+            self._idcscale = self._wcs.idcscale
+            nominal_pscale = 'IDCSCALE'
+        elif 'PAMSCALE' in self._image.hdu[self._ext].header:
+            self._idcscale = float(self._image.hdu[self._ext].header['PAMSCALE'])
+            nominal_pscale = 'PAMSCALE'
+        elif 'IDCSCALE' in self._image.hdu[self._ext].header:
+            self._idcscale = float(self._image.hdu[self._ext].header['IDCSCALE'])
+            nominal_pscale = 'IDCSCALE'
+        elif 'PAMSCALE' in self._image.hdu[0].header:
+            self._idcscale = float(self._image.hdu[0].header['PAMSCALE'])
+            nominal_pscale = 'PAMSCALE'
+        elif 'IDCSCALE' in self._image.hdu[0].header:
+            self._idcscale = float(self._image.hdu[0].header['IDCSCALE'])
+            nominal_pscale = 'IDCSCALE'
+
+        # try to compute "actual" pixel scale from the CD matrix.
+        #TODO: Add support for more WCS representations (PC, CDELT, CROTA)
+        self._pixscale = None
+        if self._wcs.wcs.has_cd():
+            self._pixscale = math.sqrt(
+                np.abs(np.linalg.det(self._wcs.wcs.cd)))*3600.0
         else:
-            # try to compute from the CD matrix. This is better than
-            # wcs.pscale and likely is more accurate than wcs.idcscale used
-            # by astrodrizzle but this last part depends on how flat fields
-            # are defined. For this reason (until we get a clarification from
-            # INSwe will continue to use astrodrizzle's approach
-            # (see "then" part of the "if" above).
-            try:
-                if not self._wcs.wcs.has_cd():
-                    raise # CD matrix is not available
-                self._pixscale = math.sqrt(
-                    math.abs(np.linalg.det(self._wcs.wcs.cd)))*3600.0
+            if self._idcscale is not None:
+                self._pixscale = self._idcscale
                 self._ml.warning(
-                    "WCS object for file {1:s}[{2:s}] does not have "        \
-                    "'pascale' attribute.{0}Using the value of pixel scale " \
-                    "computed from the CD matrix: {3}",                      \
-                    os.linesep, self._basefname, ext2str(self._ext), self._pixscale)
-            except:
+                    "Unable to compute \"actual\" pixel scale for image "
+                    "{:s}[{:s}].\nWCS object does not have a CD matrix.\n"
+                    "Using the value of '{:s}' pixel scale for actual "
+                    "pixel scale: {:g}",
+                    self._basefname, ext2str(self._ext), nominal_pscale,
+                    self._idcscale)
+            else:
                 self._pixscale = 1.0
+                self._idcscale = 1.0
                 self._ml.warning(
-                    "Unable to determine pixel scale of image in file "      \
-                    "{1}[{2}].{0}Setting pixel scale to 1.",                 \
-                    os.linesep, self._basefname, ext2str(self._ext))
+                    "Unable to determine pixel scale of image in file "
+                    "{:s}[{:s}].\nSetting pixel scale to 1.",
+                    self._basefname, ext2str(self._ext))
+
+        if self._idcscale is None:
+            self._ml.warning(
+                "Unable to determine \"nominal\" pixel scale of image in "
+                "file {:s}[{:s}].\nSetting pixel scale to \"actual\" pixel "
+                "scale computed from CD matrix: {:g}",
+                self._basefname, ext2str(self._ext), self._pixscale)
 
     def _brightness_conv_from_hdu(self, hdulist, pscale, primHDUname='PRIMARY'):
         #TODO: remove primHDUname from the argument list and
@@ -446,20 +479,6 @@ class SkyLineMember(object):
         # The bug causes imageObject[0] to return first image HDU instead
         # of the PRIMARY HDU.
         assert(pscale > 0.0)
-
-        supported_telescopes  = ['HST']
-        supported_instruments = ['WFPC', 'WFPC2', 'ACS', 'STIS', \
-                                 'NICMOS', 'WFC3', 'FOC', 'COS']
-        photcorr_kwd = {
-            'FOC'    : [ 'WAVCORR',  'COMPLETE'  ],
-            'WFPC'   : [ 'DOPHOTOM', 'DONE'      ],
-            'WFPC2'  : [ 'DOPHOTOM', 'COMPLETE'  ],
-            'NICMOS' : [ 'PHOTDONE', 'PERFORMED' ],
-            'STIS'   : [ 'PHOTCORR', 'COMPLETE'  ],
-            'ACS'    : [ 'PHOTCORR', 'COMPLETE'  ],
-            'WFC3'   : [ 'PHOTCORR', 'COMPLETE'  ],
-            'COS'    : [ 'PHOTCORR', 'COMPLETE'  ]
-        }
 
         sci_header = hdulist[self.ext].header
         primary_header = hdulist[primHDUname].header

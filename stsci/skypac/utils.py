@@ -7,19 +7,24 @@ by :py:mod:`stsci.skypac` module.
 :License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
 """
-import sys, os, weakref, tempfile
+import sys
+import os
+import weakref
+import tempfile
 from astropy.io import fits
 from os import path
 from copy import copy, deepcopy
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
+from .hstinfo import supported_telescopes, supported_instruments, \
+     counts_only_instruments, mixed_units_instruments, rates_only_instruments
 
 
 __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',     \
            'ResourceRefCount', 'ImageRef', 'openImageEx', \
            'count_extensions', 'get_ext_list', 'get_extver_list', \
-           'file_name_components', 'temp_mask_file' ]
-__version__ = '0.1'
-__vdate__ = '21-Dec-2013'
+           'file_name_components', 'temp_mask_file', 'get_instrument_info' ]
+__version__ = '0.2'
+__vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
 
 
@@ -649,13 +654,6 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
     # Now, try to guess the units from the 'INSTRUME' (and 'DETECTOR',
     # if necessary) keyword values. Return the default for a specific
     # 'INSTRUME'/'DETECTOR' combination.
-    supported_telescopes    = [ 'HST' ]
-    counts_only_instruments = [ 'WFPC','WFPC2','ACS', 'STIS' ] # 'HRS'
-    mixed_units_instruments = [ 'NICMOS','WFC3' ]
-    rates_only_instruments  = [ 'FOC','COS' ]
-    supported_instruments = counts_only_instruments+mixed_units_instruments+ \
-                            rates_only_instruments
-
     if telescope is None:
         if 'TELESCOP' in primary_header:
             telescope = primary_header['TELESCOP'].strip().upper()
@@ -727,6 +725,48 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     # Code should never reach this line
     raise RuntimeError("Logical error in \'is_countrate(...)\'.")
+
+
+def get_instrument_info(image, ext):
+    sci_header = image.hdu[ext].header
+    primary_header = image.hdu[0].header
+
+    telescope = None
+    # check if ImageRef object has telescope info:
+    if image.telescope is not None:
+        telescope = image.telescope.strip().upper()
+        if telescope in ['', 'UNKNOWN']:
+            telescope = None
+
+    # get telescope info from the primary header:
+    if telescope is None and 'TELESCOP' in primary_header:
+        telescope = primary_header['TELESCOP'].strip().upper()
+
+    instrument = None
+    # check if ImageRef object has instrument info:
+    if image.instrument is not None:
+        instrument = image.instrument.strip().upper()
+        if instrument in ['', 'UNKNOWN']:
+            instrument = None
+
+    # get instrument info from the primary header:
+    if instrument is None and 'INSTRUME' in primary_header:
+        instrument = primary_header['INSTRUME'].strip().upper()
+
+    # get detector info:
+    detector = None
+    if 'DETECTOR' in sci_header:
+        if isinstance(sci_header['DETECTOR'], str):
+            detector = sci_header['DETECTOR'].strip().upper()
+        else:
+            detector = sci_header['DETECTOR']
+    elif 'DETECTOR' in primary_header:
+        if isinstance(primary_header['DETECTOR'], str):
+            detector = primary_header['DETECTOR'].strip().upper()
+        else:
+            detector = primary_header['DETECTOR']
+
+    return (telescope, instrument, detector)
 
 
 class MultiFileLog(object):
