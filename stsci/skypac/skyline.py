@@ -98,7 +98,7 @@ from .parseat import FileExtMaskInfo
 from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 
 # DEBUG
-SKYLINE_DEBUG = True
+SKYLINE_DEBUG = False
 
 __all__ = ['SkyLineMember', 'SkyLine']
 __version__ = '0.7'
@@ -467,6 +467,7 @@ class SkyLineMember(object):
                     self._basefname, ext2str(self._ext))
 
         if self._idcscale is None:
+            self._idcscale = self._pixscale
             self._ml.warning(
                 "Unable to determine \"nominal\" pixel scale of image in "
                 "file {:s}[{:s}].\nSetting pixel scale to \"actual\" pixel "
@@ -1178,7 +1179,7 @@ class SkyLine(object):
             List of `SkyLineMember` belonging to *self*.
 
         """
-        if len(self.points) > 0:
+        if len(self.points) > 3:
             out_mem = [m for m in given_members if
                        self.intersects_poly(m.polygon)]
         else:
@@ -1266,8 +1267,8 @@ class SkyLine(object):
             Area of intersection.
 
         """
-        from mpl_toolkits.basemap import Basemap
-        from matplotlib import pyplot as plt
+        #from mpl_toolkits.basemap import Basemap
+        #from matplotlib import pyplot as plt
 
 
         max_skyline = None
@@ -1275,7 +1276,10 @@ class SkyLine(object):
 
         for next_s in skylines:
             try:
-                overlap_area = self.intersection(next_s).area()
+                intersect_poly = self.intersection(next_s)
+                if intersect_poly.points.shape[0] < 4:
+                    continue
+                overlap_area = intersect_poly.area()
             except (ValueError, AssertionError):
 
                 #m = Basemap()
@@ -1325,92 +1329,6 @@ class SkyLine(object):
                 max_pair = (curr_s, next_s)
 
         return max_pair
-
-    @classmethod
-    def mosaic(cls, skylines, verbose=True):
-        """
-        Mosaic all overlapping *skylines*.
-
-        A pair of skylines with the most overlap is used as
-        a starting point. Then a skyline that overlaps the
-        most with the mosaic is used, and so forth until no
-        overlapping skyline is found.
-
-        Parameters
-        ----------
-        skylines : list
-            A list of `SkyLine` objects.
-
-        verbose : bool
-            Print info to screen.
-
-        Returns
-        -------
-        mosaic : `SkyLine` instance or `None`
-            Union of all overlapping *skylines*, or `None` if
-            no overlap found.
-
-        included : list
-            List of image names added to mosaic in the order
-            of addition.
-
-        excluded : list
-            List of image names excluded because they do not
-            overlap with mosaic.
-
-        """
-        out_order = []
-        excluded  = []
-
-        if verbose:
-            print('***** SKYLINE MOSAIC *****')
-
-        starting_pair = cls.max_overlap_pair(skylines)
-        if starting_pair is None:
-            if verbose:
-                print('    Cannot find any overlapping skylines. Aborting...')
-            return starting_pair, out_order, excluded
-
-        remaining = list(skylines)
-
-        s1, s2 = starting_pair
-        if verbose:
-            print('    Starting pair: %s, %s' %
-                  (s1.id, s2.id))
-
-        mosaic = s1.add_image(s2)
-        out_order = [s1.id, s2.id]
-        remaining.remove(s1)
-        remaining.remove(s2)
-
-        while len(remaining) > 0:
-            next_skyline, i_area = mosaic.find_max_overlap(remaining)
-
-            if next_skyline is None:
-                for r in remaining:
-                    if verbose:
-                        print('    No overlap: Excluding %s...' % r.id)
-                    excluded.append(r.id)
-                break
-
-            try:
-                new_mos = mosaic.add_image(next_skyline)
-            except (ValueError, AssertionError):
-                if SKYLINE_DEBUG:
-                    print('WARNING: Cannot add %s to mosaic. Skipping it...' %
-                          next_skyline.id)
-                    excluded.append(next_skyline.id)
-                else:
-                    raise
-            else:
-                print('    Adding %s to mosaic...' % next_skyline.id)
-                mosaic = new_mos
-                out_order.append(next_skyline.id)
-            finally:
-                remaining.remove(next_skyline)
-
-        return mosaic, out_order, excluded
-
 
 def _is_valid_ext(ext):
     if isinstance(ext, int):
