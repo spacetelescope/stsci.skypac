@@ -950,6 +950,13 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         skylines.append( sl )
         ml.skip()
 
+    # store old sky value and then reset sky values in SkyLineMember:
+    orig_skyuser = {}
+    for s in skylines:
+        for m in s.members:
+            m.reset_skyuser_from_header()
+            orig_skyuser[m] = m.skyuser
+
     #-----------------------------------------------------------#
     # 1a. Compute the minimum sky background value in each      #
     #     sky line member of a skyline and return.              #
@@ -971,20 +978,17 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                         os.linesep, sl.id, sky)
 
             if sky is None: sky = 0.0
-            _set_skyuser(sl, sky, readonly, subtractsky, _taskname4history)
+            _update_sky_delta(sl, sky)
 
             for m in sl.members:
-                if subtractsky:
-                    new_sky = m.skyuser + m.skyuser_delta
-                else:
-                    new_sky = m.skyuser_delta
-
                 ml.logentry("        EXT = {0:s}"
                             "   delta({1:s}) = {2:G}"
                             "   NEW {1:s} = {3:G}",
                             ext2str(m.ext), m.get_skyuser_kwd(),
-                            m.skyuser_delta, new_sky)
+                            m.skyuser_delta,
+                            m.skyuser_total if subtractsky else m.skyuser_delta)
 
+            _apply_skyuser(sl, readonly, subtractsky, _taskname4history)
             sl.close(clean=clean)
 
         # Time it
@@ -1004,10 +1008,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     # 1b. Compute the minimum sky background value            #
     #     *across* *all* sky line members.                    #
     #---------------------------------------------------------#
-
     minsky = None # in flux/area units
 
-    if skymethod == 'globalmin+match' or skymethod == 'globalmin':
+    if skymethod == 'globalmin':
         ml.skip()
         ml.logentry("-----  Computing \"global\" sky on requested image "
                     "extensions (detector chips):  -----", skip=1)
@@ -1016,29 +1019,29 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             if minsky is None or sky < minsky:
                 minsky = sky
 
-        ml.logentry("    \"Global\" sky value: {} (brightness units)",
-                    sky, skip=1)
+        if minsky is None:
+            minsky = 0.0
 
-    if skymethod == 'globalmin':
+        ml.logentry("    \"Global\" sky value: {} (brightness units)",
+                    minsky, skip=1)
+
         # update skyuser and return (no sky matching requested):
         if minsky is None: minsky = 0.0
         for sl in skylines:
             ml.logentry("    Computed sky change (data units) "
                         "for image {:s}:", sl.id)
 
-            _set_skyuser(sl, minsky, readonly, subtractsky, _taskname4history)
+            _update_sky_delta(sl, minsky)
 
             for m in sl.members:
-                if subtractsky:
-                    new_sky = m.skyuser + m.skyuser_delta
-                else:
-                    new_sky = m.skyuser_delta
                 ml.logentry("        EXT = {0:s}"
                             "   delta({1:s}) = {2:G}"
                             "   NEW {1:s} = {3:G}",
                             ext2str(m.ext), m.get_skyuser_kwd(),
-                            m.skyuser_delta, new_sky)
+                            m.skyuser_delta,
+                            m.skyuser_total if subtractsky else m.skyuser_delta)
 
+            _apply_skyuser(sl, readonly, subtractsky, _taskname4history)
             sl.close(clean=clean)
 
         # Time it
@@ -1054,15 +1057,11 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
         return
 
-    if minsky is None:
-        minsky = 0.0
-
     #---------------------------------------------------------#
     # 2. Finding the two exposures with the greatest overlap, #
     #    with each exposure defined by the combined footprint #
     #    of all its chips.                                    #
     #---------------------------------------------------------#
-
     remaining = skylines
     orig_skylines = [s for s in skylines]
 
@@ -1081,7 +1080,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     # 3. Compute the sky for both exposures, ideally this     #
     #    would only need to be done in the region of overlap. #
     #---------------------------------------------------------#
-
     s1, s2 = starting_pair
 
     remaining.remove(s1)
@@ -1092,7 +1090,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #---------------------------------------------------------#
     # 4. Compute the difference in the sky values.            #
     #---------------------------------------------------------#
-
     sky1, sky2 = _calc_sky(s1, s2, sky_stat, True, subtractsky)
     diff_sky = sky2 - sky1
 
@@ -1103,8 +1100,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     #---------------------------------------------------------#
 
     # Avoid Astrodrizzle crash:
-    _set_skyuser(s1, minsky, True, subtractsky, _taskname4history)
-    s1.skydiff = 0
+    _update_sky_delta(s1, 0.0)
+    s1.skydiff = 0.0
 
     ml.logentry("    Image 1: \'{0}\'  --  SKY = {1:E} (brightness units){5}"
                 "    Image 2: \'{2}\'  --  SKY = {3:E} (brightness units){5}"
@@ -1112,41 +1109,41 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                 s1.id, sky1, s2.id, sky2, s1.id, os.linesep)
 
     for m in s1.members:
-        if subtractsky:
-            new_sky = m.skyuser + m.skyuser_delta
-        else:
-            new_sky = m.skyuser_delta
-
         ml.logentry("        EXT = {0:s}"
                     "   delta({1:s}) = {2:G}"
                     "   NEW {1:s} = {3:G}",
                     ext2str(m.ext), m.get_skyuser_kwd(),
-                    m.skyuser_delta, new_sky)
+                    m.skyuser_delta,
+                    m.skyuser_total if subtractsky else m.skyuser_delta)
 
     ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
                 s2.id)
 
-    _set_skyuser(s2, minsky + diff_sky, True, subtractsky, _taskname4history)
+    _update_sky_delta(s2, diff_sky)
     s2.skydiff = diff_sky
 
     for m in s2.members:
-        if subtractsky:
-            new_sky = m.skyuser + m.skyuser_delta
-        else:
-            new_sky = m.skyuser_delta
-
         ml.logentry("        EXT = {0:s}"
                     "   delta({1:s}) = {2:G}"
                     "   NEW {1:s} = {3:G}",
                     ext2str(m.ext), m.get_skyuser_kwd(),
-                    m.skyuser_delta, new_sky)
+                    m.skyuser_delta,
+                    m.skyuser_total if subtractsky else m.skyuser_delta)
     ml.skip()
 
     #---------------------------------------------------------#
     # 6. Generate a footprint for that pair of exposures.     #
     #---------------------------------------------------------#
-
     mosaic = s1.add_image(s2)
+
+    if __local_debug__:
+        ra, dec = mosaic.polygon.to_radec()
+        ivert = zip(*[ra, dec])
+        ra, dec = s1.polygon.to_radec()
+        ivert1 = zip(*[ra, dec])
+        ra, dec = s2.polygon.to_radec()
+        ivert2 = zip(*[ra, dec])
+        _debug_write_region_fk5('mosaic0.reg', ivert, ivert1, ivert2)
 
     #---------------------------------------------------------#
     # 7. Repeat Steps 1-6 for all remaining exposures using   #
@@ -1168,8 +1165,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                                True, subtractsky)
         diff_sky = sky2 - sky1
 
-        _set_skyuser(next_skyline, diff_sky, True, subtractsky,
-                     _taskname4history)
+        _update_sky_delta(next_skyline, diff_sky)
 
         ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"
                     "    Image     \'{1:s}\' SKY = {2:G} "
@@ -1178,19 +1174,24 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                     sky1, next_skyline.id, sky2, os.linesep)
 
         for m in next_skyline.members:
-            if subtractsky:
-                new_sky = m.skyuser + m.skyuser_delta
-            else:
-                new_sky = m.skyuser_delta
-
             ml.logentry("        EXT = {0:s}"
                         "   delta({1:s}) = {2:G}"
                         "   NEW {1:s} = {3:G}",
                         ext2str(m.ext), m.get_skyuser_kwd(),
-                        m.skyuser_delta, new_sky)
+                        m.skyuser_delta,
+                        m.skyuser_total if subtractsky else m.skyuser_delta)
 
         try:
             new_mos = mosaic.add_image(next_skyline)
+
+            if __local_debug__:
+                refname = "mosaic_" + next_skyline.id[:next_skyline.id.find('.')] + '.reg'
+                ra, dec = new_mos.polygon.to_radec()
+                ivert = zip(*[ra, dec])
+                ra, dec = next_skyline.polygon.to_radec()
+                ivert1 = zip(*[ra, dec])
+                _debug_write_region_fk5(refname, ivert, ivert1, None)
+
         except:
             if __local_debug__:
                 ml.warning("Could not add \'{}\' to mosaic.", next_skyline.id)
@@ -1206,9 +1207,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                         "Possibly this SkyLine does not intersect the "
                         "mosaic.".format(next_skyline.id))
         else:
-            next_skyline.skydiff = diff_sky - minsky
             mosaic = new_mos
             remaining.remove(next_skyline)
+            next_skyline.skydiff = diff_sky
             ml.logentry("    Added \'{}\' to mosaic.", next_skyline.id)
         ml.skip()
 
@@ -1217,6 +1218,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         for sl in remaining:
             ml.error("Could not process SkyLine \'{}\'.", sl.id)
             sl.close(clean=clean)
+            sl.skydiff = None
 
     #---------------------------------------------------------#
     # 8. Recompute sky too match "Up" or "Down".              #
@@ -1236,26 +1238,52 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         # store old sky value and then reset sky values in SkyLineMember:
         old_skyuser = {}
         for m in s.members:
-            if subtractsky and not readonly:
-                old_skyuser[m] = m.skyuser + m.skyuser_delta
-            else:
-                old_skyuser[m] = m.skyuser_delta
-            m.reset_skyuser_from_header()
+            old_skyuser[m] = m.skyuser_total if subtractsky else m.skyuser_delta
 
         # update image's header and data (if requested):
-        _set_skyuser(s, minsky+s.skydiff-refsky, readonly, subtractsky,
-                     _taskname4history)
+        _update_sky_delta(s, -refsky)
 
-        ml.logentry("Final sky for {} [image units]:", s.id)
+        ml.logentry("Adjusted sky for {} [image units]:", s.id)
 
         # adjust sky up or down:
         for m in s.members:
-            if subtractsky and not readonly:
-                new_skyuser = m.skyuser + m.skyuser_delta
-            else:
-                new_skyuser = m.skyuser_delta
+            new_skyuser = m.skyuser_total if subtractsky else m.skyuser_delta
             ml.logentry("  #  EXT={}:   {} --> {}", ext2str(m.ext),
                         old_skyuser[m], new_skyuser)
+            # update 'old_skyuser' with the most recently adjusted sky value:
+            old_skyuser[m] = new_skyuser
+
+        if skymethod == 'match':
+            _apply_skyuser(s, readonly, subtractsky, _taskname4history)
+
+    #--------------------------------------------------------#
+    # 9. Compute the minimum sky background value            #
+    #    *across* *all* sky line members.                    #
+    #--------------------------------------------------------#
+    if skymethod == 'globalmin+match':
+        minsky = None
+        ml.skip()
+        ml.logentry("-----  Computing \"global\" sky on requested image "
+                    "extensions (detector chips):  -----", skip=1)
+        for sl in orig_skylines:
+            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
+            if minsky is None or sky < minsky:
+                minsky = sky
+
+        if minsky is None:
+            minsky = 0.0
+
+        ml.logentry("   \"Global\" sky value: {} (brightness units)",
+                    minsky, skip=1)
+
+        ml.logentry("    Final (match+global) sky [image units] for:")
+        for s in orig_skylines:
+            # update image's header and data (if requested):
+            _update_sky_delta(s, minsky)
+            for m in s.members:
+                ml.logentry("    # {}:   {}", m.id, m.skyuser_total \
+                            if subtractsky else m.skyuser_delta)
+            _apply_skyuser(s, readonly, subtractsky,_taskname4history)
 
     ml.skip()
     mosaic.close(clean=clean)
@@ -1278,6 +1306,23 @@ def _debug_write_region(fname, vert):
     fh.write('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
     fh.write('image\n')
     fh.write('polygon({})\n'.format(','.join(map(str,[x for e in vert for x in e]))))
+    fh.close()
+
+
+def _debug_write_region_fk5(fname, ivert, im1vert, im2vert):
+    fh = open(fname, 'w')
+    fh.write('# Region file format: DS9 version 4.1\n')
+    fh.write('global color=green dashlist=8 3 width=2 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
+    fh.write('fk5\n')
+    if ivert:
+        fh.write('polygon({}) # color=red width=2\n'
+                 .format(','.join(map(str,[x for e in ivert for x in e]))))
+    if im1vert:
+        fh.write('polygon({}) # color=blue width=2 dash=1\n'
+                 .format(','.join(map(str,[x for e in im1vert for x in e]))))
+    if im2vert:
+        fh.write('polygon({}) # color=green width=2 dash=1\n'
+                 .format(','.join(map(str,[x for e in im2vert for x in e]))))
     fh.close()
 
 
@@ -1314,9 +1359,20 @@ def _calc_sky(s1, s2, skystat, readonly, subtractsky):
     for m1 in s1.members:
         for m2 in s2.members:
             intersect_poly = m1.polygon.intersection(m2.polygon)
-            if intersect_poly.points.shape[0] < 1:
+            if intersect_poly.points.shape[0] < 4:
                 continue
             ra, dec = intersect_poly.to_radec()
+            if __local_debug__:
+                fn = m1.id.split('_')[0]+'_'+ext2str(m1.ext,True)+\
+                    '_on_'+m2.basefname.split('_')[0]+\
+                    '_'+ext2str(m2.ext,True)+'.reg'
+                ivert = zip(*[ra, dec])
+                ra1, dec1 = m1.polygon.to_radec()
+                ivert1 = zip(*[ra1, dec1])
+                ra2, dec2 = m2.polygon.to_radec()
+                ivert2 = zip(*[ra2, dec2])
+                _debug_write_region_fk5(fn, ivert, ivert1, ivert2)
+
             sky1, npix1 = _member_sky(m1, ra, dec, skystat, readonly,
                                       subtractsky, m2.id)
             sky2, npix2 = _member_sky(m2, ra, dec, skystat, readonly,
@@ -1375,10 +1431,7 @@ def _member_sky(member, ra, dec, skystat, readonly, subtractsky, _dbg_name):
     except ValueError:
         return (0, 0)
 
-    if readonly or not subtractsky:
-        sky = member.data2brightness(sky-member.skyuser_delta)
-    else:
-        sky = member.data2brightness(sky)
+    sky = member.data2brightness(sky-member.skyuser_delta)
 
     return sky, npix
 
@@ -1407,6 +1460,7 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
     Returns
     -------
     sky : float
+        Computed sky value minus any sky delta present.
 
     """
     minsky = None
@@ -1433,8 +1487,8 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
             npix = 0
 
         if __local_debug__:
-            print("_minsky : raw sky stat : fields = \'{}\',  npix = {}, sky = {}"
-                  .format(skystat._fields, npix, sky))
+            print("_minsky({}) : raw sky stat : fields = \'{}\',  npix = {}, sky = {}"
+                  .format(member.id, skystat._fields, npix, sky))
         if npix < 1:
             # we need at least 1 valid pixel to do statistics
             mlog.warning("Not enough data points to compute sky for "
@@ -1443,10 +1497,7 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
             continue
 
         # convert to flux/pixel area units
-        if readonly or not subtractsky:
-            sky = member.data2brightness(sky-member.skyuser_delta)
-        else:
-            sky = member.data2brightness(sky)
+        sky = member.data2brightness(sky-member.skyuser_delta)
 
         if minsky is None or minsky > sky:
             minsky = sky
@@ -1454,10 +1505,36 @@ def _minsky(skyline, skystat, readonly, subtractsky, mlog):
     return minsky
 
 
-def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
-                 _taskname4history):
+def _update_sky_delta(skyline, skyval_brightness):
     """
-    Set SKYUSER in SCI headers and subtract SKYUSER from
+    Updates `skyuser_delta` of each member of the
+    input skyline. It *does not* modify image data or headers.
+
+    .. note::
+        This function does not update members of mosaiced skylines.
+
+    Parameters
+    ----------
+    skyline : `SkyLine` object
+        The `Skyline` of the image to update.
+
+    skyval_brightness : float
+        Value of sky (in units of brightness) to be added to
+        `skyuser_delta` of each member of the input skyline.
+
+    """
+    if skyline.is_mf_mosaic or len(skyline.members) < 1:
+        return
+
+    for m in skyline.members:
+        skyuser_delta = m.brightness2data(skyval_brightness)
+        m.update_skydelta(skyuser_delta)
+    return
+
+
+def _apply_skyuser(skyline, readonly_mode, subtractsky, _taskname4history):
+    """
+    Set SKYUSER in SCI headers and/or subtract SKYUSER from
     SCI data.
 
     .. note:: ERR extensions are not modified even if sky
@@ -1471,33 +1548,25 @@ def _set_skyuser(skyline, skyval_brightness, readonly_mode, subtractsky,
 
     """
 
-    if skyline.is_mf_mosaic or len(skyline.members) < 1:
-        return
-
-    if readonly_mode:
-        for m in skyline.members:
-            skyuser_delta = m.brightness2data(skyval_brightness)
-            m.update_skydelta(skyuser_delta)
+    if skyline.is_mf_mosaic or len(skyline.members) < 1 or readonly_mode:
         return
 
     # if not readonly_mode => apply sky differences to data:
     hdr_keyword = skyline.members[0].get_skyuser_kwd()
 
     for m in skyline.members:
-        skyuser_delta = m.brightness2data(skyval_brightness)
-        m.update_skydelta(skyuser_delta)
         if subtractsky:
-            m.image_hdulist[m.ext].data -= skyuser_delta
-            new_sky = m.skyuser + m.skyuser_delta
+            subsky = m.skyuser_delta
+            m.image_hdulist[m.ext].data -= subsky
+            m.update_skyuser()
+            comment='Total sky value subtracted from data'
+            m.image_header[hdr_keyword] = (m.skyuser_total, comment)
+            if _taskname4history == 'SkyMatch' and subtractsky:
+                m.image_header.add_history('{} {:E} subtracted from image by {:s}'
+                    .format(hdr_keyword, subsky, _taskname4history))
         else:
-            new_sky = m.skyuser_delta
-
-        comment='Sky value computed by {:s}'.format(_taskname4history)
-        m.image_header[hdr_keyword] = (new_sky, comment)
-
-        if _taskname4history == 'SkyMatch' and subtractsky:
-            m.image_header.add_history('{} {:E} subtracted from image by {:s}'
-                .format(hdr_keyword, new_sky, _taskname4history))
+            comment='Sky value computed by {:s}'.format(_taskname4history)
+            m.image_header[hdr_keyword] = (m.skyuser_delta, comment)
 
     if skyline.members and _taskname4history == 'SkyMatch':
         skyline.members[0].image_hdulist[0].header.add_history(
