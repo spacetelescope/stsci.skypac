@@ -32,8 +32,8 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.8'
-__vdate__ = '05-July-2014'
+__version__ = '0.9'
+__vdate__ = '12-August-2014'
 __author__ = 'Mihai Cara'
 
 #DEBUG
@@ -430,7 +430,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
       chips in *all* input images. That sky value is then considered to be
       the background in all input images.
 
-    - The ``'match'`` algorithm (described in more details below) is somewhat
+    - The ``'match'`` algorithm is somewhat
       similar to the traditional sky subtraction method (`skymethod`\ =\
       ``'localmin'``\ ) in the sense that it measures the sky indipendently
       in input images (or detector chips). The major differences are that,
@@ -440,13 +440,33 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
            to the sky in a reference image chosen from the input list
            of images; *and*
 
-        #. sky statistics is computed only in the part of the image
+        #. Sky statistics is computed only in the part of the image
            that intersects other images.
 
       This makes ``'match'`` sky computation algorithm particularly useful
       for "equalizing" sky values in large mosaics in which one may have
       only (at least) pair-wise intersection of images without having
       a common intersection region (on the sky) in all images.
+
+      The `'match'` method works in the following way: for each pair
+      of intersecting images, an equation is written that
+      requires that average surface brightness in the overlapping part of
+      the sky be equal in both images. The final system of equations is then
+      solved for unknown background levels.
+
+      .. warning::
+
+        Current algorithm is not capable of detecting cases when some groups of
+        intersecting images (from the input list of images) do not intersect
+        at all other groups of intersecting images (except for the simple
+        case when *single* images do not intersect any other images). In these
+        cases the algorithm will find equalizing sky values for each group.
+        However since these groups of images do not intersect each other,
+        sky will be matched only within each group and the "inter-group"
+        sky mismatch could be significant.
+
+        Users are responsible for detecting such cases and adjusting processing
+        accordingly.
 
       .. warning::
 
@@ -474,29 +494,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
       baseline sky value (instead of 0 in ``'match'`` algorithm alone)
       making this method acceptable for use in conjunction with
       `astrodrizzle`\ .
-
-    **Outline of the Sky Match (Equalization) Algorithm:**
-      #. Among all input images, find two *exposures* with the greatest
-         overlap *on the sky*\ . The *footprint* of each
-         exposure is the union of the footprints
-         of selected chips (FITS extensions) from those exposures.
-      #. Compute sky in both exposures but only in the region of the
-         overlap of the two exposures.
-      #. Compute the difference in the sky values.
-      #. Record this difference in the 'SCI' headers of the exposure
-         with the highest sky value as the value of the header
-         keyword specified by the `skyuser_kwd` parameter.
-         (Optionally, subtract computed sky value from image data.)
-      #. Combine the two exposures into a single
-         exposure (\ *mosaic*\ ). The footprint of the "mosaic" exposure
-         is formed by computing the union of the
-         footprints of each chip in the two exposures.
-      #. Repeat the above steps for all remaining exposures
-         using the newly created mosaic footprint as one of
-         the exposures and using the sky value for this newly
-         created footprint as one of the values. There is no need to
-         recompute its sky value -- it is the same as the sky value of the
-         first (\ *reference*\ ) image.
 
     **"Surface Brightness":**
       :py:func:`skymatch` converts "raw" sky values (in image data units)
@@ -596,15 +593,6 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
           form an exposure.
 
     **Remarks:**
-      * The computation of the sky is performed using weighted mean
-        of the (clipped) mode, mean, or median *from all chips*
-        (selected by the user by specifying desired FITS extensions that
-        need to be processed) in the
-        exposure (but only in the region of the overlap of the two exposures
-        whose sky values are to be compared).
-        For mosaiced exposures, all chips that belong to the "elementary"
-        exposures that formed the mosaic are used to compute the sky value.
-
       * :py:func:`skymatch` works directly on *geometrically distorted*
         flat-fielded images thus avoiding the need to perform an additional
         drizzle step to perform distortion correction of input images.
@@ -872,7 +860,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     ml.skip()
 
     if len(finfo) < 2 and 'match' in skymethod:
-        ml.logentry('{0}: Need at least 2 images. Aborting...', __taskname__)
+        ml.logentry('{0}: Need at least 2 images for sky matching. '
+                    'Aborting...', __taskname__)
         ml.print_endlog_msg()
         ml.close()
         return
@@ -899,7 +888,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                 "for input files:  -----", skip=1)
 
     for fi in finfo:
-        ml.logentry("   **  Image: {}", basename(fi.image.filename))
+        ml.logentry("   *   Image: {}", basename(fi.image.filename))
 
         sl = SkyLine(fi)
 
@@ -958,30 +947,30 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             orig_skyuser[m] = m.skyuser
 
     #-----------------------------------------------------------#
-    # 1a. Compute the minimum sky background value in each      #
-    #     sky line member of a skyline and return.              #
-    #     This is an improved (use of masks) replacement        #
-    #     for the classical 'subtractsky' used by astrodrizzle. #
+    # 1. Compute the minimum sky background value in each       #
+    #    sky line member of a skyline and return.               #
+    #    This is an improved (use of masks) replacement         #
+    #    for the classical 'subtractsky' used by astrodrizzle.  #
     #                                                           #
-    #     NOTE: incompatible with "match"-containing            #
-    #           'skymethod' modes.                              #
+    #    NOTE: incompatible with "match"-containing             #
+    #          'skymethod' modes.                               #
     #-----------------------------------------------------------#
     if skymethod == 'localmin':
         ml.skip()
         ml.logentry("-----  Computing sky values requested image "
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
-            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
+            sky = _minsky(sl, sky_stat, ml)
 
-            ml.logentry("    Image:   \'{1}\'  --  SKY = {2} (brightness units){0}"
-                        "    Sky change (data units):",
+            ml.logentry("   *   Image:   \'{1}\'  --  SKY = {2} (brightness units){0}"
+                        "       Sky change (data units):",
                         os.linesep, sl.id, sky)
 
             if sky is None: sky = 0.0
             _update_sky_delta(sl, sky)
 
             for m in sl.members:
-                ml.logentry("        EXT = {0:s}"
+                ml.logentry("      - EXT = {0:s}"
                             "   delta({1:s}) = {2:G}"
                             "   NEW {1:s} = {3:G}",
                             ext2str(m.ext), m.get_skyuser_kwd(),
@@ -1005,8 +994,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         return
 
     #---------------------------------------------------------#
-    # 1b. Compute the minimum sky background value            #
-    #     *across* *all* sky line members.                    #
+    # 2. Compute the minimum sky background value             #
+    #    *across* *all* sky line members.                     #
     #---------------------------------------------------------#
     minsky = None # in flux/area units
 
@@ -1015,7 +1004,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         ml.logentry("-----  Computing \"global\" sky on requested image "
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
-            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
+            sky = _minsky(sl, sky_stat, ml)
             if minsky is None or sky < minsky:
                 minsky = sky
 
@@ -1034,7 +1023,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             _update_sky_delta(sl, minsky)
 
             for m in sl.members:
-                ml.logentry("        EXT = {0:s}"
+                ml.logentry("      - EXT = {0:s}"
                             "   delta({1:s}) = {2:G}"
                             "   NEW {1:s} = {3:G}",
                             ext2str(m.ext), m.get_skyuser_kwd(),
@@ -1058,206 +1047,65 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         return
 
     #---------------------------------------------------------#
-    # 2. Finding the two exposures with the greatest overlap, #
-    #    with each exposure defined by the combined footprint #
-    #    of all its chips.                                    #
+    # 3. Find sky "deltas" that will match sky across all     #
+    #    (intersecting) images.                               #
     #---------------------------------------------------------#
-    remaining = skylines
-    orig_skylines = [s for s in skylines]
+    sky_deltas = _find_optimum_sky_deltas(skylines, sky_stat, ml)
+    sky_good = np.isfinite(sky_deltas)
 
+    # match sky "Up" or "Down":
+    if match_down:
+        refsky = np.amin(sky_deltas[sky_good])
+    else:
+        refsky = np.amax(sky_deltas[sky_good])
+    sky_deltas[sky_good] -= refsky
+
+    # apply sky differences and report computed sky values:
     ml.skip()
     ml.logentry("-----  Computing differences in sky values in "
-                "overlapping regions:  -----", skip=1)
+                "overlapping regions:  -----")
 
-    starting_pair = SkyLine.max_overlap_pair(skylines)
-    if starting_pair is None:
-        ml.logentry("{0}: No overlapping pair. Aborting...", __taskname__)
-        ml.print_endlog_msg()
-        ml.close()
-        return
+    for sl, sd, gs in zip(skylines, list(sky_deltas), list(sky_good)):
+        if gs:
+            # update sky information in SkyLine-s:
+            _update_sky_delta(sl, sd)
 
-    #---------------------------------------------------------#
-    # 3. Compute the sky for both exposures, ideally this     #
-    #    would only need to be done in the region of overlap. #
-    #---------------------------------------------------------#
-    s1, s2 = starting_pair
+            # report computed delta values:
+            ml.skip()
+            ml.logentry("   *   Image \'{0:s}\' SKY = {1:G} [brightness units]\n"
+                        "       Updating sky of image extension(s) "
+                        "[data units]:", sl.id, sd)
+            for m in sl.members:
+                if subtractsky:
+                    ml.logentry("       - EXT = {0:s}"
+                                "   delta({1:s}) = {2:G}"
+                                "   NEW {1:s} = {3:G}",
+                                ext2str(m.ext), m.get_skyuser_kwd(),
+                                m.skyuser_delta, m.skyuser_total)
+                else:
+                    ml.logentry("       -  EXT = {0:s}"
+                                "   delta({1:s}) = {2:G}",
+                                ext2str(m.ext), m.get_skyuser_kwd(),
+                                m.skyuser_delta)
 
-    remaining.remove(s1)
-    remaining.remove(s2)
+            # apply computed sky values to image header (and data):
+            if skymethod == 'match':
+                _apply_skyuser(sl, readonly, subtractsky, _taskname4history)
 
-    ml.logentry("    Starting pair: {}, {}", s1.id, s2.id)
-
-    #---------------------------------------------------------#
-    # 4. Compute the difference in the sky values.            #
-    #---------------------------------------------------------#
-    sky1, sky2 = _calc_sky(s1, s2, sky_stat, True, subtractsky)
-    diff_sky = sky2 - sky1
-
-    #---------------------------------------------------------#
-    # 5. Record that difference in the header of the exposure #
-    #    with the highest sky value as the SKYUSER keyword in #
-    #    the SCI headers. Also subtract from SCI data.        #
-    #---------------------------------------------------------#
-
-    # Avoid Astrodrizzle crash:
-    _update_sky_delta(s1, 0.0)
-    s1.skydiff = 0.0
-
-    ml.logentry("    Image 1: \'{0}\'  --  SKY = {1:E} (brightness units){5}"
-                "    Image 2: \'{2}\'  --  SKY = {3:E} (brightness units){5}"
-                "    Updating Image 1: \'{4}\'  (values are in data units):",
-                s1.id, sky1, s2.id, sky2, s1.id, os.linesep)
-
-    for m in s1.members:
-        ml.logentry("        EXT = {0:s}"
-                    "   delta({1:s}) = {2:G}"
-                    "   NEW {1:s} = {3:G}",
-                    ext2str(m.ext), m.get_skyuser_kwd(),
-                    m.skyuser_delta,
-                    m.skyuser_total if subtractsky else m.skyuser_delta)
-
-    ml.logentry("    Updating Image 2: \'{:s}\'  (values are in data units):",
-                s2.id)
-
-    _update_sky_delta(s2, diff_sky)
-    s2.skydiff = diff_sky
-
-    for m in s2.members:
-        ml.logentry("        EXT = {0:s}"
-                    "   delta({1:s}) = {2:G}"
-                    "   NEW {1:s} = {3:G}",
-                    ext2str(m.ext), m.get_skyuser_kwd(),
-                    m.skyuser_delta,
-                    m.skyuser_total if subtractsky else m.skyuser_delta)
-    ml.skip()
-
-    #---------------------------------------------------------#
-    # 6. Generate a footprint for that pair of exposures.     #
-    #---------------------------------------------------------#
-    mosaic = s1.add_image(s2)
-
-    if __local_debug__:
-        ra, dec = mosaic.polygon.to_radec()
-        ivert = zip(*[ra, dec])
-        ra, dec = s1.polygon.to_radec()
-        ivert1 = zip(*[ra, dec])
-        ra, dec = s2.polygon.to_radec()
-        ivert2 = zip(*[ra, dec])
-        _debug_write_region_fk5('mosaic0.reg', ivert, ivert1, ivert2)
-
-    #---------------------------------------------------------#
-    # 7. Repeat Steps 1-6 for all remaining exposures using   #
-    #    the newly created combined footprint as one of the   #
-    #    exposures and using the sky value for this newly     #
-    #    created footprint as one of the values (no need to   #
-    #    recompute its sky value).                            #
-    #---------------------------------------------------------#
-    while len(remaining) > 0:
-        next_skyline, i_area = mosaic.find_max_overlap(remaining)
-        assert(next_skyline in orig_skylines)
-
-        if next_skyline is None:
-            for r in remaining:
-                ml.logentry("    No overlap: Excluding {}", r.id)
-            break
-
-        sky1, sky2 = _calc_sky(mosaic, next_skyline, sky_stat,
-                               True, subtractsky)
-        diff_sky = sky2 - sky1
-
-        _update_sky_delta(next_skyline, diff_sky)
-
-        ml.logentry("    Mosaic\'s  SKY = {0:G} [brightness units]{3}"
-                    "    Image     \'{1:s}\' SKY = {2:G} "
-                    "[brightness units]{3}"
-                    "    Updating Image (values are in data units):",
-                    sky1, next_skyline.id, sky2, os.linesep)
-
-        for m in next_skyline.members:
-            ml.logentry("        EXT = {0:s}"
-                        "   delta({1:s}) = {2:G}"
-                        "   NEW {1:s} = {3:G}",
-                        ext2str(m.ext), m.get_skyuser_kwd(),
-                        m.skyuser_delta,
-                        m.skyuser_total if subtractsky else m.skyuser_delta)
-
-        try:
-            new_mos = mosaic.add_image(next_skyline)
-
-            if __local_debug__:
-                refname = "mosaic_" + next_skyline.id[:next_skyline.id.find('.')] + '.reg'
-                ra, dec = new_mos.polygon.to_radec()
-                ivert = zip(*[ra, dec])
-                ra, dec = next_skyline.polygon.to_radec()
-                ivert1 = zip(*[ra, dec])
-                _debug_write_region_fk5(refname, ivert, ivert1, None)
-
-        except:
-            if __local_debug__:
-                ml.warning("Could not add \'{}\' to mosaic.", next_skyline.id)
-            else:
-                ml.error("Could not add \'{}\' to mosaic.", next_skyline.id)
-                for sl in remaining:
-                    ml.error()
-                    sl.close(clean=clean)
-                mosaic.close(clean=clean)
-                ml.print_endlog_msg()
-                ml.close()
-                raise RuntimeError("Could not add \'{}\' to mosaic. "
-                        "Possibly this SkyLine does not intersect the "
-                        "mosaic.".format(next_skyline.id))
         else:
-            mosaic = new_mos
-            remaining.remove(next_skyline)
-            next_skyline.skydiff = diff_sky
-            ml.logentry("    Added \'{}\' to mosaic.", next_skyline.id)
-        ml.skip()
-
-    if remaining:
-        ml.error("The following SkyLines could not be processed:")
-        for sl in remaining:
-            ml.error("Could not process SkyLine \'{}\'.", sl.id)
-            sl.close(clean=clean)
-            sl.skydiff = None
-
-    #---------------------------------------------------------#
-    # 8. Recompute sky too match "Up" or "Down".              #
-    #---------------------------------------------------------#
-
-    # find reference (min or max) sky
-    sl2update = [s for s in orig_skylines if s.skydiff is not None]
-    if match_down:
-        refsky = min([s.skydiff for s in sl2update])
-    else:
-        refsky = max([s.skydiff for s in sl2update])
-
-    ml.logentry("-----  Adjusting computed sky \"{}\" by {} "
-                "[brightness units]:  -----",
-                "DOWN" if match_down else "UP", abs(refsky), skip=1)
-    for s in sl2update:
-        # store old sky value and then reset sky values in SkyLineMember:
-        old_skyuser = {}
-        for m in s.members:
-            old_skyuser[m] = m.skyuser_total if subtractsky else m.skyuser_delta
-
-        # update image's header and data (if requested):
-        _update_sky_delta(s, -refsky)
-
-        ml.logentry("Adjusted sky for {} [image units]:", s.id)
-
-        # adjust sky up or down:
-        for m in s.members:
-            new_skyuser = m.skyuser_total if subtractsky else m.skyuser_delta
-            ml.logentry("  #  EXT={}:   {} --> {}", ext2str(m.ext),
-                        old_skyuser[m], new_skyuser)
-            # update 'old_skyuser' with the most recently adjusted sky value:
-            old_skyuser[m] = new_skyuser
-
-        if skymethod == 'match':
-            _apply_skyuser(s, readonly, subtractsky, _taskname4history)
+            # report that sky delta could not be computed:
+            ml.skip()
+            ml.logentry("   *   Image \'{0:s}\' SKY = None (undetermined)\n"
+                        "       Sky of image extension(s) [data units]:", sl.id)
+            for m in sl.members:
+                ml.logentry("       -  EXT = {0:s}"
+                            "   delta({1:s}) = None"
+                            "   NEW {1:s} = OLD {1:s} = {2:G}",
+                            ext2str(m.ext), m.get_skyuser_kwd(),
+                            m.skyuser_total)
 
     #--------------------------------------------------------#
-    # 9. Compute the minimum sky background value            #
+    # 4. Compute the minimum sky background value            #
     #    *across* *all* sky line members.                    #
     #--------------------------------------------------------#
     if skymethod == 'globalmin+match':
@@ -1265,7 +1113,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         ml.skip()
         ml.logentry("-----  Computing \"global\" sky on requested image "
                     "extensions (detector chips):  -----", skip=1)
-        for sl in orig_skylines:
+        for sl in skylines:
             sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
             if minsky is None or sky < minsky:
                 minsky = sky
@@ -1277,7 +1125,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                     minsky, skip=1)
 
         ml.logentry("    Final (match+global) sky [image units] for:")
-        for s in orig_skylines:
+        for s in skylines:
             # update image's header and data (if requested):
             _update_sky_delta(s, minsky)
             for m in s.members:
@@ -1286,7 +1134,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
             _apply_skyuser(s, readonly, subtractsky,_taskname4history)
 
     ml.skip()
-    mosaic.close(clean=clean)
+
+    for sl in skylines:
+        sl.close(clean=clean)
 
     # Time it
     runtime_end = datetime.now()
@@ -1326,7 +1176,7 @@ def _debug_write_region_fk5(fname, ivert, im1vert, im2vert):
     fh.close()
 
 
-def _calc_sky(s1, s2, skystat, readonly, subtractsky):
+def _calc_sky(s1, s2, skystat):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -1351,17 +1201,20 @@ def _calc_sky(s1, s2, skystat, readonly, subtractsky):
     sky : float
 
     """
-    w_sky1 = 0.0
-    w_tot1 = 0
-    w_sky2 = 0.0
-    w_tot2 = 0
+    t_wsky1 = 0.0
+    t_wght1 = 0
+    t_wsky2 = 0.0
+    t_wght2 = 0
+    area = 0.0
 
     for m1 in s1.members:
         for m2 in s2.members:
             intersect_poly = m1.polygon.intersection(m2.polygon)
             if intersect_poly.points.shape[0] < 4:
                 continue
+            area += intersect_poly.area()
             ra, dec = intersect_poly.to_radec()
+
             if __local_debug__:
                 fn = m1.id.split('_')[0]+'_'+ext2str(m1.ext,True)+\
                     '_on_'+m2.basefname.split('_')[0]+\
@@ -1373,23 +1226,22 @@ def _calc_sky(s1, s2, skystat, readonly, subtractsky):
                 ivert2 = zip(*[ra2, dec2])
                 _debug_write_region_fk5(fn, ivert, ivert1, ivert2)
 
-            sky1, npix1 = _member_sky(m1, ra, dec, skystat, readonly,
-                                      subtractsky, m2.id)
-            sky2, npix2 = _member_sky(m2, ra, dec, skystat, readonly,
-                                      subtractsky, m1.id)
-            w_sky1 += npix1*sky1
-            w_tot1 += npix1
-            w_sky2 += npix2*sky2
-            w_tot2 += npix2
+            sky1, wght1 = _member_sky(m1, ra, dec, skystat, m2.id)
+            sky2, wght2 = _member_sky(m2, ra, dec, skystat, m1.id)
+            if sky1 is not None and wght1 > 0.0:
+                t_wsky1 += sky1*wght1
+                t_wght1 += wght1
+            if sky2 is not None and wght2 > 0.0:
+                t_wsky2 += sky2*wght2
+                t_wght2 += wght2
 
-    if w_tot1 < 1 or w_tot2 < 1:
-        raise ValueError('_weighted_sky has invalid weight for '
-                         '({}, {})'.format(s1, s2))
+    if t_wght1 == 0.0 or t_wght2 == 0.0 or area == 0.0:
+        return (None, None, None, None, area)
     else:
-        return (w_sky1/w_tot1, w_sky2/w_tot2)
+        return (t_wsky1/t_wght1, t_wght1, t_wsky2/t_wght2, t_wght2, area)
 
 
-def _member_sky(member, ra, dec, skystat, readonly, subtractsky, _dbg_name):
+def _member_sky(member, ra, dec, skystat, _dbg_name):
     wcs = member.wcs
     # All pixels along intersection boundary for that chip
     sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
@@ -1429,14 +1281,14 @@ def _member_sky(member, ra, dec, skystat, readonly, subtractsky, _dbg_name):
         dat = member.image_data[fill_mask]
         sky, npix = skystat.calc_sky(dat)
     except ValueError:
-        return (0, 0)
+        return (None, 0)
 
     sky = member.data2brightness(sky-member.skyuser_delta)
 
     return sky, npix
 
 
-def _minsky(skyline, skystat, readonly, subtractsky, mlog):
+def _minsky(skyline, skystat, mlog):
     """
     Calculate the weighted average of sky from individual
     chips in the given skyline within a given RA and DEC
@@ -1572,6 +1424,179 @@ def _apply_skyuser(skyline, readonly_mode, subtractsky, _taskname4history):
         skyline.members[0].image_hdulist[0].header.add_history(
             '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
                                       __version__, __vdate__))
+
+
+def _overlap_matrix(skylines, skystat):
+    #TODO: to improve performance, the nested loops could be parallelized
+    # since _calc_sky() here can be called independently from previous steps.
+    ns = len(skylines)
+    A = np.zeros((ns,ns), dtype=float)
+    W = np.zeros((ns,ns), dtype=float)
+    for i in xrange(ns):
+        for j in xrange(i+1,ns):
+            s1, w1, s2, w2, area = _calc_sky(skylines[i], skylines[j], skystat)
+            if area == 0.0 or s1 is None or s2 is None:
+                continue
+            A[j,i] = s1
+            W[j,i] = w1
+            A[i,j] = s2
+            W[i,j] = w2
+    return A, W
+
+
+def _find_optimum_sky_deltas(skylines, skystat, mlog):
+    ns = len(skylines)
+    A, W = _overlap_matrix(skylines, skystat)
+
+    def is_valid(i, j):
+        return (W[i,j] > 0 and W[j,i] > 0)
+
+    # We need to know how many "non-trivial" (at least for now... - we will
+    # compute rank later) equations can be built so that we know the
+    # shape of the arrays that need to be created...
+    # NOTE: for now use only pairs that *both* have weights > 0 (but a
+    # different scenario when only one image has a valid weight can be
+    # considered):
+    neq = 0
+    for i in xrange(ns):
+        for j in xrange(i+1,ns):
+            if is_valid(i,j):
+                neq += 1
+
+    # average weights:
+    Wm = 0.5 * (W + W.T)
+
+    # create arrays for coefficients and free terms:
+    K = np.zeros((neq,ns), dtype=float)
+    F = np.zeros(neq, dtype = float)
+    invalid = (ns) * [True]
+
+    # now process intersections between the rest of the images:
+    ieq = 0
+    for i in xrange(0, ns):
+        for j in xrange(i+1, ns):
+            if is_valid(i,j):
+                K[ieq,i] = Wm[i,j]
+                K[ieq,j] = -Wm[i,j]
+                F[ieq] = Wm[i,j] * (A[j,i]-A[i,j])
+                invalid[i] = False
+                invalid[j] = False
+                ieq += 1
+
+    rank = np.linalg.matrix_rank(K, 1.0e-12)
+    if rank < ns-1:
+        mlog.warning("There are more unknown sky values ({}) "
+                   "to be solved for\nthan there are independent "
+                   "equations available (matrix rank={}).\n"
+                   "Sky matching (delta) values will be computed "
+                   "only for\na subset (or more independent subsets) "
+                   "of input images.".format(ns, rank))
+    invK = np.linalg.pinv(K, rcond=1.0e-12)
+
+    deltas = np.dot(invK, F)
+    deltas[np.asarray(invalid, dtype=bool)] = np.nan
+    return deltas
+
+
+def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
+    # NOTE: This version sets the sky "delta" to zero for the skyline
+    # with the most overlap. However, this is an unnecessary constraint
+    # on the solution and therefore I do not recommend this approach - Mihai Cara
+    ns = len(skylines)
+    A, W = _overlap_matrix(skylines, skystat)
+
+    def is_valid(i, j):
+        return (W[i,j] > 0 and W[j,i] > 0)
+
+    # We need to know how many "non-trivial" (at least for now... - we will
+    # compute rank later) equations can be build so that we know the
+    # shape of the arrays that need to be created...
+    # NOTE: for now use only pairs that *both* have weights > 0 (but a
+    # different scenario when only one image has a valid weight can be
+    # considered):
+    neq = 0
+    for i in xrange(ns):
+        for j in xrange(i+1,ns):
+            if is_valid(i,j):
+                neq += 1
+
+    # average weights:
+    Wm = 0.5 * (W + W.T)
+
+    # create arrays for coefficients and free terms:
+    K = np.zeros((neq,ns-1), dtype=float)
+    F = np.zeros(neq, dtype = float)
+    invalid = (ns-1) * [True]
+
+    # Set the background of one of the skylines equal to zero, thus reducing
+    # the number of unknowns to (ns-1). However, we want to make sure
+    # this is a skyline that has most overlap area (weight) or most number
+    # of overlaps with other images. This is simply because the "deltas"
+    # of the sky of the rest of the images will be defined relative to the
+    # sky of this image.
+    nzcnt = np.array(map(np.count_nonzero, Wm))
+    maxcnt = np.amax(nzcnt)
+    indxmcnt, = np.where(nzcnt == maxcnt)
+    im = np.argmax(np.sum(Wm, axis=0)[indxmcnt])
+    imax = indxmcnt[im] # max number of intersections and then total weight
+    #imax = np.argmax(np.sum(Wm,axis=0)) # max total weight
+    invalid[imax] = False
+
+    # Set the background of one of the skyline #imax equal to zero,
+    # thus reducing the number of unknowns to (ns-1). Compute equations
+    # for each intersection of 'imax' with the rest of the images.
+    ieq = 0
+    for j in xrange(0, ns):
+        if j < imax:
+            jk = j
+        elif j > imax:
+            jk = j - 1
+        else:
+            continue
+        if is_valid(imax,j):
+            K[ieq,jk] = -Wm[imax,j]
+            F[ieq] = Wm[imax,j] * (A[j,imax]-A[imax,j])
+            invalid[imax] = False
+            ieq += 1
+
+    # now process intersections between the rest of the images:
+    for i in xrange(0,ns):
+        if i < imax:
+            ik = i
+        elif i > imax:
+            ik = i - 1
+        else:
+            continue
+
+        for j in xrange(i+1, ns):
+            if j < imax:
+                jk = j
+            elif j > imax:
+                jk = j - 1
+            else:
+                continue
+
+            if is_valid(i,j):
+                K[ieq,ik] = Wm[i,j]
+                K[ieq,jk] = -Wm[i,j]
+                F[ieq] = Wm[i,j] * (A[j,i]-A[i,j])
+                invalid[ik] = False
+                invalid[jk] = False
+                ieq += 1
+
+    rank = np.linalg.matrix_rank(K, 1.0e-12)
+    if rank < ns-1:
+        mlog.warning("There are more unknown sky values ({}) "
+                   "to be solved for\nthan there are independent "
+                   "equations available (matrix rank={}).\n"
+                   "Sky values will be computed only for a subset of "
+                   "input images.".format(ns, rank))
+    invK = np.linalg.pinv(K, rcond=1.0e-12)
+
+    deltas = np.dot(invK, F)
+    deltas[np.asarray(invalid, dtype=bool)] = 0.0
+    deltas = np.insert(deltas, imax, 0.0)
+    return deltas
 
 
 def _add_new_history(header, comment):

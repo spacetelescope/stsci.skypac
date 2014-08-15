@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>SkyLine (chip outline on the sky) management for image mosaic. &mdash; SkyPac 0.7 (30-May-2014) documentation</title>
+    <title>SkyLine (chip outline on the sky) management for image mosaic. &mdash; SkyPac 0.9 (12-August-2014) documentation</title>
     
     <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.7 (30-May-2014)',
+        VERSION:     '0.9 (12-August-2014)',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SkyPac 0.7 (30-May-2014) documentation" href="index.html" />
+    <link rel="top" title="SkyPac 0.9 (12-August-2014) documentation" href="index.html" />
     <link rel="next" title="Utility functions for parsing user catalog files for skypac." href="parseat.html" />
     <link rel="prev" title="Sky matching for image mosaic." href="skymatch.html" /> 
   </head>
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="skymatch.html" title="Sky matching for image mosaic."
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.7 (30-May-2014) documentation</a> &raquo;</li> 
+        <li><a href="index.html">SkyPac 0.9 (12-August-2014) documentation</a> &raquo;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar">
@@ -383,51 +383,6 @@ return <a class="reference external" href="http://docs.python.org/library/consta
 </table>
 </dd></dl>
 
-<dl class="classmethod">
-<dt id="stsci.skypac.skyline.SkyLine.mosaic">
-<em class="property">classmethod </em><tt class="descname">mosaic</tt><big>(</big><em>skylines</em>, <em>verbose=True</em><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.mosaic" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mosaic all overlapping <em>skylines</em>.</p>
-<p>A pair of skylines with the most overlap is used as
-a starting point. Then a skyline that overlaps the
-most with the mosaic is used, and so forth until no
-overlapping skyline is found.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skylines</strong> : list</p>
-<blockquote>
-<div><p>A list of <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> objects.</p>
-</div></blockquote>
-<p><strong>verbose</strong> : bool</p>
-<blockquote>
-<div><p>Print info to screen.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Returns:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>mosaic</strong> : <a class="reference internal" href="#stsci.skypac.skyline.SkyLine" title="stsci.skypac.skyline.SkyLine"><tt class="xref py py-obj docutils literal"><span class="pre">SkyLine</span></tt></a> instance or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a></p>
-<blockquote>
-<div><p>Union of all overlapping <em>skylines</em>, or <a class="reference external" href="http://docs.python.org/library/constants.html#None" title="(in Python v2.7)"><tt class="xref py py-obj docutils literal"><span class="pre">None</span></tt></a> if
-no overlap found.</p>
-</div></blockquote>
-<p><strong>included</strong> : list</p>
-<blockquote>
-<div><p>List of image names added to mosaic in the order
-of addition.</p>
-</div></blockquote>
-<p><strong>excluded</strong> : list</p>
-<blockquote class="last">
-<div><p>List of image names excluded because they do not
-overlap with mosaic.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="method">
 <dt id="stsci.skypac.skyline.SkyLine.to_wcs">
 <tt class="descname">to_wcs</tt><big>(</big><big>)</big><a class="headerlink" href="#stsci.skypac.skyline.SkyLine.to_wcs" title="Permalink to this definition">¶</a></dt>
@@ -487,7 +442,7 @@ belonging to <em>self</em>.</p>
         <li class="right" >
           <a href="skymatch.html" title="Sky matching for image mosaic."
              >previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.7 (30-May-2014) documentation</a> &raquo;</li> 
+        <li><a href="index.html">SkyPac 0.9 (12-August-2014) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
