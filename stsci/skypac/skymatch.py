@@ -1114,7 +1114,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         ml.logentry("-----  Computing \"global\" sky on requested image "
                     "extensions (detector chips):  -----", skip=1)
         for sl in skylines:
-            sky = _minsky(sl, sky_stat, readonly, subtractsky, ml)
+            sky = _minsky(sl, sky_stat, ml)
             if minsky is None or sky < minsky:
                 minsky = sky
 

@@ -926,18 +926,6 @@ class FileExtMaskInfo(object):
         """
         return self._maskimg
 
-    def release_all_images(self):
-        """
-        Release all associated images (decrease reference count).
-
-        """
-        if self._fnamesOnly:
-            return
-        self._im.release()
-        self._dq.release()
-        for im in self._maskimg:
-            im.release()
-
     @staticmethod
     def _exnumber2extnv(hdulist, extnum):
         try:
