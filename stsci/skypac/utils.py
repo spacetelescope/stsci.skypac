@@ -11,6 +11,7 @@ import sys
 import os
 import weakref
 import tempfile
+import numpy as np
 from astropy.io import fits
 from os import path
 from copy import copy, deepcopy
@@ -19,10 +20,11 @@ from .hstinfo import supported_telescopes, supported_instruments, \
      counts_only_instruments, mixed_units_instruments, rates_only_instruments
 
 
-__all__ = ['is_countrate', 'ext2str', 'MultiFileLog',     \
-           'ResourceRefCount', 'ImageRef', 'openImageEx', \
-           'count_extensions', 'get_ext_list', 'get_extver_list', \
-           'file_name_components', 'temp_mask_file', 'get_instrument_info' ]
+__all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
+           'ResourceRefCount', 'ImageRef', 'openImageEx',
+           'count_extensions', 'get_ext_list', 'get_extver_list',
+           'file_name_components', 'temp_mask_file', 'get_instrument_info',
+           'almost_equal', 'interpret_bit_flags']
 __version__ = '0.2'
 __vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
@@ -2131,3 +2133,182 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
     return (sci_image, dq_image)
 
+
+def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
+    """
+    Compares two values, or values of `ndarray` and verifies that these values
+    are close to each other. For exact type (integers and boolean) the
+    comparison is exact. For inexact types (`float`, `numpy.float32`, etc.)
+    it checks that the values (or *all* values in a `numpy.ndarray`)
+    satisfy the following inequality:
+
+    .. math::
+        |v1-v2| \leq a + 10^{-p} \cdot |v2|,
+
+    where `a` is the accuracy ("absolute error") and `p` is precision
+    ("relative error").
+
+    Parameters
+    ----------
+    arr1 : float, int, bool, str, numpy.ndarray, None, etc.
+        First value or array of values to be compared.
+
+    arr2 : float, int, bool, str, numpy.ndarray, None, etc.
+        Second value or array of values to be compared.
+
+    fp_accuracy : int, float, None (Default = None)
+        Accuracy to withing values should be close. Default value will use
+        twice the value of the machine accuracy (machine epsilon) for
+        the input type. This parameter has effect only when the values
+        to be compared are of inexact type (e.g., `float`).
+
+    fp_precision : int, float, None (Default = None)
+        Accuracy to withing values should be close. Default value will use
+        twice the value of the machine precision (resolution) for the
+        input type. This parameter has effect only when the values
+        to be compared are of inexact type (e.g., `float`).
+
+    Returns
+    -------
+    almost_equal : bool
+        Returns `True` if input values are close enough to each other
+        or `False` otherwise.
+
+    Raises
+    ------
+    ValueError
+        If `fp_accuracy` is negative.
+
+    TypeError
+        If `fp_precision` is not `int`, `float`, or `None`.
+
+    """
+    if fp_accuracy is not None:
+        if not (isinstance(fp_accuracy, float) or isinstance(fp_accuracy, int)) \
+           or ((isinstance(fp_accuracy, float) or \
+               isinstance(fp_accuracy, int)) and fp_accuracy < 0):
+            raise ValueError("Accuracy must be either a non-negative "
+                             "number or None")
+    if fp_precision is not None and not (isinstance(fp_precision, float) \
+                                         or isinstance(fp_precision, int)):
+        raise ValueError("Precision must be either None, an integer, or "
+                         "a floating-point number")
+
+    a1 = np.asarray(arr1)
+    a2 = np.asarray(arr2)
+
+    if a1.shape != a2.shape:
+        return False
+
+    t1 = a1.dtype.type
+    t2 = a2.dtype.type
+    acc = None
+    prec = None
+
+    if issubclass(t1, np.inexact):
+        fi = np.finfo(t1)
+        acc = 2.0 * fi.eps if fp_accuracy is None else fp_accuracy
+        prec = 2.0 * fi.resolution if fp_precision is None \
+                                   else 10**(-fp_precision)
+    elif issubclass(t1, np.integer) or issubclass(t1, np.bool_):
+        acc = 0
+        prec = 0
+
+    if issubclass(t2, np.inexact):
+        if acc is None:
+            return False
+        fi = np.finfo(t2)
+        if fp_accuracy is None:
+            acc = max(2.0 * fi.eps, acc)
+        if fp_precision is None:
+            prec = max(2.0 * fi.resolution, acc)
+    elif (issubclass(t2, np.integer) or issubclass(t2, np.bool_)):
+        if acc is None:
+            return False
+        acc = 0
+        prec = 0
+
+    if acc is None or (acc == 0 and prec == 0):
+        return np.all(a1 == a2)
+    else:
+        return np.all(np.abs(a1-a2) <= acc + prec*np.abs(a2))
+
+
+def interpret_bit_flags(flags):
+    """
+    Converts input bits value from string to a single integer value or None.
+    If a comma- or '+'-separated set of values are provided, they are summed.
+
+    .. note::
+        In order to flip the bits of the final result (after summation),
+        for input of `str` type, prepend '~' to the input string. '~' must
+        be prepended to the *entire string* and not to each bit flag!
+
+    Parameters
+    ----------
+    flags : int, str, None
+        An integer bit mask or flag, `None`, or a comma- or '+'-separated
+        string list of integer bit flags. If `flags` is a `str` and if
+        it is prepended with '~', then the output bit mask will have its
+        bits flipped (compared to simple sum of input flags).
+
+    Returns
+    -------
+    bitmask : int or None
+        Returns and integer bit mask formed from the input bit flags
+        or `None` if input `flags` parameter is `None` or an empty string.
+        If input string value was prepended with '~', then returned
+        value will have its bits flipped (inverse mask).
+
+    Examples
+    --------
+        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags(28) )
+        '0000000000011100'
+        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('4,8,16') )
+        '0000000000011100'
+        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('~4,8,16') )
+        '1111111111100011'
+        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('~(4+8+16)') )
+        '1111111111100011'
+
+    """
+    if isinstance(flags, int) or flags is None:
+        return flags
+
+    else:
+        flags = str(flags).strip()
+
+        if flags.startswith('~'):
+            flip_bits = True
+            flags = flags[1:].lstrip()
+        else:
+            flip_bits = False
+
+        if flags.startswith('('):
+            if flags.endswith(')'):
+                flags = flags[1:-1].strip()
+            else:
+                raise ValueError('Unbalanced parantheses or incorrect syntax.')
+
+        if ',' in flags:
+            valspl = flags.split(',')
+            bitmask = 0
+            for v in valspl:
+                bitmask += int(v)
+
+        elif '+' in flags:
+            valspl = flags.split('+')
+            bitmask = 0
+            for v in valspl:
+                bitmask += int(v)
+
+        elif flags.upper() in ['', 'NONE', 'INDEF']:
+            return None
+
+        else:
+            bitmask = int(flags)
+
+        if flip_bits:
+            bitmask = ~bitmask
+
+    return bitmask

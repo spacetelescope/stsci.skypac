@@ -25,7 +25,7 @@ except ImportError:
 
 # LOCAL
 from .skystatistics import SkyStats
-from .utils import ext2str, MultiFileLog, ImageRef
+from .utils import ext2str, MultiFileLog, ImageRef, interpret_bit_flags
 from .parseat import FileExtMaskInfo, parse_cs_line, parse_at_file
 from .skyline import SkyLineMember, SkyLine
 from . import region
@@ -338,7 +338,7 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
             to the same value as the values of `skyuser_kwd` used
             in the call to :py:func:`skymatch`\ .
 
-    dq_bits : int, None (Default = 0)
+    dq_bits : int, str, None (Default = 0)
         Integer sum of all the DQ bit values from the input image's
         DQ array that should be considered "good" when building masks for
         sky computations. For example, if pixels in the DQ array can be
@@ -349,12 +349,29 @@ stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_
         DQ pixel with a value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
         a "bad" pixel.
 
+        Alternatively, one can enter a comma- or '+'-separated list
+        of integer bit flags that should be added to obtain the
+        final "good" bits. For example, both ``4,8`` and ``4+8``
+        are equivalent to setting `dq_bits` to 12.
+
         | Default value (0) will make *all* non-zero
           pixels in the DQ mask to be considered "bad" pixels, and the
           corresponding image pixels will not be used for sky computations.
 
         | Set `dq_bits` to `None` to turn off the use of image's DQ array
           for sky computations.
+
+        | In order to reverse the meaning of the `dq_bits`
+          parameter from indicating values of the "good" DQ flags
+          to indicating the "bad" DQ flags, prepend '~' to the string
+          value. For example, in order not to use pixels with
+          DQ flags 4 and 8 for sky computations and to consider
+          as "good" all other pixels (regardless of their DQ flag),
+          set `dq_bits` to ``~4+8``, or ``~4,8``. To obtain the
+          same effect with an `int` input value (except for 0),
+          enter -(4+8+1)=-9. Following this convention,
+          a `dq_bits` string value of ``'~0'`` would be equivalent to
+          setting ``dq_bits=None``.
 
         .. note::
             DQ masks (if used), *will* *be* combined with user masks
@@ -790,6 +807,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     errmsg = "The \'input\' argument must be either a Python list of " \
         "\'FileExtMaskInfo\' objects, or a string either containing either " \
         "a comma-separated list file names, or an @-file name."
+
+    dq_bits = interpret_bit_flags(dq_bits)
 
     if isinstance(input, list):
         if [1 for i in input if not isinstance(i, FileExtMaskInfo)]:
