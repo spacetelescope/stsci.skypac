@@ -32,8 +32,8 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.9'
-__vdate__ = '12-August-2014'
+__version__ = '0.9.1'
+__vdate__ = '08-April-2015'
 __author__ = 'Mihai Cara'
 
 #DEBUG
@@ -1169,29 +1169,52 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     ml.close()
 
 
-def _debug_write_region(fname, vert):
+def _debug_write_region(fname, vert, multireg=False):
     fh = open(fname, 'w')
     fh.write('# Region file format: DS9 version 4.1\n')
     fh.write('global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
     fh.write('image\n')
-    fh.write('polygon({})\n'.format(','.join(map(str,[x for e in vert for x in e]))))
+    if multireg:
+        for v in vert:
+            fh.write('polygon({})\n'.format(','.join(map(str,[x for e in v for x in e]))))
+    else:
+        fh.write('polygon({})\n'.format(','.join(map(str,[x for e in vert for x in e]))))
     fh.close()
 
 
-def _debug_write_region_fk5(fname, ivert, im1vert, im2vert):
+def _debug_write_region_fk5(fname, ivert, im1vert, im2vert, multireg=False):
     fh = open(fname, 'w')
     fh.write('# Region file format: DS9 version 4.1\n')
     fh.write('global color=green dashlist=8 3 width=2 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1\n')
     fh.write('fk5\n')
+
     if ivert:
-        fh.write('polygon({}) # color=red width=2\n'
-                 .format(','.join(map(str,[x for e in ivert for x in e]))))
+        if multireg:
+            for iv in ivert:
+                fh.write('polygon({}) # color=red width=2\n'
+                         .format(','.join(map(str,[x for e in iv for x in e]))))
+        else:
+            fh.write('polygon({}) # color=red width=2\n'
+                     .format(','.join(map(str,[x for e in ivert for x in e]))))
+
     if im1vert:
-        fh.write('polygon({}) # color=blue width=2 dash=1\n'
-                 .format(','.join(map(str,[x for e in im1vert for x in e]))))
+        if multireg:
+            for iv in im1vert:
+                fh.write('polygon({}) # color=blue width=2 dash=1\n'
+                         .format(','.join(map(str,[x for e in iv for x in e]))))
+        else:
+            fh.write('polygon({}) # color=blue width=2 dash=1\n'
+                     .format(','.join(map(str,[x for e in im1vert for x in e]))))
+
     if im2vert:
-        fh.write('polygon({}) # color=green width=2 dash=1\n'
-                 .format(','.join(map(str,[x for e in im2vert for x in e]))))
+        if multireg:
+            for iv in im2vert:
+                fh.write('polygon({}) # color=green width=2 dash=1\n'
+                         .format(','.join(map(str,[x for e in iv for x in e]))))
+        else:
+            fh.write('polygon({}) # color=green width=2 dash=1\n'
+                     .format(','.join(map(str,[x for e in im2vert for x in e]))))
+
     fh.close()
 
 
@@ -1229,24 +1252,39 @@ def _calc_sky(s1, s2, skystat):
     for m1 in s1.members:
         for m2 in s2.members:
             intersect_poly = m1.polygon.intersection(m2.polygon)
-            if intersect_poly.points.shape[0] < 4:
+
+            # Check if we even have regions that potentially may have an area.
+            # This is done mostly to make sure tha code that follows does
+            # not crash when no "good" polygons are available.
+            # At the same time collect RA&DEC of valid polygons:
+            radec = []
+            valid_poly = False
+            for p in intersect_poly.iter_polygons_flat():
+                if p.points.shape[0] > 3:
+                    valid_poly = True
+                    radec.append(p.to_radec())
+            if not valid_poly:
                 continue
+
             area += intersect_poly.area()
-            ra, dec = intersect_poly.to_radec()
 
             if __local_debug__:
                 fn = m1.id.split('_')[0]+'_'+ext2str(m1.ext,True)+\
                     '_on_'+m2.basefname.split('_')[0]+\
                     '_'+ext2str(m2.ext,True)+'.reg'
-                ivert = zip(*[ra, dec])
-                ra1, dec1 = m1.polygon.to_radec()
-                ivert1 = zip(*[ra1, dec1])
-                ra2, dec2 = m2.polygon.to_radec()
-                ivert2 = zip(*[ra2, dec2])
-                _debug_write_region_fk5(fn, ivert, ivert1, ivert2)
+                ivert = []
+                ivert1 = []
+                ivert2 = []
+                for rd in radec:
+                    ivert.append(zip(*rd))
+                for m1poly in m1.polygon.iter_polygons_flat():
+                    ivert1.append(zip(*m1poly.to_radec()))
+                for m2poly in m2.polygon.iter_polygons_flat():
+                    ivert2.append(zip(*m2poly.to_radec()))
+                _debug_write_region_fk5(fn, ivert, ivert1, ivert2, multireg=True)
 
-            sky1, wght1 = _member_sky(m1, ra, dec, skystat, m2.id)
-            sky2, wght2 = _member_sky(m2, ra, dec, skystat, m1.id)
+            sky1, wght1 = _member_sky(m1, radec, skystat, m2.id)
+            sky2, wght2 = _member_sky(m2, radec, skystat, m1.id)
             if sky1 is not None and wght1 > 0.0:
                 t_wsky1 += sky1*wght1
                 t_wght1 += wght1
@@ -1260,21 +1298,29 @@ def _calc_sky(s1, s2, skystat):
         return (t_wsky1/t_wght1, t_wght1, t_wsky2/t_wght2, t_wght2, area)
 
 
-def _member_sky(member, ra, dec, skystat, _dbg_name):
+def _member_sky(member, radec, skystat, _dbg_name):
     wcs = member.wcs
-    # All pixels along intersection boundary for that chip
-    sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
-    ivert = zip(*[map(round,sparse_x), map(round,sparse_y)])
-
-    if __local_debug__:
-        ivert1 = zip(*[map(round,sparse_x+1), map(round,sparse_y+1)])
-        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+\
-            '_'+ext2str(member.ext,True)+'.reg'
-        _debug_write_region(fn, ivert1)
 
     fill_mask = np.zeros((wcs._naxis2, wcs._naxis1), dtype=bool)
-    pol = region.Polygon(True, ivert)
-    fill_mask = pol.scan(fill_mask)
+
+    if __local_debug__:
+        ivert1 = []
+
+    # All pixels along intersection boundary for that chip
+    for ra, dec in radec:
+        sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
+        ivert = zip(*[map(round,sparse_x), map(round,sparse_y)])
+
+        if __local_debug__:
+            ivert1.append(zip(*[map(round,sparse_x+1), map(round,sparse_y+1)]))
+
+        pol = region.Polygon(True, ivert)
+        fill_mask = pol.scan(fill_mask)
+
+    if __local_debug__:
+        fn = _dbg_name.split('_')[0]+'_on_'+member.basefname.split('_')[0]+\
+            '_'+ext2str(member.ext,True)+'.reg'
+        _debug_write_region(fn, ivert1, multireg=True)
 
     dqmask = member.mask_data # may be a combination of DQ data and user mask
     if dqmask is not None:
