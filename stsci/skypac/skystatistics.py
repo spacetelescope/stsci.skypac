@@ -45,9 +45,9 @@ class SkyStats(object):
         self._fields = ','.join(['npix',skystat])
 
         self._kwargs = deepcopy(kwargs)
-        if 'fields' in self._kwargs.keys():
+        if 'fields' in self._kwargs:
             del self._kwargs['fields']
-        if 'image' in self._kwargs.keys():
+        if 'image' in self._kwargs:
             del self._kwargs['image']
 
         self._skystat = { 'mean'   : self._extract_mean,

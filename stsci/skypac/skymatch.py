@@ -9,7 +9,7 @@ A module that provides functions for matching sky in overlapping images.
 from __future__ import division, print_function
 
 # STDLIB
-import os, sys
+import os
 from datetime import datetime
 from os.path import basename
 import copy
@@ -1276,11 +1276,11 @@ def _calc_sky(s1, s2, skystat):
                 ivert1 = []
                 ivert2 = []
                 for rd in radec:
-                    ivert.append(zip(*rd))
+                    ivert.append(list(zip(*rd)))
                 for m1poly in m1.polygon.iter_polygons_flat():
-                    ivert1.append(zip(*m1poly.to_radec()))
+                    ivert1.append(list(zip(*m1poly.to_radec())))
                 for m2poly in m2.polygon.iter_polygons_flat():
-                    ivert2.append(zip(*m2poly.to_radec()))
+                    ivert2.append(list(zip(*m2poly.to_radec())))
                 _debug_write_region_fk5(fn, ivert, ivert1, ivert2, multireg=True)
 
             sky1, wght1 = _member_sky(m1, radec, skystat, m2.id)
@@ -1309,10 +1309,10 @@ def _member_sky(member, radec, skystat, _dbg_name):
     # All pixels along intersection boundary for that chip
     for ra, dec in radec:
         sparse_x, sparse_y = wcs.all_world2pix(ra, dec, 0)
-        ivert = zip(*[map(round,sparse_x), map(round,sparse_y)])
+        ivert = list(zip(*[list(map(round,sparse_x)), list(map(round,sparse_y))]))
 
         if __local_debug__:
-            ivert1.append(zip(*[map(round,sparse_x+1), map(round,sparse_y+1)]))
+            ivert1.append(list(zip(*[list(map(round,sparse_x+1)), list(map(round,sparse_y+1))])))
 
         pol = region.Polygon(True, ivert)
         fill_mask = pol.scan(fill_mask)
@@ -1497,8 +1497,8 @@ def _overlap_matrix(skylines, skystat):
     ns = len(skylines)
     A = np.zeros((ns,ns), dtype=float)
     W = np.zeros((ns,ns), dtype=float)
-    for i in xrange(ns):
-        for j in xrange(i+1,ns):
+    for i in range(ns):
+        for j in range(i+1,ns):
             s1, w1, s2, w2, area = _calc_sky(skylines[i], skylines[j], skystat)
             if area == 0.0 or s1 is None or s2 is None:
                 continue
@@ -1523,8 +1523,8 @@ def _find_optimum_sky_deltas(skylines, skystat, mlog):
     # different scenario when only one image has a valid weight can be
     # considered):
     neq = 0
-    for i in xrange(ns):
-        for j in xrange(i+1,ns):
+    for i in range(ns):
+        for j in range(i+1,ns):
             if is_valid(i,j):
                 neq += 1
 
@@ -1538,8 +1538,8 @@ def _find_optimum_sky_deltas(skylines, skystat, mlog):
 
     # now process intersections between the rest of the images:
     ieq = 0
-    for i in xrange(0, ns):
-        for j in xrange(i+1, ns):
+    for i in range(0, ns):
+        for j in range(i+1, ns):
             if is_valid(i,j):
                 K[ieq,i] = Wm[i,j]
                 K[ieq,j] = -Wm[i,j]
@@ -1580,8 +1580,8 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
     # different scenario when only one image has a valid weight can be
     # considered):
     neq = 0
-    for i in xrange(ns):
-        for j in xrange(i+1,ns):
+    for i in range(ns):
+        for j in range(i+1,ns):
             if is_valid(i,j):
                 neq += 1
 
@@ -1599,7 +1599,7 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
     # of overlaps with other images. This is simply because the "deltas"
     # of the sky of the rest of the images will be defined relative to the
     # sky of this image.
-    nzcnt = np.array(map(np.count_nonzero, Wm))
+    nzcnt = np.array(list(map(np.count_nonzero, Wm)))
     maxcnt = np.amax(nzcnt)
     indxmcnt, = np.where(nzcnt == maxcnt)
     im = np.argmax(np.sum(Wm, axis=0)[indxmcnt])
@@ -1611,7 +1611,7 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
     # thus reducing the number of unknowns to (ns-1). Compute equations
     # for each intersection of 'imax' with the rest of the images.
     ieq = 0
-    for j in xrange(0, ns):
+    for j in range(0, ns):
         if j < imax:
             jk = j
         elif j > imax:
@@ -1625,7 +1625,7 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
             ieq += 1
 
     # now process intersections between the rest of the images:
-    for i in xrange(0,ns):
+    for i in range(0,ns):
         if i < imax:
             ik = i
         elif i > imax:
@@ -1633,7 +1633,7 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
         else:
             continue
 
-        for j in xrange(i+1, ns):
+        for j in range(i+1, ns):
             if j < imax:
                 jk = j
             elif j > imax:

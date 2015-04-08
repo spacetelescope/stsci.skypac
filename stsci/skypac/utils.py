@@ -7,6 +7,8 @@ by :py:mod:`stsci.skypac` module.
 :License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
 """
+from __future__ import print_function
+
 import sys
 import os
 import weakref
@@ -628,7 +630,7 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     if bunit is not None:
 
-        bunit_parts = map(str.upper,map(str.strip, bunit.split('/')))
+        bunit_parts = list(map(str.upper,list(map(str.strip, bunit.split('/')))))
         nbunit_parts = len(bunit_parts)
 
         if nbunit_parts == 1 and bunit_parts[0] in data_units:
@@ -1974,9 +1976,9 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
                 ftype = 'WAIVER'
                 if not (telescope == 'HST' and instrument in supported_extern_DQ) \
                    and verbose:
-                    print "Input file \'{}\' appears to have \'WAIVER\'-FITS " \
+                    print("Input file \'{}\' appears to have \'WAIVER\'-FITS " \
                           "like structure but originates from an unsupported " \
-                          "instrument.".format(_fname)
+                          "instrument.".format(_fname))
             else:
                 ftype = 'SIMPLE'
 

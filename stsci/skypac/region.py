@@ -22,7 +22,6 @@ Polygon filling algorithm.
 #    http://www.cs.uic.edu/~jbell/CourseNotes/ComputerGraphics/PolygonFilling.html
 #
 from __future__ import division
-import abc, os
 from collections import OrderedDict
 import numpy as np
 
@@ -51,13 +50,10 @@ class Region(object):
     coordinate_system : astropy.wcs.CoordinateSystem instance or a string
         in the context of WCS this would be an instance of wcs.CoordinateSysem
     """
-    __metaclass__ = abc.ABCMeta
-
     def __init__(self, rid, coordinate_system):
         self._coordinate_system = coordinate_system
         self._rid = rid
 
-    @abc.abstractmethod
     def __contains__(self, x, y):
         """
         Determines if a pixel is within a region.
@@ -73,7 +69,8 @@ class Region(object):
 
         Subclasses must define this method.
         """
-
+        raise NotImplementedError("__contains__")
+    
     def scan(self, mask):
         """
         Sets mask values to region id for all pixels within the region.
@@ -89,6 +86,7 @@ class Region(object):
         mask : array where the value of the elements is the region ID or 0 (for
             pixels which are not included in any region).
         """
+        raise NotImplementedError("scan")
 
 class Polygon(Region):
     """
@@ -118,19 +116,22 @@ class Polygon(Region):
         # polygon must be completely contained in the image. It seems that the
         # code works fine if we make sure that the bottom-left corner of the
         # polygon's bounding box has non-negative coordinates.
-        x,y = map(list,zip(*vertices))
-        self._shiftx = min(x)
-        self._shifty = min(y)
+        self._shiftx = 0
+        self._shifty = 0
+        for vertex in vertices:
+            x,y = vertex
+            if x < self._shiftx: self._shiftx = x
+            if y < self._shifty: self._shifty = y
         v = [(i-self._shiftx,j-self._shifty) for i,j in vertices]
 
         # convert to integer coordinates:
-        self._vertices = np.asarray(map(_round_vertex,v))
+        self._vertices = np.asarray(list(map(_round_vertex,v)))
         self._shiftx = int(round(self._shiftx))
         self._shifty = int(round(self._shifty))
 
         self._bbox = self._get_bounding_box()
-        self._scan_line_range=range(self._bbox[1],
-                                    self._bbox[3]+self._bbox[1]+1)
+        self._scan_line_range = \
+                list(range(self._bbox[1], self._bbox[3]+self._bbox[1]+1))
         #constructs a Global Edge Table (GET) in bbox coordinates
         self._GET = self._construct_ordered_GET()
 
@@ -216,7 +217,7 @@ class Polygon(Region):
 
         (ny, nx) = data.shape
 
-        y = np.min(self._GET.keys())
+        y = np.min(list(self._GET.keys()))
 
         AET = []
         scline = self._scan_line_range[-1]

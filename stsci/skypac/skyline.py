@@ -562,7 +562,7 @@ class SkyLineMember(object):
                 # in the primary header.
                 errmsg = "Missing photometry switch keyword \'{:s}\' in " \
                          "{:s}-{:s} data file \'{:s}\'." \
-                         .format(phot_switch, telescope, instruments, self._basefname)
+                         .format(phot_switch, telescope, instrument, self._basefname)
                 self._ml.error(errmsg)
                 self._ml.close()
                 raise KeyError(errmsg)
@@ -1122,13 +1122,13 @@ class SkyLine(object):
             elif isinstance(ext,int):
                 extname = None
                 extver  = ext
-            if extname in extdic.keys():
+            if extname in extdic:
                 extdic[extname].append(extver)
             else:
                 extdic.update( {extname : [extver]} )
 
         strext = []
-        disctinct_ext = extdic.keys()
+        disctinct_ext = list(extdic.keys())
         disctinct_ext.sort()
         for extname in disctinct_ext:
             if extname is None:
@@ -1179,7 +1179,7 @@ class SkyLine(object):
             List of `SkyLineMember` belonging to *self*.
 
         """
-        if len(self.points) > 3:
+        if len(list(self.points)) > 3:
             out_mem = [m for m in given_members if
                        self.intersects_poly(m.polygon)]
         else:
@@ -1277,8 +1277,6 @@ class SkyLine(object):
         for next_s in skylines:
             try:
                 intersect_poly = self.intersection(next_s)
-                if intersect_poly.points.shape[0] < 4:
-                    continue
                 overlap_area = intersect_poly.area()
             except (ValueError, AssertionError):
 
@@ -1320,7 +1318,7 @@ class SkyLine(object):
         max_pair = None
         max_overlap_area = 0.0
 
-        for i in xrange(len(skylines) - 1):
+        for i in range(len(skylines) - 1):
             curr_s = skylines[i]
             next_s, i_area = curr_s.find_max_overlap(skylines[i+1:])
 
