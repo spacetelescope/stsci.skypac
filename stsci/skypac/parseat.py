@@ -7,9 +7,11 @@ by :py:mod:`stsci.skypac` module.
 :License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
 """
+from __future__ import print_function
+
 import os, sys, glob
 from copy import copy, deepcopy
-from utils import MultiFileLog, ImageRef, openImageEx, \
+from .utils import MultiFileLog, ImageRef, openImageEx, \
      count_extensions, get_ext_list, get_extver_list
 from stsci.tools import fileutil, parseinput
 

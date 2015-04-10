@@ -2,6 +2,8 @@
 
 # These lines allow TEAL to print out the names of TEAL-enabled tasks
 # upon importing this package.
+from __future__ import print_function
+
 import os
 from . import utils
 from . import parseat
@@ -27,4 +29,4 @@ def help():
 skypac:
        skymatch - primary task for performing sky level matching on user images
 """
-    print msg
+    print(msg)
