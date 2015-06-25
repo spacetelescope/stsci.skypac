@@ -26,7 +26,7 @@ __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'ResourceRefCount', 'ImageRef', 'openImageEx',
            'count_extensions', 'get_ext_list', 'get_extver_list',
            'file_name_components', 'temp_mask_file', 'get_instrument_info',
-           'almost_equal', 'interpret_bit_flags']
+           'almost_equal']
 __version__ = '0.2'
 __vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
@@ -2234,83 +2234,3 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
         return np.all(a1 == a2)
     else:
         return np.all(np.abs(a1-a2) <= acc + prec*np.abs(a2))
-
-
-def interpret_bit_flags(flags):
-    """
-    Converts input bits value from string to a single integer value or None.
-    If a comma- or '+'-separated set of values are provided, they are summed.
-
-    .. note::
-        In order to flip the bits of the final result (after summation),
-        for input of `str` type, prepend '~' to the input string. '~' must
-        be prepended to the *entire string* and not to each bit flag!
-
-    Parameters
-    ----------
-    flags : int, str, None
-        An integer bit mask or flag, `None`, or a comma- or '+'-separated
-        string list of integer bit flags. If `flags` is a `str` and if
-        it is prepended with '~', then the output bit mask will have its
-        bits flipped (compared to simple sum of input flags).
-
-    Returns
-    -------
-    bitmask : int or None
-        Returns and integer bit mask formed from the input bit flags
-        or `None` if input `flags` parameter is `None` or an empty string.
-        If input string value was prepended with '~', then returned
-        value will have its bits flipped (inverse mask).
-
-    Examples
-    --------
-        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags(28) )
-        '0000000000011100'
-        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('4,8,16') )
-        '0000000000011100'
-        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('~4,8,16') )
-        '1111111111100011'
-        >>> "{0:016b}".format(0xFFFF & interpret_bit_flags('~(4+8+16)') )
-        '1111111111100011'
-
-    """
-    if isinstance(flags, int) or flags is None:
-        return flags
-
-    else:
-        flags = str(flags).strip()
-
-        if flags.startswith('~'):
-            flip_bits = True
-            flags = flags[1:].lstrip()
-        else:
-            flip_bits = False
-
-        if flags.startswith('('):
-            if flags.endswith(')'):
-                flags = flags[1:-1].strip()
-            else:
-                raise ValueError('Unbalanced parantheses or incorrect syntax.')
-
-        if ',' in flags:
-            valspl = flags.split(',')
-            bitmask = 0
-            for v in valspl:
-                bitmask += int(v)
-
-        elif '+' in flags:
-            valspl = flags.split('+')
-            bitmask = 0
-            for v in valspl:
-                bitmask += int(v)
-
-        elif flags.upper() in ['', 'NONE', 'INDEF']:
-            return None
-
-        else:
-            bitmask = int(flags)
-
-        if flip_bits:
-            bitmask = ~bitmask
-
-    return bitmask
