@@ -439,7 +439,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
     First, the standard sky computation algorithm
     (see `skymethod` = ``'localmin'``\ ) was upgraded to be able to use
     DQ flags and user supplied masks to remove "bad" pixels from being
-    used for sky statistics computations.
+    used for sky statistics computations. Values different from zero in
+    user-supplied masks indicate "good" data pixels.
 
     Second, two new methods have been introduced: ``'globalmin'`` and
     ``'match'``, as well as a combination of the two -- ``'globalmin+match'``.
@@ -682,6 +683,12 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
         ``image2.fits``\ ['sci',3] is associated with ``mask3.fits``\ [0]
 
+      .. note::
+        User mask data that indicate what pixels in the input `image` should
+        be used for sky computations (``1``) and which pixels should **not**
+        be used for sky computations (``0``).
+
+
     **Limitations and Discussions:**
       Primary reason for introducing "sky match" algorithm was to try to
       equalize the sky in large mosaics in which computation of the
@@ -703,7 +710,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         and not flux. This distinction is important for images that have
         not been distortion corrected. As a consequence, it is advisable that
         point-like sources be masked through the user-supplied mask files.
-        Alternatively, one can use `upper` parameter to limit the use of
+        Values different from zero in user-supplied masks indicate "good" data
+        pixels. Alternatively, one can use `upper` parameter to limit the use of
         bright objects in sky computations.
 
       * Normally, distorted flat-fielded images contain cosmic rays. This
@@ -828,18 +836,29 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
                 fi.dq_bits = dq_bits
 
     elif isinstance(input, str):
-        input = input.strip()
         ml.skip()
         ml.logentry("-----  Parsing input image file lists:  -----")
-        finfo = parse_cs_line(input, default_ext=('SCI','*'),
-                              clobber=False,
-                              fnamesOnly=False,
-                              doNotOpenDQ=dq_bits is None,
-                              im_fmode='readonly' if readonly else 'update',
-                              dq_fmode='readonly',
-                              msk_fmode='readonly',
-                              logfile=mlcopy,
-                              verbose=verbose)
+        if input.lstrip()[0] == '@':
+            finfo = parse_at_file(input.lstrip()[1:], default_ext=('SCI','*'),
+                                  clobber=clobber,
+                                  fnamesOnly=False,
+                                  doNotOpenDQ=dq_bits is None,
+                                  im_fmode='readonly' if readonly else 'update',
+                                  dq_fmode='readonly',
+                                  msk_fmode='readonly',
+                                  logfile=mlcopy,
+                                  verbose=verbose)
+
+        else:
+            finfo = parse_cs_line(input, default_ext=('SCI','*'),
+                                  clobber=clobber,
+                                  fnamesOnly=False,
+                                  doNotOpenDQ=dq_bits is None,
+                                  im_fmode='readonly' if readonly else 'update',
+                                  dq_fmode='readonly',
+                                  msk_fmode='readonly',
+                                  logfile=mlcopy,
+                                  verbose=verbose)
         for fi in finfo:
             fi.dq_bits = dq_bits
 

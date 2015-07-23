@@ -1640,7 +1640,8 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
             fname.append(ch)
 
         else:
-            if ch == ',' and current_ext.closed:
+            if (ch == ',' or (ch.isspace() and current_item == 1)) and \
+               current_ext.closed:
                 # done parsing an extension specifier:
                 if current_item == 1:
                     finfo.append_ext(current_ext.ext)
