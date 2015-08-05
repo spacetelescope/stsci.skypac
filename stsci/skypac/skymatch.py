@@ -33,8 +33,8 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.9.1'
-__vdate__ = '08-April-2015'
+__version__ = '0.9.2'
+__vdate__ = '05-August-2015'
 __author__ = 'Mihai Cara'
 
 #DEBUG
