@@ -662,7 +662,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
       will be interpreted as a file named None.
 
       Some examples of possible user input:
-        image1.fits{1,2,('sci',3)} mask1.fits,,mask3.fits[0]
+        image1.fits{1,2,('sci',3)},mask1.fits,,mask3.fits[0]
 
         In this case:
 
@@ -674,7 +674,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
         -- Assume ``image2.fits`` has 4 'SCI' extensions:
 
-        image2.fits{'sci'} None,,mask3.fits
+        image2.fits{'sci'},None,,mask3.fits
 
         In this case:
 
@@ -881,7 +881,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         ml.skip()
         # DQ file name
         if fi.image.DQ_model.lower() == 'external' and not fi.DQimage.closed:
-            ml.logentry("DQ image: \'{:s}\'", basename(fi.DQimage.filename), skip=-1)
+            ml.logentry("       DQ image: \'{:s}\'", basename(
+                fi.DQimage.filename), skip=-1)
             if fi.DQimage.filename != fi.DQimage.original_fname:
                 ml.logentry("  (original: \'{:s}\')",
                             basename(fi.DQimage.original_fname), skip=-1)

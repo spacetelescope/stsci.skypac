@@ -52,10 +52,9 @@ else:
         # shown here: http://timgolden.me.uk/python/win32_how_do_i/see_if_two_files_are_the_same_file.html
         # or as it is implemented in Python 3.3 though _getfinalpathname (still relying on
         # WinAPI calls). Same applies to _Stat function below.
-
         return ( fn1.st_ino == fn2.st_ino and fn1.st_dev == fn2.st_dev )
 
-    def _sameStat(st1,st2):
+    def _sameStat(st1, st2):
         return st1 == st2
 
     def _Stat(fn):
@@ -858,11 +857,20 @@ class FileExtMaskInfo(object):
             if self._im.DQ_model is None:
                 raise ValueError("Cannot set DQ image when DQ model of the " \
                                  "science image is \'None\'.")
-            dqext = self._find_DQ_extensions()
             self._dq.release()
             self._dq = dq
             self._dq.hold()
+            dqext = self._find_DQ_extensions()
             self._dqext = dqext
+            dq_stat = _Stat(self._dq.original_fname)
+            if len(self._filesig) > 1:
+                self._filesig[1] = dq_stat
+            elif len(self._filesig) == 1:
+                self._filesig.append(dq_stat)
+            else:
+                raise RuntimeError("File stat list has an unexpected length."
+                                   "Suspected a logical error in the code.")
+
         else:
             raise TypeError("Type of the DQ image does not match the " \
                     "value of the 'fnamesOnly' parameter.")
@@ -1408,7 +1416,7 @@ class FileExtMaskInfo(object):
 def parse_at_line(fstring, default_ext=('SCI','*'), default_mask_ext=0,
                   clobber=False, fnamesOnly=False, doNotOpenDQ=False,
                   im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',
-                  verbose=False, _main_with_nchar=False):
+                  verbose=False, _main_with_nchar=False, _external_flist=None):
     """
     parse_at_line(fstring, default_ext=('SCI','*'), default_mask_ext=0, \
 clobber=False, fnamesOnly=False, doNotOpenDQ=False,\
@@ -1449,7 +1457,7 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
     be interpreted as a file named None.
 
     Some examples of possible user input:
-        image1.fits{1,2,('sci',3)} mask1.fits,,mask3.fits[0]
+        image1.fits{1,2,('sci',3)},mask1.fits,,mask3.fits[0]
 
         In this case:
 
@@ -1461,7 +1469,7 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
 
         -- Assume ``image2.fits`` has 4 'SCI' extensions:
 
-        image2.fits{'sci'} None,,mask3.fits
+        image2.fits{'sci'},None,,mask3.fits
 
         In this case:
 
@@ -1551,6 +1559,11 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
     current_ext     = None
     nchar           = 0
     fstrlen         = len(fstring)
+    dq_image        = None # this will be set only if a previous image was
+                           # already openned
+
+    avoid_duplicate_open_files = _external_flist is not None and \
+        len(_external_flist) > 0 and not fnamesOnly
 
     for ch in fstring:
         nchar += 1
@@ -1576,8 +1589,27 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                     closing_bracket = ''
 
                     if current_item == 0:
-                        finfo.image   = str(fname)
-                        current_fname = str(fname)
+                        sfname = str(fname)
+                        found = None
+                        if avoid_duplicate_open_files:
+                            # look through the external list of FileExtMaskInfo
+                            # objects to see if this file was already opened:
+                            stat_fname = _Stat(sfname)
+                            for f in _external_flist:
+                                if f.fnamesOnly:
+                                    continue
+                                if _sameStat(f.imfstat, stat_fname):
+                                    found = f
+                                    break
+                        if found is None:
+                            finfo.image = sfname
+                        else:
+                            finfo.image = f.image
+                            dq_image = f.DQimage # we cannot set dq image
+                                                 # yet as we do not have
+                                                 # extensions parsed. Set
+                                                 # it delayed.
+                        current_fname = sfname
                         finfo.append_ext(None)
                         if _main_with_nchar:
                             fname.reset()
@@ -1602,9 +1634,30 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                         finfo.release_all_images()
                         raise ValueError(msg)
                     fname.close()
+
                     current_fname   = str(fname)
+
                     if current_item == 0:
-                        finfo.image = current_fname
+                        found = None
+                        if avoid_duplicate_open_files:
+                            # look through the external list of FileExtMaskInfo
+                            # objects to see if this file was already opened:
+                            stat_fname = _Stat(current_fname)
+                            for f in _external_flist:
+                                if f.fnamesOnly:
+                                    continue
+                                if _sameStat(f.imfstat, stat_fname):
+                                    found = f
+                                    break
+                        if found is None:
+                            finfo.image = current_fname
+                        else:
+                            finfo.image = f.image
+                            dq_image = f.DQimage # we cannot set dq image
+                                                 # yet as we do not have
+                                                 # extensions parsed. Set
+                                                 # it delayed.
+
                     closing_bracket = ']'
                     current_item    = 1 if current_item == 0 else 3
                     current_ext     = sext
@@ -1624,7 +1677,26 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                     fname.close()
                     current_fname   = str(fname)
                     if current_item == 0:
-                        finfo.image = current_fname
+                        found = None
+                        if avoid_duplicate_open_files:
+                            # look through the external list of FileExtMaskInfo
+                            # objects to see if this file was already opened:
+                            stat_fname = _Stat(current_fname)
+                            for f in _external_flist:
+                                if f.fnamesOnly:
+                                    continue
+                                if _sameStat(f.imfstat, stat_fname):
+                                    found = f
+                                    break
+                        if found is None:
+                            finfo.image = current_fname
+                        else:
+                            finfo.image = f.image
+                            dq_image = f.DQimage # we cannot set dq image
+                                                 # yet as we do not have
+                                                 # extensions parsed. Set
+                                                 # it delayed.
+
                     closing_bracket = '}'
                     current_item    = 1 if current_item == 0 else 3
                     current_ext     = mext
@@ -1640,8 +1712,7 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
             fname.append(ch)
 
         else:
-            if (ch == ',' or (ch.isspace() and current_item == 1)) and \
-               current_ext.closed:
+            if ch == ',' and current_ext.closed:
                 # done parsing an extension specifier:
                 if current_item == 1:
                     finfo.append_ext(current_ext.ext)
@@ -1664,7 +1735,26 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
     if current_item == 0:
         if fname.dirty:
             fname.close()
-            finfo.image = str(fname)
+            sfname = str(fname)
+            found = None
+            if avoid_duplicate_open_files:
+                # look through the external list of FileExtMaskInfo
+                # objects to see if this file was already opened:
+                stat_fname = _Stat(sfname)
+                for f in _external_flist:
+                    if f.fnamesOnly:
+                        continue
+                    if _sameStat(f.imfstat, stat_fname):
+                        found = f
+                        break
+            if found is None:
+                finfo.image = sfname
+            else:
+                finfo.image = f.image
+                dq_image = f.DQimage # we cannot set dq image
+                                     # yet as we do not have
+                                     # extensions parsed. Set
+                                     # it delayed.
             finfo.append_ext(None)
     elif current_item == 1:
         if current_ext.dirty:
@@ -1679,6 +1769,8 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
             current_ext.close()
             finfo.append_mask(current_fname, current_ext.ext)
 
+    if dq_image is not None:
+        finfo.DQimage = dq_image
     finfo.finalize()
 
     if _main_with_nchar:
@@ -1973,7 +2065,8 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
     # compute file 'stat' if necessary for file matching
     # (we compute it here so that 'parse_at_line' will not have to do
     # this for each line)
-    doMatching = match2Images and isinstance(match2Images, list)
+    doMatching = match2Images is not None and isinstance(match2Images, list)
+
     if doMatching:
         mstat = []
         match2ImagesLen = len(match2Images)
@@ -2011,12 +2104,12 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
             continue
 
         try:
-            # create a FileExtMaskInfo for each entry in the @file:
+            #create a FileExtMaskInfo for each entry in the @file:
             f = parse_at_line(line, default_ext=default_ext,
                     default_mask_ext=default_mask_ext, clobber=clobber,
                     fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
                     im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
-                    verbose=verbose, _main_with_nchar=False)
+                    verbose=verbose, _main_with_nchar=False, _external_flist=fi)
 
             if doMatching:
                 indx = None
@@ -2036,6 +2129,7 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
                     ml.logentry("No matching image was found for the " \
                                 "catalog entry \'{}\'. This entry will " \
                                 "be ignored.", img_fname)
+                    f.release_all_images()
                 else:
                     # a match was found. append a tuple of the file info &
                     # index of the found image
