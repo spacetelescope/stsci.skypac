@@ -1594,6 +1594,12 @@ def basicGEIScheck(fname):
     try:
         # process first "card":
         card = fh.read(readbytes)
+        if not isinstance(card, str):
+            try:
+                card = card.decode(encoding='ascii')
+            except UnicodeDecodeError:
+                if closefh: fh.close()
+                return False
         if len(card) != readbytes or card[-1] != '\n' or \
            card[:29].upper() != 'SIMPLE  =                    ':
             if closefh: fh.close()
@@ -1602,6 +1608,11 @@ def basicGEIScheck(fname):
         endcard_found = False
         while True:
             card  = fh.read(readbytes)
+            if not isinstance(card, str):
+                try:
+                    card = card.decode(encoding='ascii')
+                except UnicodeDecodeError:
+                    break
             cardn = len(card)
             if (cardn == cardLen or cardn == readbytes) and \
                card[:cardLen].upper() == 'END'+(cardLen-3)*' ':
@@ -1654,14 +1665,33 @@ def basicFITScheck(fname):
     try:
         # process first "card":
         card = fh.read(cardLen)
+        if not isinstance(card, str):
+            try:
+                card = card.decode(encoding='ascii')
+            except UnicodeDecodeError:
+                if closefh: fh.close()
+                return False
+
         if len(card) != cardLen or \
-           card[:29].upper() != 'SIMPLE  =                    ':
+            card[:29].upper() != 'SIMPLE  =                    ':
             if closefh: fh.close()
             return False
         # process second "card":
         card = fh.read(cardLen)
+        if len(card) != cardLen:
+            if closefh: fh.close()
+            return False
+        # test whether card is a byte or a string
+        # Required to support Python3 binary file operations vs
+        #  Python2 string file results
+        if not isinstance(card, str):
+            try:
+                card = card.decode(encoding='ascii')
+            except UnicodeDecodeError:
+                if closefh: fh.close()
+                return False
         if len(card) != cardLen or \
-           card[:26].upper() != 'BITPIX  =                 ':
+         card[:26].upper() != 'BITPIX  =                 ':
             if closefh: fh.close()
             return False
     except:
