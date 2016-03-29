@@ -1,10 +1,13 @@
+RECON-INFO
+*/*/version.py
 .eggs/
 __pycache__/
 build/
 dist/
-*.egg-info/
-*/*/version.py
+*.egg-info
+*.pyc
+*.o
 *.so
 *.dylib
-*.pyc
-.DS_Store
+*.DS_Store
+*.swp

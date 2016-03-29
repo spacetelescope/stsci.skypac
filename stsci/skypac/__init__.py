@@ -17,9 +17,15 @@ from . import region
 from . import skystatistics
 from . import skyline
 from . import skymatch
+from .version import *
 
 from stsci.tools import teal
 teal.print_tasknames(__name__, os.path.dirname(__file__))
+
+
+__taskname__ = 'skymatch'
+__vdate__ = __version_date__
+__author__ = 'Mihai Cara'
 
 
 def help():

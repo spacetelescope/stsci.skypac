@@ -1,16 +1,44 @@
 #!/usr/bin/env python
+import recon.release
+from glob import glob
+from numpy import get_include as np_include
+from setuptools import setup, find_packages, Extension
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distribute_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup
+
+version = recon.release.get_info()
+recon.release.write_template(version, 'stsci/skypac')
 
 setup(
-    setup_requires=['d2to1>=0.2.7', 'stsci.distutils>=0.3'],
-    namespace_packages=['stsci'], packages=['stsci'],
-    d2to1=True,
-    use_2to3=True,
-    zip_safe=False
+    name = 'stsci.skypac',
+    version = version.pep386,
+    author = 'Mihai Cara, Warren Hack, Pey Lian Lim',
+    author_email = 'help@stsci.edu',
+    description = 'Sky matching on image mosaic',
+    url = 'https://github.com/spacetelescope/stsci.skypac',
+    classifiers = [
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Scientific/Engineering :: Astronomy',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
+    install_requires = [
+        'astropy',
+        'nose',
+        'numpy',
+        'sphinx',
+        'stsci.sphere',
+        'stsci.sphinxext',
+        'stsci.tools',
+        'stwcs'
+    ],
+    packages = find_packages(),
+    package_data = {
+        '': ['LICENSE.txt'],
+        'stsci/skypac': [
+            '*.help',
+            'pars/*',
+        ]
+    },
 )
