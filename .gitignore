@@ -1,7 +1,5 @@
-RECON-INFO
-*/*/version.py
-.eggs/
-__pycache__/
+RELIC-INFO
+stsci/*/version.py
 build/
 dist/
 *.egg-info

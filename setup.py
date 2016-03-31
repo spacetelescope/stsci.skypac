@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-import recon.release
+import relic.release
 from glob import glob
 from numpy import get_include as np_include
 from setuptools import setup, find_packages, Extension
 
 
-version = recon.release.get_info()
-recon.release.write_template(version, 'stsci/skypac')
+version = relic.release.get_info()
+relic.release.write_template(version, 'stsci/skypac')
 
 setup(
     name = 'stsci.skypac',
