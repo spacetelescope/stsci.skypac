@@ -1,4 +1,5 @@
 RELIC-INFO
+relic/
 stsci/*/version.py
 build/
 dist/
