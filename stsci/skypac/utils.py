@@ -13,11 +13,13 @@ import sys
 import os
 import weakref
 import tempfile
+from os import path
+from copy import copy, deepcopy
+from distutils.version import LooseVersion
+
 import numpy as np
 import astropy
 from astropy.io import fits
-from os import path
-from copy import copy, deepcopy
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
 from .hstinfo import supported_telescopes, supported_instruments, \
      counts_only_instruments, mixed_units_instruments, rates_only_instruments
@@ -32,10 +34,7 @@ __version__ = '0.2'
 __vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
 
-# USE_FITS_OVERWRITE is necessary as long as we support astropy versions < 1.3
-USE_FITS_OVERWRITE = ((astropy.version.major == 1 and
-                       astropy.version.minor >= 3) or
-                      astropy.version.major >= 2)
+ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')
 
 def file_name_components(fname, detect_HST_FITS_suffix=True):
     """
@@ -2111,7 +2110,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             if verbose:
                 print("Writing out {} as MEF to \'{}\'".format( \
                     ftype, sci_image.mef_fname))
-            if USE_FITS_OVERWRITE:
+            if ASTROPY_VER_GE13:
                 hdulist.writeto(sci_image.mef_fname, overwrite=clobber)
             else:
                 hdulist.writeto(sci_image.mef_fname, clobber=clobber)
@@ -2122,7 +2121,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             if verbose:
                 print("Writing out DQ {} as MEF to \'{}\'".format( \
                     ftype, dq_image.mef_fname))
-            if USE_FITS_OVERWRITE:
+            if ASTROPY_VER_GE13:
                 dqhdulist.writeto(dq_image.mef_fname, overwrite=clobber)
             else:
                 dqhdulist.writeto(dq_image.mef_fname, clobber=clobber)
