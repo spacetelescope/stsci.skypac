@@ -33,7 +33,9 @@ __vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
 
 # USE_FITS_OVERWRITE is necessary as long as we support astropy versions < 1.3
-USE_FITS_OVERWRITE = astropy.version.major >= 1 and astropy.version.minor >=3
+USE_FITS_OVERWRITE = ((astropy.version.major == 1 and
+                       astropy.version.minor >= 3) or
+                      astropy.version.major >= 2)
 
 def file_name_components(fname, detect_HST_FITS_suffix=True):
     """
