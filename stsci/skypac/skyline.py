@@ -89,6 +89,7 @@ from stwcs import wcsutil
 from astropy import wcs as pywcs
 from stwcs.distortion.utils import output_wcs
 from stsci.sphere.polygon import SphericalPolygon
+from stsci.tools.bitmask import bitfield_to_boolean_mask
 
 # LOCAL
 from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
@@ -101,7 +102,7 @@ from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 SKYLINE_DEBUG = False
 
 __all__ = ['SkyLineMember', 'SkyLine']
-__version__ = '0.7'
+__version__ = '0.7.1'
 __vdate__ = '20-May-2014'
 
 
@@ -386,7 +387,12 @@ class SkyLineMember(object):
             #
             # However, to keep the same convention with astrodrizzle, dq_bits
             # will show the "good" bits that should be removed from the DQ array:
-            dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,~dq_bits))
+            dqmskarr = bitfield_to_boolean_mask(
+                dq.hdu[dqext].data,
+                ignore_flags=dq_bits,
+                dtype=np.bool_
+            )
+
             # 2. combine with user mask:
             if msk is not None:
                 maskdata = (msk.hdu[mskext].data != 0)
