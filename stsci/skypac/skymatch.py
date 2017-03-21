@@ -22,7 +22,7 @@ try:
     from stsci.tools import teal
 except ImportError:
     teal = None
-from stsci.tools.bitmask import interpret_bits_value
+from stsci.tools.bitmask import interpret_bit_flags
 
 # LOCAL
 from .skystatistics import SkyStats
@@ -33,9 +33,10 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.9.2'
-__vdate__ = '05-August-2015'
+__version__ = '0.9.3'
+__vdate__ = '21-March-2017'
 __author__ = 'Mihai Cara'
+
 
 #DEBUG
 __local_debug__ = False
@@ -817,7 +818,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
         "\'FileExtMaskInfo\' objects, or a string either containing either " \
         "a comma-separated list file names, or an @-file name."
 
-    dq_bits = interpret_bits_value(dq_bits)
+    dq_bits = interpret_bit_flags(dq_bits)
 
     if isinstance(input, list):
         if [1 for i in input if not isinstance(i, FileExtMaskInfo)]:
