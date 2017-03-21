@@ -1074,6 +1074,16 @@ class MultiFileLog(object):
         for fh in self._logfh:
             fh.write(msg)
 
+    def eol(self):
+        # output to console
+        if self._console:
+            self._console.write(self._eol)
+        # output to disk log files
+        for fh in self._logfh:
+            fh.write(self._eol)
+            if self._autoflush:
+                fh.flush()
+
     def bold(self, bmsg, msg, *fmt):
         m = msg.format(*fmt) + self._eol
 
