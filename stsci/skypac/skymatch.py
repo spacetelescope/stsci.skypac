@@ -22,7 +22,11 @@ try:
     from stsci.tools import teal
 except ImportError:
     teal = None
-from stsci.tools.bitmask import interpret_bit_flags
+
+try:
+    from stsci.tools.bitmask import interpret_bit_flags
+except ImportError:
+    from stsci.tools.bitmask import interpret_bits_value as interpret_bit_flags
 
 # LOCAL
 from .skystatistics import SkyStats
