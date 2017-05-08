@@ -288,7 +288,7 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
         return fname
 
     # open the "temporary" file and create a new ImageRef object:
-    mask, dummy = openImageEx(fname, mode='readonly', memmap=True,
+    mask, dummy = openImageEx(fname, mode='readonly', memmap=False,
                     saveAsMEF=False, clobber=False,
                     imageOnly=True, openImageHDU=True, openDQHDU=False,
                     preferMEF=True, verbose=False)
@@ -356,7 +356,7 @@ def get_extver_list(img, extname='SCI'):
         hdulist = img
     elif isinstance(img, str):
         try:
-            (img, dq) = openImageEx(img, mode='readonly', memmap=True,
+            (img, dq) = openImageEx(img, mode='readonly', memmap=False,
                               saveAsMEF=False, output_base_fitsname=None,
                               clobber=False, imageOnly=True,
                               openImageHDU=True, openDQHDU=False,
@@ -1754,7 +1754,7 @@ def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
                 rc_new = ResourceRefCount(None)
                 try:
                     hdulist = fits.open(imageRef.mef_fname, mode=fmode,
-                                          memmap=memmap)
+                                        memmap=memmap)
                     rc_new  = ResourceRefCount(hdulist)
                     rc_new.hold()
                     imageRef.extname         = _getExtname(hdulist)

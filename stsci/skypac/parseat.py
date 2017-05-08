@@ -780,7 +780,7 @@ class FileExtMaskInfo(object):
             else:
                 (im, dq) = openImageEx(img, mode=self._im_fmode,
                                   dqmode=self._dq_fmode,
-                                  memmap=True, saveAsMEF=True,
+                                  memmap=False, saveAsMEF=True,
                                   output_base_fitsname=None,
                                   clobber=self.clobber,
                                   imageOnly=self._dontopenDQ,
@@ -1201,7 +1201,7 @@ class FileExtMaskInfo(object):
                 self._filesig.append(stat)
             else:
                 try:
-                    mask, dq = openImageEx(mask, mode=self._msk_fmode, memmap=True,
+                    mask, dq = openImageEx(mask, mode=self._msk_fmode, memmap=False,
                                 saveAsMEF=True, clobber=self.clobber,
                                 imageOnly=True, openImageHDU=True, openDQHDU=False,
                                 preferMEF=True, verbose=False)
