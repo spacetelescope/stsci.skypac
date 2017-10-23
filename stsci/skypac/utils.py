@@ -30,8 +30,6 @@ __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'count_extensions', 'get_ext_list', 'get_extver_list',
            'file_name_components', 'temp_mask_file', 'get_instrument_info',
            'almost_equal']
-__version__ = '0.2'
-__vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
 
 ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')

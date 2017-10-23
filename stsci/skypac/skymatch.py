@@ -37,8 +37,6 @@ from . import region
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
-__version__ = '0.9.3'
-__vdate__ = '21-March-2017'
 __author__ = 'Mihai Cara'
 
 
