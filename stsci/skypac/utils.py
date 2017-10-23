@@ -255,7 +255,7 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
             .format(sep, rootname, suffix, strext, os.extsep, 'fits')
         # new temporary file handle:
         fh = tempfile.NamedTemporaryFile(prefix=prefix, suffix=newbase,
-                                         dir=dir, delete=False)
+                                         dir=dir, delete=False, mode='wb')
     else:
         if prefix == '':
             fname = "{1:s}{0:s}{2:s}{0:s}{3:s}{4:s}{5:s}" \
@@ -265,7 +265,7 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
                 .format(sep, prefix, rootname, suffix, strext,
                         os.extsep, 'fits')
         full_name = os.path.join(dir, fname)
-        fh = open(full_name, 'w')
+        fh = open(full_name, 'wb')
 
     # simplify path if 'dir' is current working directory:
     (pth, fname) = os.path.split(os.path.relpath(fh.name))
