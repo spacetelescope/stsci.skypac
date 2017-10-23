@@ -7,8 +7,6 @@ by :py:mod:`stsci.skypac` module.
 :License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
 
 """
-__version__ = '0.1'
-__vdate__ = '11-Jul-2014'
 __author__ = 'Mihai Cara'
 
 supported_telescopes    = [ 'HST' ]

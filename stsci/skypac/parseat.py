@@ -22,8 +22,6 @@ except:
 
 __all__ = ['parse_at_file', 'parse_at_line', 'parse_cs_line',
            'FileExtMaskInfo' ]
-__version__ = '0.1'
-__vdate__ = '21-Dec-2013'
 __author__ = 'Mihai Cara'
 
 

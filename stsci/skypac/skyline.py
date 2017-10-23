@@ -105,9 +105,7 @@ from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 SKYLINE_DEBUG = False
 
 __all__ = ['SkyLineMember', 'SkyLine']
-__version__ = '0.7.1'
-__vdate__ = '20-May-2014'
-
+__author__ = 'Mihai Cara'
 
 class SkyLineMember(object):
     """

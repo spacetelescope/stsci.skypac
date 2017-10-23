@@ -27,8 +27,6 @@ import numpy as np
 
 __all__ = ['Region','Edge','Polygon']
 __taskname__ = 'region'
-__version__ = '0.2'
-__vdate__ = '30-05-2014'
 __author__ = 'Nadezhda Dencheva, Mihai Cara'
 
 
@@ -70,7 +68,7 @@ class Region(object):
         Subclasses must define this method.
         """
         raise NotImplementedError("__contains__")
-    
+
     def scan(self, mask):
         """
         Sets mask values to region id for all pixels within the region.
