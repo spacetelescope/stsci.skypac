@@ -224,7 +224,7 @@ class Polygon(Region):
                 AET = self.update_AET(y, AET)
             scan_line = Edge('scan_line', start=[self._bbox[0], y],
                              stop=[self._bbox[0]+self._bbox[2], y])
-            x = [np.ceil(e.compute_AET_entry(scan_line)[1]) for e in AET if e is not None]
+            x = [int(np.ceil(e.compute_AET_entry(scan_line)[1])) for e in AET if e is not None]
             xnew = np.sort(x)
             if y+self._shifty < 0 or y+self._shifty >= ny:
                 y += 1
@@ -351,24 +351,24 @@ class Edge(object):
         fmt = ""
         if self._name is not None:
             fmt += self._name
-            next=self.next
-            while next is not None:
+            ne = self.next_edge
+            while ne is not None:
                 fmt += "-->"
-                fmt += next._name
-                next = next.next
+                fmt += ne._name
+                ne = ne.next_edge
         return fmt
 
     @property
-    def next(self):
+    def next_edge(self):
         return self._next
 
-    @next.setter
-    def next(self, edge):
+    @next_edge.setter
+    def next_edge(self, edge):
         if self._name is None:
             self._name = edge._name
             self._stop = edge._stop
             self._start = edge._start
-            self._next = edge.next
+            self._next = edge.next_edge
         else:
             self._next = edge
 
