@@ -4,6 +4,11 @@
 # upon importing this package.
 from __future__ import print_function
 
+__taskname__ = 'skymatch'
+__version__ = '0.9.7'
+__vdate__ = '24-October-2017'
+__author__ = 'Mihai Cara'
+
 import os
 from . import utils
 from . import parseat
@@ -14,12 +19,6 @@ from . import skymatch
 
 from stsci.tools import teal
 teal.print_tasknames(__name__, os.path.dirname(__file__))
-
-
-__taskname__ = 'skymatch'
-__version__ = '0.9.6'
-__vdate__ = '23-October-2017'
-__author__ = 'Mihai Cara'
 
 
 def help():

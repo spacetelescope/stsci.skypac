@@ -24,6 +24,8 @@ from stsci.tools import fileutil, readgeis, convertwaiveredfits
 from .hstinfo import supported_telescopes, supported_instruments, \
      counts_only_instruments, mixed_units_instruments, rates_only_instruments
 
+from . import __version__
+from . import __vdate__
 
 __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'ResourceRefCount', 'ImageRef', 'openImageEx',
@@ -216,7 +218,7 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
 
     Examples
     --------
-    >>> import numpy np
+    >>> import numpy as np
     >>> from stsci import skypac
     >>> mask=np.ones((800,800),dtype=np.uint8)
     >>> skypac.utils.temp_mask_file(mask, 'ua0x5001m',
