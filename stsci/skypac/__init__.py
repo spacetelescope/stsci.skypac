@@ -5,8 +5,8 @@
 from __future__ import print_function
 
 __taskname__ = 'skymatch'
-__version__ = '0.9.7'
-__vdate__ = '24-October-2017'
+__version__ = '0.9.8'
+__vdate__ = '25-October-2017'
 __author__ = 'Mihai Cara'
 
 import os
