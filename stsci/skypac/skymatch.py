@@ -34,6 +34,8 @@ from .utils import ext2str, MultiFileLog, ImageRef
 from .parseat import FileExtMaskInfo, parse_cs_line, parse_at_file
 from .skyline import SkyLineMember, SkyLine
 from . import region
+from . import __version__
+from . import __vdate__
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
