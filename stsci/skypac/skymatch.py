@@ -605,7 +605,7 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
       .. note::
 
         * Footprints are managed by the
-          :py:class:`~stsci.sphere.polygon.SphericalPolygon` class.
+          :py:class:`~spherical_geometry.polygon.SphericalPolygon` class.
 
         * Both footprints *and* associated exposures (image data, WCS
           information, and other header information) are managed by the

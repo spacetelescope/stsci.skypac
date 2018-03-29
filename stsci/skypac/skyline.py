@@ -88,7 +88,7 @@ import math
 from stwcs import wcsutil
 from astropy import wcs as pywcs
 from stwcs.distortion.utils import output_wcs
-from stsci.sphere.polygon import SphericalPolygon
+from spherical_geometry.polygon import SphericalPolygon
 try:
     from stsci.tools.bitmask import bitfield_to_boolean_mask
 except ImportError:
@@ -810,20 +810,20 @@ class SkyLine(object):
 
     Skylines are designed to capture and manipulate HST WCS image
     information as spherical polygons. They are represented by
-    the :py:class:`~stsci.sphere.skyline.SkyLine` class, which is an
-    extension of :py:class:`~stsci.sphere.polygon.SphericalPolygon` class.
+    the :py:class:`~spherical_geometry.skyline.SkyLine` class, which is an
+    extension of :py:class:`~spherical_geometry.polygon.SphericalPolygon` class.
 
-    Each skyline has a list of members, `~stsci.sphere.skyline.SkyLine.members`,
-    and a composite spherical polygon, `~stsci.sphere.skyline.SkyLine.polygon`,
+    Each skyline has a list of members, `~spherical_geometry.skyline.SkyLine.members`,
+    and a composite spherical polygon, `~spherical_geometry.skyline.SkyLine.polygon`,
     members. The polygon has all the functionalities of
-    \ `~stsci.sphere.polygon.SphericalPolygon`.
+    \ `~spherical_geometry.polygon.SphericalPolygon`.
 
     Each `SkyLine` has a list of `~SkyLine.members` and
     a composite `~SkyLine.polygon` with all the
-    functionalities of `~stsci.sphere.polygon.SphericalPolygon`.
+    functionalities of `~spherical_geometry.polygon.SphericalPolygon`.
 
-    Each member in `~stsci.sphere.skyline.SkyLine.members` belongs
-    to the `~stsci.sphere.skyline.SkyLineMember` class, which contains
+    Each member in `~spherical_geometry.skyline.SkyLine.members` belongs
+    to the `~spherical_geometry.skyline.SkyLineMember` class, which contains
     image name (with path if given), science extension(s),
     and composite WCS and polygon of the extension(s). All skylines start
     out with a single member from a single image. When operations are used
@@ -900,7 +900,7 @@ class SkyLine(object):
         self.members = slm
 
     def __getattr__(self, what):
-        """Control attribute access to `~stsci.sphere.polygon.SphericalPolygon`."""
+        """Control attribute access to `~spherical_geometry.polygon.SphericalPolygon`."""
         if what in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
@@ -936,7 +936,7 @@ class SkyLine(object):
     @property
     def polygon(self):
         """
-        `~stsci.sphere.polygon.SphericalPolygon` portion of `SkyLine`
+        `~spherical_geometry.polygon.SphericalPolygon` portion of `SkyLine`
         that contains the composite skyline from `members`
         belonging to *self*.
 
