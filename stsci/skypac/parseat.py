@@ -66,7 +66,7 @@ else:
         else:
             fname = os.path.abspath(os.path.expanduser(fn))
             #return st(fname, 0)
-            return os.stat_result((0, fname) + 8*(0))
+            return os.stat_result((0, fname) + 8*(0,))
 
 
 class CharAccumulator(object):
