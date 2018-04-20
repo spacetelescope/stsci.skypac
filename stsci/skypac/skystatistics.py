@@ -4,7 +4,7 @@ Sky statistics computation class for `~skymatch.skymatch` and
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
 
-:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+:License: :doc:`LICENSE`
 
 """
 # THIRD PARTY

@@ -4,7 +4,7 @@ by :py:mod:`stsci.skypac` module.
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
 
-:License: `<http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE>`_
+:License: :doc:`LICENSE`
 
 """
 from __future__ import print_function
