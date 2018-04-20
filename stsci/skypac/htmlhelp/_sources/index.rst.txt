@@ -4,9 +4,10 @@
    contain the root `toctree` directive.
 
 Welcome to skypac's documentation!
-====================================
+==================================
 
-Contents:
+Content
+=======
 
 .. toctree::
    :maxdepth: 2
@@ -17,6 +18,9 @@ Contents:
    region
    skystatistics
    utils
+   pamutils
+   LICENSE.rst
+
 
 Indices and tables
 ==================
