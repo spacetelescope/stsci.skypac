@@ -1,34 +1,24 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Sky statistics functions for skypac. &mdash; SkyPac 0.9 (12-August-2014) documentation</title>
-    
+    <title>Sky statistics functions for skypac. &#8212; SkyPac 0.9.10 (20-April-2018) documentation</title>
     <link rel="stylesheet" href="_static/stsci_sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.9 (12-August-2014)',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="SkyPac 0.9 (12-August-2014) documentation" href="index.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Utility functions for skypac." href="utils.html" />
     <link rel="prev" title="Polygon filling algorithm" href="region.html" /> 
-  </head>
-  <body>
-    <div class="related">
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -43,10 +33,10 @@
         <li class="right" >
           <a href="region.html" title="Polygon filling algorithm"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.9 (12-August-2014) documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">SkyPac 0.9.10 (20-April-2018) documentation</a> &#187;</li> 
       </ul>
     </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/stsci_logo.png" alt="Logo"/>
@@ -57,22 +47,23 @@
   <h4>Next topic</h4>
   <p class="topless"><a href="utils.html"
                         title="next chapter">Utility functions for skypac.</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/skystatistics.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/skystatistics.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -81,30 +72,30 @@
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="module-stsci.skypac.skystatistics">
 <span id="sky-statistics-functions-for-skypac"></span><h1>Sky statistics functions for skypac.<a class="headerlink" href="#module-stsci.skypac.skystatistics" title="Permalink to this headline">¶</a></h1>
-<p>Sky statistics computation class for <tt class="xref py py-obj docutils literal"><span class="pre">skymatch</span></tt> and
-<tt class="xref py py-obj docutils literal"><span class="pre">_weighted_sky</span></tt>.</p>
+<p>Sky statistics computation class for <code class="xref py py-obj docutils literal notranslate"><span class="pre">skymatch</span></code> and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">_weighted_sky</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name" colspan="2">Authors:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">Mihai Cara (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">Mihai Cara (contact: <a class="reference external" href="mailto:help&#37;&#52;&#48;stsci&#46;edu">help<span>&#64;</span>stsci<span>&#46;</span>edu</a>)</td>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">License:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><a class="reference external" href="http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE">http://www.stsci.edu/resources/software_hardware/pyraf/LICENSE</a></td>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><a class="reference internal" href="LICENSE.html"><span class="doc">LICENSE</span></a></td>
 </tr>
 </tbody>
 </table>
 <dl class="class">
 <dt id="stsci.skypac.skystatistics.SkyStats">
-<em class="property">class </em><tt class="descclassname">stsci.skypac.skystatistics.</tt><tt class="descname">SkyStats</tt><big>(</big><em>skystat='mean'</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#stsci.skypac.skystatistics.SkyStats" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is a superclass build on top of <tt class="xref py py-class docutils literal"><span class="pre">stsci.imagestats.ImageStats</span></tt>.
-Compared to ImageStats, SkyStats has &#8220;persistent settings&#8221; in the sense
-that object&#8217;s parameters need to be set once and these settings
+<em class="property">class </em><code class="descclassname">stsci.skypac.skystatistics.</code><code class="descname">SkyStats</code><span class="sig-paren">(</span><em>skystat='mean'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#stsci.skypac.skystatistics.SkyStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a superclass build on top of <code class="xref py py-class docutils literal notranslate"><span class="pre">stsci.imagestats.ImageStats</span></code>.
+Compared to ImageStats, SkyStats has “persistent settings” in the sense
+that object’s parameters need to be set once and these settings
 will be applied to all subsequent computations on different data.</p>
 <p>Initializes the SkyStats object.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -112,45 +103,47 @@ will be applied to all subsequent computations on different data.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skystat</strong> : str</p>
-<blockquote>
-<div><p>Sets the statistics that will be returned by the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="stsci.skypac.skystatistics.SkyStats.calc_sky"><tt class="xref py py-obj docutils literal"><span class="pre">calc_sky</span></tt></a>.
-The following statistics are supported: &#8216;mean&#8217;, &#8216;mode&#8217;, &#8216;midpt&#8217;,
-and &#8216;median&#8217;. First three statistics have the same meaning as in
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><dl class="first last docutils">
+<dt><strong>skystat</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Sets the statistics that will be returned by the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="stsci.skypac.skystatistics.SkyStats.calc_sky"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_sky</span></code></a>.
+The following statistics are supported: ‘mean’, ‘mode’, ‘midpt’,
+and ‘median’. First three statistics have the same meaning as in
 <a class="reference external" href="http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?gstatistics">stsdas.toolbox.imgtools.gstatistics</a>
-while <tt class="xref py py-obj docutils literal"><span class="pre">skystat</span></tt>=&#8217;median&#8217; will compute the median of the distribution.</p>
-</div></blockquote>
-<p><strong>kwargs</strong> : dict</p>
-<blockquote class="last">
-<div><p>A dictionary of optional arguments to be passed to <tt class="xref py py-obj docutils literal"><span class="pre">ImageStats</span></tt>.</p>
-</div></blockquote>
+while <code class="xref py py-obj docutils literal notranslate"><span class="pre">skystat</span></code>=’median’ will compute the median of the distribution.</p>
+</dd>
+<dt><strong>kwargs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">A dictionary of optional arguments to be passed to <code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageStats</span></code>.</p>
+</dd>
+</dl>
 </td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="stsci.skypac.skystatistics.SkyStats.calc_sky">
-<tt class="descname">calc_sky</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calc_sky</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes statistics on data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>data</strong> : numpy.ndarray</p>
-<blockquote>
-<div><p>A numpy array of values for which the statistics needs to be computed.</p>
-</div></blockquote>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><dl class="first docutils">
+<dt><strong>data</strong> <span class="classifier-delimiter">:</span> <span class="classifier">numpy.ndarray</span></dt>
+<dd><p class="first last">A numpy array of values for which the statistics needs to be computed.</p>
+</dd>
+</dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">Returns:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>statistics</strong> : tuple</p>
-<blockquote class="last">
-<div><p>A tuple of two values: (<tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt>, <tt class="xref py py-obj docutils literal"><span class="pre">npix</span></tt>), where <tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt> is the statistics
-specified by the <tt class="xref py py-obj docutils literal"><span class="pre">skystat</span></tt> parameter during the initialization
-of the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats" title="stsci.skypac.skystatistics.SkyStats"><tt class="xref py py-obj docutils literal"><span class="pre">SkyStats</span></tt></a> object and <tt class="xref py py-obj docutils literal"><span class="pre">npix</span></tt> is the number of pixels used
-in comuting the statistics reported in <tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt>.</p>
-</div></blockquote>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><dl class="first last docutils">
+<dt><strong>statistics</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last">A tuple of two values: (<code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">npix</span></code>), where <code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code> is the statistics
+specified by the <code class="xref py py-obj docutils literal notranslate"><span class="pre">skystat</span></code> parameter during the initialization
+of the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats" title="stsci.skypac.skystatistics.SkyStats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyStats</span></code></a> object and <code class="xref py py-obj docutils literal notranslate"><span class="pre">npix</span></code> is the number of pixels used
+in comuting the statistics reported in <code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code>.</p>
+</dd>
+</dl>
 </td>
 </tr>
 </tbody>
@@ -161,10 +154,10 @@ in comuting the statistics reported in <tt class="xref py py-obj docutils litera
 
 <dl class="class">
 <dt>
-<em class="property">class </em><tt class="descclassname">stsci.skypac.skystatistics.</tt><tt class="descname">SkyStats</tt><big>(</big><em>skystat='mean'</em>, <em>**kwargs</em><big>)</big></dt>
-<dd><p>This is a superclass build on top of <tt class="xref py py-class docutils literal"><span class="pre">stsci.imagestats.ImageStats</span></tt>.
-Compared to ImageStats, SkyStats has &#8220;persistent settings&#8221; in the sense
-that object&#8217;s parameters need to be set once and these settings
+<em class="property">class </em><code class="descclassname">stsci.skypac.skystatistics.</code><code class="descname">SkyStats</code><span class="sig-paren">(</span><em>skystat='mean'</em>, <em>**kwargs</em><span class="sig-paren">)</span></dt>
+<dd><p>This is a superclass build on top of <code class="xref py py-class docutils literal notranslate"><span class="pre">stsci.imagestats.ImageStats</span></code>.
+Compared to ImageStats, SkyStats has “persistent settings” in the sense
+that object’s parameters need to be set once and these settings
 will be applied to all subsequent computations on different data.</p>
 <p>Initializes the SkyStats object.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -172,45 +165,47 @@ will be applied to all subsequent computations on different data.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>skystat</strong> : str</p>
-<blockquote>
-<div><p>Sets the statistics that will be returned by the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="stsci.skypac.skystatistics.SkyStats.calc_sky"><tt class="xref py py-obj docutils literal"><span class="pre">calc_sky</span></tt></a>.
-The following statistics are supported: &#8216;mean&#8217;, &#8216;mode&#8217;, &#8216;midpt&#8217;,
-and &#8216;median&#8217;. First three statistics have the same meaning as in
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><dl class="first last docutils">
+<dt><strong>skystat</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Sets the statistics that will be returned by the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats.calc_sky" title="stsci.skypac.skystatistics.SkyStats.calc_sky"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calc_sky</span></code></a>.
+The following statistics are supported: ‘mean’, ‘mode’, ‘midpt’,
+and ‘median’. First three statistics have the same meaning as in
 <a class="reference external" href="http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?gstatistics">stsdas.toolbox.imgtools.gstatistics</a>
-while <tt class="xref py py-obj docutils literal"><span class="pre">skystat</span></tt>=&#8217;median&#8217; will compute the median of the distribution.</p>
-</div></blockquote>
-<p><strong>kwargs</strong> : dict</p>
-<blockquote class="last">
-<div><p>A dictionary of optional arguments to be passed to <tt class="xref py py-obj docutils literal"><span class="pre">ImageStats</span></tt>.</p>
-</div></blockquote>
+while <code class="xref py py-obj docutils literal notranslate"><span class="pre">skystat</span></code>=’median’ will compute the median of the distribution.</p>
+</dd>
+<dt><strong>kwargs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">A dictionary of optional arguments to be passed to <code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageStats</span></code>.</p>
+</dd>
+</dl>
 </td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt>
-<tt class="descname">calc_sky</tt><big>(</big><em>data</em><big>)</big></dt>
+<code class="descname">calc_sky</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span></dt>
 <dd><p>Computes statistics on data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name" colspan="2">Parameters:</th></tr>
-<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>data</strong> : numpy.ndarray</p>
-<blockquote>
-<div><p>A numpy array of values for which the statistics needs to be computed.</p>
-</div></blockquote>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><dl class="first docutils">
+<dt><strong>data</strong> <span class="classifier-delimiter">:</span> <span class="classifier">numpy.ndarray</span></dt>
+<dd><p class="first last">A numpy array of values for which the statistics needs to be computed.</p>
+</dd>
+</dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name" colspan="2">Returns:</th></tr>
-<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first"><strong>statistics</strong> : tuple</p>
-<blockquote class="last">
-<div><p>A tuple of two values: (<tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt>, <tt class="xref py py-obj docutils literal"><span class="pre">npix</span></tt>), where <tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt> is the statistics
-specified by the <tt class="xref py py-obj docutils literal"><span class="pre">skystat</span></tt> parameter during the initialization
-of the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats" title="stsci.skypac.skystatistics.SkyStats"><tt class="xref py py-obj docutils literal"><span class="pre">SkyStats</span></tt></a> object and <tt class="xref py py-obj docutils literal"><span class="pre">npix</span></tt> is the number of pixels used
-in comuting the statistics reported in <tt class="xref py py-obj docutils literal"><span class="pre">skyvalue</span></tt>.</p>
-</div></blockquote>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><dl class="first last docutils">
+<dt><strong>statistics</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple</span></dt>
+<dd><p class="first last">A tuple of two values: (<code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">npix</span></code>), where <code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code> is the statistics
+specified by the <code class="xref py py-obj docutils literal notranslate"><span class="pre">skystat</span></code> parameter during the initialization
+of the <a class="reference internal" href="#stsci.skypac.skystatistics.SkyStats" title="stsci.skypac.skystatistics.SkyStats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyStats</span></code></a> object and <code class="xref py py-obj docutils literal notranslate"><span class="pre">npix</span></code> is the number of pixels used
+in comuting the statistics reported in <code class="xref py py-obj docutils literal notranslate"><span class="pre">skyvalue</span></code>.</p>
+</dd>
+</dl>
 </td>
 </tr>
 </tbody>
@@ -227,7 +222,7 @@ in comuting the statistics reported in <tt class="xref py py-obj docutils litera
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -242,12 +237,12 @@ in comuting the statistics reported in <tt class="xref py py-obj docutils litera
         <li class="right" >
           <a href="region.html" title="Polygon filling algorithm"
              >previous</a> |</li>
-        <li><a href="index.html">SkyPac 0.9 (12-August-2014) documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">SkyPac 0.9.10 (20-April-2018) documentation</a> &#187;</li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2013, Mihai Cara, Warren Hack, Pey Lian Lim.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
