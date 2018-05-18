@@ -9,6 +9,7 @@ dependencies:
   - numpydoc
   - spherical-geometry
   - sphinx
+  - stsci.imagestats
   - stsci.tools
   - stwcs
   - pip:
