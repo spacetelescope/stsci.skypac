@@ -24,11 +24,16 @@ if not pkgutil.find_loader('relic'):
 
 import relic.release
 
+NAME_ROOT = 'stsci'
+NAME_BASE = 'skypac'
+NAME = '.'.join([NAME_ROOT, NAME_BASE])
+NS_PATH = os.path.join(NAME_ROOT, NAME_BASE)
+
 version = relic.release.get_info()
-relic.release.write_template(version, 'stsci/skypac')
+relic.release.write_template(version, NS_PATH)
 
 setup(
-    name='stsci.skypac',
+    name=NAME,
     version=version.pep386,
     author='Mihai Cara, Warren Hack, Pey Lian Lim',
     author_email='help@stsci.edu',
@@ -55,7 +60,7 @@ setup(
     packages=find_packages(),
     package_data={
         '': ['LICENSE.txt'],
-        'stsci/skypac': [
+        NAME: [
             '*.help',
             'pars/*',
         ]
