@@ -47,7 +47,7 @@ setup(
         'nose',
         'numpy',
         'sphinx',
-        'stsci.sphere',
+        'spherical_geometry',
         'stsci.sphinxext',
         'stsci.tools',
         'stwcs'
