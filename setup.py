@@ -49,7 +49,6 @@ setup(
     ],
     install_requires=[
         'astropy',
-        'nose',
         'numpy',
         'sphinx',
         'spherical_geometry',
