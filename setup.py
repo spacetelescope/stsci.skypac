@@ -52,7 +52,6 @@ setup(
         'numpy',
         'sphinx',
         'spherical_geometry',
-        'stsci.sphinxext',
         'stsci.tools',
         'stwcs'
     ],
