@@ -64,7 +64,7 @@ except ImportError:
 from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
      file_name_components, temp_mask_file, in_memory_mask, \
      get_instrument_info
-from .parseat import FileExtMaskInfo
+from .parseat import FileExtMaskInfo, _Stat
 from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 
 # DEBUG
@@ -1028,13 +1028,17 @@ class SkyLine(object):
             return
 
         else: # autodetect status
-            fnames  = []
+            basefname = None
+            fstats = []
             nfnames = 0
             extlist = []
 
             for m in self.members:
-                if m.fname not in fnames:
-                    fnames.append(m.basefname)
+                mstat = _Stat(m.fname)
+                if mstat not in fstats:
+                    if basefname is None:
+                        basefname = m.basefname # store the first occurence
+                    fstats.append(mstat)
                     nfnames += 1
                     if nfnames > 1:
                         break
@@ -1046,7 +1050,7 @@ class SkyLine(object):
                 self._id = ''
             elif nfnames == 1:
                 self._is_mf_mosaic = False
-                self._id = self._id_from_fname_ext(fnames[0], extlist)
+                self._id = self._id_from_fname_ext(basefname, extlist)
             else:
                 self._is_mf_mosaic = True
                 self._id = "mosaic"
