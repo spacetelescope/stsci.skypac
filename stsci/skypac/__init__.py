@@ -4,9 +4,9 @@
 # upon importing this package.
 from __future__ import print_function
 
+from .version import *
+__vdate__ = __version_date__  # Backwards compat.
 __taskname__ = 'skymatch'
-__version__ = '0.9.10'
-__vdate__ = '20-April-2018'
 __author__ = 'Mihai Cara'
 
 import os
@@ -18,8 +18,11 @@ from . import skystatistics
 from . import skyline
 from . import skymatch
 
+
 from stsci.tools import teal
 teal.print_tasknames(__name__, os.path.dirname(__file__))
+
+
 
 
 def help():
