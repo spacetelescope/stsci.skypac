@@ -12,4 +12,5 @@ dependencies:
   - stsci.tools
   - stwcs
   - pip:
+    - sphinx_rtd_theme
     - git+https://github.com/spacetelescope/stsci_rtd_theme.git#egg=stsci_rtd_theme
