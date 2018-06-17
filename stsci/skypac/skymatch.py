@@ -1288,7 +1288,7 @@ def _calc_sky(s1, s2, skystat):
             for p in intersect_poly.iter_polygons_flat():
                 if p.points.shape[0] > 3:
                     valid_poly = True
-                    radec.append(p.to_radec())
+                    radec.append(p.to_lonlat())
             if not valid_poly:
                 continue
 
@@ -1304,9 +1304,9 @@ def _calc_sky(s1, s2, skystat):
                 for rd in radec:
                     ivert.append(list(zip(*rd)))
                 for m1poly in m1.polygon.iter_polygons_flat():
-                    ivert1.append(list(zip(*m1poly.to_radec())))
+                    ivert1.append(list(zip(*m1poly.to_lonlat())))
                 for m2poly in m2.polygon.iter_polygons_flat():
-                    ivert2.append(list(zip(*m2poly.to_radec())))
+                    ivert2.append(list(zip(*m2poly.to_lonlat())))
                 _debug_write_region_fk5(fn, ivert, ivert1, ivert2, multireg=True)
 
             sky1, wght1 = _member_sky(m1, radec, skystat, m2.id)

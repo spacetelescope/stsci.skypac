@@ -51,7 +51,7 @@ setup(
         'astropy',
         'numpy',
         'sphinx',
-        'spherical_geometry',
+        'spherical_geometry>=1.2.2',
         'stsci.imagestats',
         'stsci.tools',
         'stwcs'
