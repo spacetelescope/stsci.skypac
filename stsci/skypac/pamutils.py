@@ -2,9 +2,6 @@
 A module that provides functions for computing Pixel Area Maps (PAM) based
 on distortion model contained in a FITS WCS.
 
-.. warning::
-    At this moment, this is an experimental feature.
-
 :Authors: Mihai Cara (contact: help@stsci.edu)
 
 :License: :doc:`LICENSE`
@@ -126,11 +123,17 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
     return jacobian
 
 
-def pam_from_file(image, ext, output_pam):
+def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
+                  normalize_at_crpix=False):
     """
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from the ``FITS``
     ``WCS`` contained in an image extension of a calibrated ``HST`` image
     file specified by ``image``.
+
+    .. note::
+       PAM computation is performed using the distortion model defined in the
+       ``WCS and described through Simple Image Polynomials (SIP).
+       Non-polynomial distortions are ignored!
 
     Parameters
     ----------
@@ -150,6 +153,24 @@ def pam_from_file(image, ext, output_pam):
             If the output file already exists, it will be overwritten
             without warnings.
 
+
+    ignore_vacorr : bool, optional
+        When set to `True`, ``PAM`` will be generated _as if_ vellocity
+        aberration has not applied to the ``WCS``.
+
+        .. warning::
+           This function does not know whether velocity aberration (VA)
+           correction has been applied to the ``WCS`` or not. It is user's
+           responsibility to check the appropriateness of settung this
+           parameter to `True`. Setting ``ignore_vacorr`` to `True` when
+           ``WCS`` was not VA-corrected will result in larger errors in
+           computed ``PAM``. **Default value is highly recommended!**
+
+    normalize_crpix : bool, optional
+        Indicates whether to normalize computed ``PAM`` to 1 at *``CRPIX``
+        position. Historically, ``WFC3`` pixel area maps have been normalized
+        to 1 at ``CRPIX`` position.
+
     """
     with fits.open(image, mode='readonly') as h:
         data_shape = h[ext].data.shape
@@ -158,7 +179,8 @@ def pam_from_file(image, ext, output_pam):
         except:
             wcs = fitswcs.WCS(h[ext].header, h)
 
-    pam = pam_from_wcs(wcs, shape=data_shape)
+    pam = pam_from_wcs(wcs, shape=data_shape, ignore_vacorr=ignore_vacorr,
+                       normalize_at_crpix=normalize_at_crpix)
 
     if ASTROPY_VER_GE13:
         fits.PrimaryHDU(pam).writeto(output_pam, overwrite=True)
@@ -166,10 +188,16 @@ def pam_from_file(image, ext, output_pam):
         fits.PrimaryHDU(pam).writeto(output_pam, clobber=True)
 
 
-def pam_from_wcs(wcs, shape=None):
+def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
+                 normalize_at_crpix=False):
     """
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from a ``FITS``
     ``WCS``.
+
+    .. note::
+       PAM computation is performed using the distortion model defined in the
+       ``WCS and described through Simple Image Polynomials (SIP).
+       Non-polynomial distortions are ignored!
 
     Parameters
     ----------
@@ -182,6 +210,23 @@ def pam_from_wcs(wcs, shape=None):
         function will try to deduce the shape of the output image from the
         values of ``_naxis1`` and ``_naxis2`` attributes of the input ``wcs``
         object.
+
+    ignore_vacorr : bool, optional
+        When set to `True`, ``PAM`` will be generated _as if_ vellocity
+        aberration has not applied to the ``WCS``.
+
+        .. warning::
+           This function does not know whether velocity aberration (VA)
+           correction has been applied to the ``WCS`` or not. It is user's
+           responsibility to check the appropriateness of settung this
+           parameter to `True`. Setting ``ignore_vacorr`` to `True` when
+           ``WCS`` was not VA-corrected will result in larger errors in
+           computed ``PAM``. **Default value is highly recommended!**
+
+    normalize_at_crpix : bool, optional
+        Indicates whether to normalize computed ``PAM`` to 1 at *``CRPIX``
+        position. Historically, ``WFC3`` pixel area maps have been normalized
+        to 1 at ``CRPIX`` position.
 
     Returns
     -------
@@ -209,13 +254,18 @@ def pam_from_wcs(wcs, shape=None):
 
     cdscale = np.sqrt(fitswcs.utils.proj_plane_pixel_area(wcs)) * 3600.0
 
-    # VAFACTOR helps get PAMs that are closer to the ones
-    # produced by drizzle but I am not sure this is "better".
-    # So, maybe next 2 lines should be removed..
-    if hasattr(wcs, 'vafactor'):
+    # Ignoring VAFACTOR helps get PAMs that are in better
+    # agreement with the ones produced by R. Hook in 2004.
+    if ignore_vacorr and hasattr(wcs, 'vafactor'):
         cdscale /= wcs.vafactor
-    idcscale = wcs.idcscale if hasattr(wcs, 'idcscale') else cdscale
 
+    idcscale = wcs.idcscale if hasattr(wcs, 'idcscale') else cdscale
     pam = _compute_pam_sd(wcs=wcs, shape=shape, idcscale=idcscale,
                           cdscale=cdscale)
+
+    if normalize_at_crpix:
+        crpix1, crpix2 = [int(np.floor(v + 0.5)) - 1 if v >= 0.0 else
+                          int(np.ceil(v - 0.5)) - 1 for v in wcs.wcs.crpix]
+        pam /= pam[crpix2, crpix1]
+
     return pam
