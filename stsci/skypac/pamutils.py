@@ -1,6 +1,7 @@
 """
 A module that provides functions for computing Pixel Area Maps (PAM) based
-on distortion model contained in a FITS WCS.
+on polynomial distortion model contained in a FITS WCS. Tabular distortions
+``NPOL`` and ``DET2IM`` used to describe ``HST/ACS`` distortions are ignored.
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
 
@@ -9,12 +10,15 @@ on distortion model contained in a FITS WCS.
 """
 from __future__ import division, print_function
 
+import sys
+from distutils.version import LooseVersion
+
 import numpy as np
 import astropy
 from astropy.io import fits
 from astropy import wcs as fitswcs
+
 import stwcs
-from distutils.version import LooseVersion
 
 from . import __version__
 from . import __vdate__
@@ -26,6 +30,14 @@ __all__ = ['pam_from_file', 'pam_from_wcs']
 
 
 ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')
+INT_TYPE = (int, long,) if sys.version_info < (3,) else (int,)
+
+
+def _is_int(n):
+    return (
+        (isinstance(n, INT_TYPE) and not isinstance(n, bool)) or
+        (isinstance(n, np.generic) and np.issubdtype(n, np.integer))
+    )
 
 
 def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
@@ -124,7 +136,7 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
 
 
 def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
-                  normalize_at_crpix=False):
+                  normalize_at=None):
     """
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from the ``FITS``
     ``WCS`` contained in an image extension of a calibrated ``HST`` image
@@ -139,7 +151,8 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
     ----------
 
     image : str
-        File name of a ``FITS`` image that will provide a ``FITS`` ``WCS``.
+        File name of a ``FITS`` image that will provide a ``FITS`` ``WCS``
+        (`stwcs.wcsutils.HSTWCS` or `astropy.wcs.WCS`).
 
     ext : int, str, tuple of (str, int)
         Extension specification. May be an integer extension number,
@@ -153,7 +166,6 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
             If the output file already exists, it will be overwritten
             without warnings.
 
-
     ignore_vacorr : bool, optional
         When set to `True`, ``PAM`` will be generated _as if_ vellocity
         aberration has not applied to the ``WCS``.
@@ -166,10 +178,18 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
            ``WCS`` was not VA-corrected will result in larger errors in
            computed ``PAM``. **Default value is highly recommended!**
 
-    normalize_crpix : bool, optional
-        Indicates whether to normalize computed ``PAM`` to 1 at *``CRPIX``
-        position. Historically, ``WFC3`` pixel area maps have been normalized
-        to 1 at ``CRPIX`` position.
+    normalize_at : tuple of int, optional
+        Indicates whether to normalize computed ``PAM`` to 1 at the provided
+        zero-based pixel position. By default, PAM is computed relative to
+        (or, in units of) the ``idcscale`` (for ``HST`` instruments) value
+        when present or to the pixel scale at ``CRPIX`` when the ``wcs``
+        object does not have an ``idcscale`` property. Default setting
+        should produce results analogous to the drizzle/blot method.
+
+        .. note::
+           ``HST/WFC3`` PAM historically are normalized to 1 at specific pixel
+           positions. See http://www.stsci.edu/hst/wfc3/pam/pixel_area_maps for
+           further details.
 
     """
     with fits.open(image, mode='readonly') as h:
@@ -180,7 +200,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
             wcs = fitswcs.WCS(h[ext].header, h)
 
     pam = pam_from_wcs(wcs, shape=data_shape, ignore_vacorr=ignore_vacorr,
-                       normalize_at_crpix=normalize_at_crpix)
+                       normalize_at=normalize_at)
 
     if ASTROPY_VER_GE13:
         fits.PrimaryHDU(pam).writeto(output_pam, overwrite=True)
@@ -189,7 +209,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
 
 
 def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
-                 normalize_at_crpix=False):
+                 normalize_at=None):
     """
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from a ``FITS``
     ``WCS``.
@@ -202,7 +222,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     Parameters
     ----------
 
-    wcs : astropy.wcs.WCS
+    wcs : stwcs.wcsutils.HSTWCS, astropy.wcs.WCS
         An `~astropy.wcs.WCS` object to be used for generating PAM file.
 
     shape : tuple of two int, None, optional
@@ -223,10 +243,18 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
            ``WCS`` was not VA-corrected will result in larger errors in
            computed ``PAM``. **Default value is highly recommended!**
 
-    normalize_at_crpix : bool, optional
-        Indicates whether to normalize computed ``PAM`` to 1 at *``CRPIX``
-        position. Historically, ``WFC3`` pixel area maps have been normalized
-        to 1 at ``CRPIX`` position.
+    normalize_at : tuple of int, optional
+        Indicates whether to normalize computed ``PAM`` to 1 at the provided
+        zero-based pixel position. By default, PAM is computed relative to
+        (or, in units of) the ``idcscale`` (for ``HST`` instruments) value
+        when present or to the pixel scale at ``CRPIX`` when the ``wcs``
+        object does not have an ``idcscale`` property. Default setting
+        should produce results analogous to the drizzle/blot method.
+
+        .. note::
+           ``HST/WFC3`` PAM historically are normalized to 1 at specific pixel
+           positions. See http://www.stsci.edu/hst/wfc3/pam/pixel_area_maps for
+           further details.
 
     Returns
     -------
@@ -263,9 +291,23 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     pam = _compute_pam_sd(wcs=wcs, shape=shape, idcscale=idcscale,
                           cdscale=cdscale)
 
-    if normalize_at_crpix:
-        crpix1, crpix2 = [int(np.floor(v + 0.5)) - 1 if v >= 0.0 else
-                          int(np.ceil(v - 0.5)) - 1 for v in wcs.wcs.crpix]
-        pam /= pam[crpix2, crpix1]
+    if normalize_at is not None:
+        if hasattr(normalize_at, '__iter__'):
+            if len(normalize_at) != 2:
+                raise ValueError("'normalize_at' must contain exactly two "
+                                 "coordinates.")
+            if not all([_is_int(coord) for coord in normalize_at]):
+                raise TypeError("Each pixel coordinate must be an integer.")
+            if (normalize_at[0] >= shape[1] or normalize_at[1] >= shape[0] or
+                normalize_at[0] < 0 or normalize_at[1] < 0):
+                raise ValueError(
+                    "Pixel coordinates specified by 'normalize_at' must be "
+                    "within output image borders.")
+        else:
+            raise TypeError(
+                "When specified, 'normalize_at' must be an iterable."
+            )
+
+        pam /= pam[normalize_at[1], normalize_at[0]]
 
     return pam
