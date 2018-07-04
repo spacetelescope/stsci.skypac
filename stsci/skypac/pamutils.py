@@ -298,6 +298,10 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
                                  "coordinates.")
             if not all([_is_int(coord) for coord in normalize_at]):
                 raise TypeError("Each pixel coordinate must be an integer.")
+            if normalize_at[1] >= shape[1] or normalize_at[0] >= shape[0]:
+                raise ValueError(
+                    "Pixel coordinates specified by 'normalize_at' must be "
+                    "within output image borders.")
         else:
             raise TypeError(
                 "When specified, 'normalize_at' must be an iterable."
