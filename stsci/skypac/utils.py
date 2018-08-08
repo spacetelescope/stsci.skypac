@@ -2289,7 +2289,7 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
         return np.all(np.abs(a1-a2) <= acc + prec*np.abs(a2))
 
 
-def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='MDRIZSKY',
+def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
                default_ext=('SCI','*')):
     """
     A convenience function that allows retrieving computed sky background
