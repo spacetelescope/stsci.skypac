@@ -31,10 +31,13 @@ __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'ResourceRefCount', 'ImageRef', 'openImageEx',
            'count_extensions', 'get_ext_list', 'get_extver_list',
            'file_name_components', 'temp_mask_file', 'get_instrument_info',
-           'almost_equal']
+           'almost_equal', 'skyval2txt']
+
 __author__ = 'Mihai Cara'
 
+
 ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')
+
 
 def file_name_components(fname, detect_HST_FITS_suffix=True):
     """
@@ -2284,3 +2287,86 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
         return np.all(a1 == a2)
     else:
         return np.all(np.abs(a1-a2) <= acc + prec*np.abs(a2))
+
+
+def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
+               default_ext=('SCI','*')):
+    """
+    A convenience function that allows retrieving computed sky background
+    values from image headers and storing them in a text file that can be
+    re-used by ``drizzlepac.astrodrizzle.AstroDrizzle()``. This is
+    particularly useful when performing sky *matching* on a large number of
+    images which takes considerable time. Saving computed sky values to a text
+    file allows re-running ``AstroDrizzle()`` without re-computing sky values.
+
+    .. warn::
+       The file specified by ``skyfile`` is overwritten without warning.
+
+    .. note::
+       Images that do not have specified extensions will be ignored.
+
+    Parameters
+    ----------
+    files : str
+        File name(s), including extension specification if necessary,
+        from which sky values should be retrieved:
+
+            * a comma-separated list of valid science image file names
+              (see note below) and (optionally) extension specifications,
+              e.g.: ``'j1234567q_flt.fits[1], j1234568q_flt.fits[sci,2]'``;
+
+            * an @-file name, e.g., ``'@fits_files_with_skyvals.txt'``.
+
+        .. note::
+            **Valid** **science** **image** **file** **names** are:
+
+            * file names of existing FITS, GEIS, or WAIVER FITS files;
+
+            * partial file names containing wildcard characters, e.g.,
+              ``'*_flt.fits'``;
+
+            * Association (ASN) tables (must have ``_asn``, or ``_asc``
+              suffix), e.g., ``'j12345670_asn.fits'``.
+
+        .. warning::
+            @-file names **MAY** **NOT** be followed by an extension
+            specification.
+
+        .. warning::
+            If an association table or a partial file name with wildcard
+            characters is followed by an extension specification, it will be
+            considered that this extension specification applies to **each**
+            file name in the association table or **each** file name
+            obtained after wildcard expansion of the partial file name.
+
+    skyfile: str, optional
+        Output "skyfile" to which sky values from the image headers should be
+        written out.
+
+    skykwd: str, optional
+        Header keyword holding the value of the computed sky background.
+
+    default_ext : int, tuple, optional
+        Default extension to be used with image files that to not have
+        an extension specified.
+
+    """
+    from .parseat import parse_cs_line
+
+    files = parse_cs_line(files, doNotOpenDQ=True, im_fmode='readonly',
+                          default_ext=default_ext)
+
+    with open(skyfile, 'w') as f:
+        for file in files:
+            if len(file.fext) < 1:
+                # ignore images that do not have required extension(s):
+                file.release_all_images()
+                continue
+
+            f.write('{:s}'.format(file.image.filename))
+            for ext in file.fext:
+                skyval = file.image.hdu[ext].header.get(skykwd, 0.0)
+                f.write('\t{:.16g}'.format(skyval))
+            f.write('\n')
+
+            file.release_all_images()

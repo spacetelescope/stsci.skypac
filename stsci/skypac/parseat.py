@@ -619,7 +619,8 @@ class FileExtMaskInfo(object):
     def __init__(self, default_ext=('SCI','*'), default_mask_ext=0,
                  clobber=False, doNotOpenDQ=False, fnamesOnly=False,
                  im_fmode='update', dq_fmode='readonly', msk_fmode='readonly'):
-        self._verify_ext(default_ext)
+        if default_ext is not None:
+            self._verify_ext(default_ext)
         self._verify_ext(default_mask_ext)
         if fnamesOnly:
             self._im     = None
@@ -987,7 +988,6 @@ class FileExtMaskInfo(object):
     # does not have the correct format: int, or (str, int), or '*'
     @classmethod
     def _verify_ext(cls, ext):
-
         if isinstance(ext, int):
             return False
 

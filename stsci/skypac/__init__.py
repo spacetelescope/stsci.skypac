@@ -10,8 +10,8 @@ __taskname__ = 'skymatch'
 __author__ = 'Mihai Cara'
 
 import os
-from . import utils
 from . import parseat
+from . import utils
 from . import pamutils
 from . import region
 from . import skystatistics
