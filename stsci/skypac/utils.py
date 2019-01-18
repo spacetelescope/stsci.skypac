@@ -2,13 +2,11 @@
 This module provides utility functions for use
 by :py:mod:`stsci.skypac` module.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
+:Authors: Mihai Cara
 
 :License: :doc:`LICENSE`
 
 """
-from __future__ import print_function
-
 import sys
 import os
 import weakref
@@ -21,11 +19,11 @@ import numpy as np
 import astropy
 from astropy.io import fits
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
-from .hstinfo import supported_telescopes, supported_instruments, \
-     counts_only_instruments, mixed_units_instruments, rates_only_instruments
+from .hstinfo import (supported_telescopes, supported_instruments,
+                      counts_only_instruments, mixed_units_instruments,
+                      rates_only_instruments)
 
-from . import __version__
-from . import __vdate__
+from . import __version__, __version_date__
 
 __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'ResourceRefCount', 'ImageRef', 'openImageEx',
@@ -34,9 +32,6 @@ __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'almost_equal', 'skyval2txt']
 
 __author__ = 'Mihai Cara'
-
-
-ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')
 
 
 def file_name_components(fname, detect_HST_FITS_suffix=True):
@@ -2123,10 +2118,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             if verbose:
                 print("Writing out {} as MEF to \'{}\'".format( \
                     ftype, sci_image.mef_fname))
-            if ASTROPY_VER_GE13:
-                hdulist.writeto(sci_image.mef_fname, overwrite=clobber)
-            else:
-                hdulist.writeto(sci_image.mef_fname, clobber=clobber)
+            hdulist.writeto(sci_image.mef_fname, overwrite=clobber)
             sci_image.mef_exists = True
 
         if dq_image.original_exists and not imageOnly and \
@@ -2134,10 +2126,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             if verbose:
                 print("Writing out DQ {} as MEF to \'{}\'".format( \
                     ftype, dq_image.mef_fname))
-            if ASTROPY_VER_GE13:
-                dqhdulist.writeto(dq_image.mef_fname, overwrite=clobber)
-            else:
-                dqhdulist.writeto(dq_image.mef_fname, clobber=clobber)
+            dqhdulist.writeto(dq_image.mef_fname, overwrite=clobber)
             dq_image.mef_exists = True
 
     rcim_orig = ResourceRefCount(hdulist)

@@ -1,11 +1,6 @@
 """skymatch"""
 
-# These lines allow TEAL to print out the names of TEAL-enabled tasks
-# upon importing this package.
-from __future__ import print_function
-
-from .version import *
-__vdate__ = __version_date__  # Backwards compat.
+from .version import __version__, __version_date__
 __taskname__ = 'skymatch'
 __author__ = 'Mihai Cara'
 
@@ -18,11 +13,8 @@ from . import skystatistics
 from . import skyline
 from . import skymatch
 
-
 from stsci.tools import teal
 teal.print_tasknames(__name__, os.path.dirname(__file__))
-
-
 
 
 def help():

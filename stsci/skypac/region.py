@@ -1,7 +1,7 @@
 """
 Polygon filling algorithm.
 
-:Authors: Nadezhda Dencheva, Mihai Cara (contact: help@stsci.edu)
+:Authors: Nadezhda Dencheva, Mihai Cara
 
 :License: :doc:`LICENSE`
 
@@ -21,7 +21,6 @@ Polygon filling algorithm.
 #    http://www.cs.rit.edu/~icss571/filling/how_to.html
 #    http://www.cs.uic.edu/~jbell/CourseNotes/ComputerGraphics/PolygonFilling.html
 #
-from __future__ import division
 from collections import OrderedDict
 import numpy as np
 

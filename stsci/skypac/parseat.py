@@ -2,17 +2,17 @@
 Module for parsing ``@-files`` or user input strings for use
 by :py:mod:`stsci.skypac` module.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
+:Authors: Mihai Cara
 
 :License: :doc:`LICENSE`
 
 """
-from __future__ import print_function
-
-import os, sys, glob
+import os
+import sys
+import glob
 from copy import copy, deepcopy
-from .utils import MultiFileLog, ImageRef, openImageEx, \
-     count_extensions, get_ext_list, get_extver_list
+from .utils import (MultiFileLog, ImageRef, openImageEx, count_extensions,
+                    get_ext_list, get_extver_list)
 from stsci.tools import fileutil, parseinput
 
 try:
@@ -21,7 +21,7 @@ except:
     osfn = None
 
 __all__ = ['parse_at_file', 'parse_at_line', 'parse_cs_line',
-           'FileExtMaskInfo' ]
+           'FileExtMaskInfo']
 __author__ = 'Mihai Cara'
 
 

@@ -1,13 +1,11 @@
 """
 A module that provides functions for matching sky in overlapping images.
 
-:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim (contact: help@stsci.edu)
+:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim
 
 :License: :doc:`LICENSE`
 
 """
-from __future__ import division, print_function
-
 # STDLIB
 import os
 from datetime import datetime
@@ -34,8 +32,7 @@ from .utils import ext2str, MultiFileLog, ImageRef
 from .parseat import FileExtMaskInfo, parse_cs_line, parse_at_file
 from .skyline import SkyLineMember, SkyLine
 from . import region
-from . import __version__
-from . import __vdate__
+from . import __version__, __version_date__
 
 __all__ = ['TEAL_SkyMatch', 'skymatch']
 __taskname__ = 'skymatch'
@@ -776,7 +773,8 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
     #  BEGIN:
     ml.logentry("***** {0} started on {1}", __taskname__, runtime_begin)
-    ml.logentry("      Version {0} ({1})", __version__, __vdate__, skip=1)
+    ml.logentry("      Version {0} ({1})", __version__, __version_date__,
+                skip=1)
 
     if readonly:
         ml.logentry("\'skymatch\' task will be run in read-only mode.",
@@ -1327,7 +1325,7 @@ def _calc_sky(s1, s2, skystat):
 def _member_sky(member, radec, skystat, _dbg_name):
     wcs = member.wcs
 
-    fill_mask = np.zeros((wcs._naxis2, wcs._naxis1), dtype=bool)
+    fill_mask = np.zeros(wcs.array_shape, dtype=bool)
 
     if __local_debug__:
         ivert1 = []
@@ -1514,7 +1512,7 @@ def _apply_skyuser(skyline, readonly_mode, subtractsky, _taskname4history):
     if skyline.members and _taskname4history == 'SkyMatch':
         skyline.members[0].image_hdulist[0].header.add_history(
             '{} by {} {} ({})'.format(hdr_keyword, __taskname__,
-                                      __version__, __vdate__))
+                                      __version__, __version_date__))
 
 
 def _overlap_matrix(skylines, skystat):
