@@ -3,25 +3,22 @@ A module that provides functions for computing Pixel Area Maps (PAM) based
 on polynomial distortion model contained in a FITS WCS. Tabular distortions
 ``NPOL`` and ``DET2IM`` used to describe ``HST/ACS`` distortions are ignored.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
+:Authors: Mihai Cara
 
 :License: :doc:`LICENSE`
 
 """
-from __future__ import division, print_function
-
 import sys
+import numbers
 from distutils.version import LooseVersion
 
 import numpy as np
 import astropy
 from astropy.io import fits
 from astropy import wcs as fitswcs
-
 import stwcs
 
-from . import __version__
-from . import __vdate__
+from . import __version__, __version_date__
 
 
 __author__ = 'Mihai Cara'
@@ -29,13 +26,9 @@ __author__ = 'Mihai Cara'
 __all__ = ['pam_from_file', 'pam_from_wcs']
 
 
-ASTROPY_VER_GE13 = LooseVersion(astropy.__version__) >= LooseVersion('1.3')
-INT_TYPE = (int, long,) if sys.version_info < (3,) else (int,)
-
-
 def _is_int(n):
     return (
-        (isinstance(n, INT_TYPE) and not isinstance(n, bool)) or
+        (isinstance(n, numbers.Integral) and not isinstance(n, bool)) or
         (isinstance(n, np.generic) and np.issubdtype(n, np.integer))
     )
 
@@ -58,9 +51,8 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
     shape : tuple of int, None (Default = None)
         A tuple of two integers (ny, nx) indicating the size of the PAM image
         to be generated. When the default value is used (`None`), the size
-        of the returned PAM array will be determined from `wcs._naxis1`
-        and `wcs._naxis2` attributes of the supplied `WCS` object
-        as (`wcs._naxis2`, `wcs._naxis1`).
+        of the returned PAM array will be determined from `wcs.array_shape`
+        attribute of the supplied `WCS` object.
 
     blc : tuple of int or float (Default = (1, 1))
         A tuple indicating the coordinates of the bottom-left pixel of the
@@ -88,7 +80,7 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
 
     """
     if shape is None:
-        shape = (wcs._naxis2, wcs._naxis1)
+        shape = wcs.array_shape
 
     # rescale factor:
     rf = (cdscale / idcscale)**2
@@ -202,10 +194,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
     pam = pam_from_wcs(wcs, shape=data_shape, ignore_vacorr=ignore_vacorr,
                        normalize_at=normalize_at)
 
-    if ASTROPY_VER_GE13:
-        fits.PrimaryHDU(pam).writeto(output_pam, overwrite=True)
-    else:
-        fits.PrimaryHDU(pam).writeto(output_pam, clobber=True)
+    fits.PrimaryHDU(pam).writeto(output_pam, overwrite=True)
 
 
 def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
@@ -228,8 +217,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     shape : tuple of two int, None, optional
         Shape of the output image ``(ny, nx)``. If se to default `None`, this
         function will try to deduce the shape of the output image from the
-        values of ``_naxis1`` and ``_naxis2`` attributes of the input ``wcs``
-        object.
+        value of ``array_shape`` attribute of the input ``wcs`` object.
 
     ignore_vacorr : bool, optional
         When set to `True`, ``PAM`` will be generated _as if_ vellocity
@@ -266,19 +254,15 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     ------
 
     ValueError
-        When ``shape`` is `None` but the ``wcs`` object has no
-        ``_naxis1`` and ``_naxis2`` attributes.
+        When both ``shape`` and ``wcs.array_shape`` attribute are `None`.
 
     """
     if shape is None:
-        if hasattr(wcs, '_naxis'):
-            shape = tuple(reversed(wcs._naxis))
-        elif hasattr(wcs, '_naxis1') and hasattr(wcs, '_naxis2'):
-            shape = (wcs._naxis2, wcs._naxis1)
+        if wcs.array_shape is not None:
+            shape = wcs.array_shape
         else:
-            raise ValueError("When 'shape' is None, 'wcs' object must have "
-                             "either attributes '_naxis1' and '_naxis2' or "
-                             "attribute '_naxis'.")
+            raise ValueError("Both 'shape' and 'wcs.array_shape' are None. "
+                             "Cannot infer output image shape.")
 
     cdscale = np.sqrt(fitswcs.utils.proj_plane_pixel_area(wcs)) * 3600.0
 

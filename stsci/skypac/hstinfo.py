@@ -2,7 +2,7 @@
 This module provides information about supported HST instruments for use
 by :py:mod:`stsci.skypac` module.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
+:Authors: Mihai Cara
 
 :License: :doc:`LICENSE`
 

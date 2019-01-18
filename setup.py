@@ -2,9 +2,34 @@
 import os
 import pkgutil
 import sys
+from configparser import ConfigParser
 from setuptools import setup, find_packages
 from subprocess import check_call, CalledProcessError
 
+try:
+    from distutils.config import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
+conf = ConfigParser()
+conf.read(['setup.cfg'])
+
+# Get some config values
+metadata = dict(conf.items('metadata'))
+PACKAGENAME = metadata.get('package_name', 'stsci.skypac')
+DESCRIPTION = metadata.get('description', 'Sky matching on image mosaic')
+LONG_DESCRIPTION = metadata.get('long_description', 'README.md')
+LONG_DESCRIPTION_CONTENT_TYPE = metadata.get('long_description_content_type',
+                                             'text/markdown')
+AUTHOR = metadata.get('author', 'Mihai Cara, Warren Hack, Pey Lian Lim')
+AUTHOR_EMAIL = metadata.get('author_email', 'help@stsci.edu')
+URL = metadata.get('url', 'https://github.com/spacetelescope/stsci.skypac')
+LICENSE = metadata.get('license', 'BSD-3-Clause')
+
+# load long description
+this_dir = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_dir, LONG_DESCRIPTION), encoding='utf-8') as f:
+    long_description = f.read()
 
 if not pkgutil.find_loader('relic'):
     relic_local = os.path.exists('relic')
@@ -24,21 +49,57 @@ if not pkgutil.find_loader('relic'):
 
 import relic.release
 
-NAME_ROOT = 'stsci'
-NAME_BASE = 'skypac'
-NAME = '.'.join([NAME_ROOT, NAME_BASE])
-NS_PATH = os.path.join(NAME_ROOT, NAME_BASE)
-
 version = relic.release.get_info()
-relic.release.write_template(version, NS_PATH)
+if not version.date:
+    default_version = metadata.get('version', '')
+    default_version_date = metadata.get('version-date', '')
+    version = relic.git.GitVersion(
+        pep386=default_version,
+        short=default_version,
+        long=default_version,
+        date=default_version_date,
+        dirty=True,
+        commit='',
+        post='-1'
+    )
+relic.release.write_template(version,  os.path.join(*PACKAGENAME.split('.')))
+
+PACKAGE_DATA = {
+    '': [
+        'README.rst',
+        'LICENSE.txt',
+        'CHANGELOG.rst',
+        '*.fits',
+        '*.txt',
+        '*.inc',
+        '*.cfg',
+        '*.csv',
+        '*.yaml',
+        '*.json'
+        ],
+
+    PACKAGENAME: [
+        '*.help',
+        'pars/*',
+    ],
+}
+
+INSTALL_REQUIRES=[
+    'astropy>=3.1',
+    'numpy',
+    'spherical_geometry>=1.2.2',
+    'stsci.imagestats',
+    'stsci.tools',
+    'stwcs'
+]
 
 setup(
-    name=NAME,
+    name=PACKAGENAME,
     version=version.pep386,
-    author='Mihai Cara, Warren Hack, Pey Lian Lim',
-    author_email='help@stsci.edu',
-    description='Sky matching on image mosaic',
-    url='https://github.com/spacetelescope/stsci.skypac',
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    description=DESCRIPTION,
+    url=URL,
     classifiers=[
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
@@ -46,22 +107,15 @@ setup(
         'Programming Language :: Python',
         'Topic :: Scientific/Engineering :: Astronomy',
         'Topic :: Software Development :: Libraries :: Python Modules',
+        'Development Status :: 5 - Production/Stable',
     ],
-    install_requires=[
-        'astropy',
-        'numpy',
-        'sphinx',
-        'spherical_geometry>=1.2.2',
-        'stsci.imagestats',
-        'stsci.tools',
-        'stwcs'
-    ],
+    python_requires='>=3.5',
+    install_requires=INSTALL_REQUIRES,
     packages=find_packages(),
-    package_data={
-        '': ['LICENSE.txt'],
-        NAME: [
-            '*.help',
-            'pars/*',
-        ]
-    },
+    package_data=PACKAGE_DATA,
+    project_urls={
+        'Bug Reports': 'https://github.com/spacetelescope/stsci.skypac/issues/',
+        'Source': 'https://github.com/spacetelescope/stsci.skypac/',
+        'Help': 'https://hsthelp.stsci.edu/',
+        },
 )

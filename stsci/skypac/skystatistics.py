@@ -2,7 +2,7 @@
 Sky statistics computation class for `~skymatch.skymatch` and
 `~skymatch.skymatch._weighted_sky`.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
+:Authors: Mihai Cara
 
 :License: :doc:`LICENSE`
 

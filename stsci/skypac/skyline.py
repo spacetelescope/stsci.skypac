@@ -36,13 +36,11 @@ This process will work reasonably fast as most operations
 are performed using the `SkyLine` objects and WCS information
 solely, not image data itself.
 
-:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim (contact: help@stsci.edu)
+:Authors: Mihai Cara, Warren Hack, Pey-Lian Lim
 
 :License: :doc:`LICENSE`
 
 """
-from __future__ import division, print_function, absolute_import
-
 # STDLIB
 import sys, os
 from copy import copy, deepcopy
