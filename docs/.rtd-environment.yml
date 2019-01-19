@@ -2,16 +2,17 @@ name: stsci.skypac
 channels:
   - http://ssb.stsci.edu/astroconda
 dependencies:
-  - astropy
+  - "python>=3.5"
+  - numpy
+  - "astropy>=3.1"
+  - numpydoc
   - graphviz
   - matplotlib
-  - numpy
-  - numpydoc
-  - spherical-geometry
-  - sphinx
   - stsci.imagestats
   - stsci.tools
   - stwcs
+  - spherical-geometry
+  - sphinx
   - pip:
     - sphinx_rtd_theme
     - git+https://github.com/spacetelescope/stsci_rtd_theme.git#egg=stsci_rtd_theme

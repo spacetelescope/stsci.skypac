@@ -22,8 +22,8 @@ DEPS = "astropy graphviz numpy numpydoc \
         spherical-geometry sphinx sphinx_rtd_theme \
         stsci_rtd_theme stsci.imagestats stwcs setuptools"
 
-matrix_python = ["2.7", "3.5", "3.6"]
-matrix_astropy = ["2", "3"]
+matrix_python = ["3.5", "3.6"]
+matrix_astropy = ["3"]
 matrix_numpy = ["latest"]
 matrix = []
 

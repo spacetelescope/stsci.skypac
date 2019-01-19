@@ -1,6 +1,6 @@
-******************************
+=========================
 Polygon filling algorithm
-******************************
+=========================
 
 .. moduleauthor:: Nadezhda Dencheva, Mihai Cara <help@stsci.edu>
 

@@ -1,6 +1,6 @@
-**************************************************************
-SkyLine (chip outline on the sky) management for image mosaic.
-**************************************************************
+=============================================================
+SkyLine (chip outline on the sky) management for image mosaic
+=============================================================
 
 .. moduleauthor:: Mihai Cara <help@stsci.edu>
 
