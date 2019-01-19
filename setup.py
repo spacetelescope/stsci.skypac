@@ -16,11 +16,6 @@ try:
 except ImportError:
     from configparser import ConfigParser
 
-
-from sphinx.cmd.build import build_main
-from sphinx.setup_command import BuildDoc
-
-
 conf = ConfigParser()
 conf.read(['setup.cfg'])
 
@@ -120,7 +115,8 @@ INSTALL_REQUIRES=[
     'spherical_geometry>=1.2.2',
     'stsci.imagestats',
     'stsci.tools',
-    'stwcs'
+    'stwcs',
+    'shpinx'
 ]
 
 # Distribute compiled documentation alongside the installed package
@@ -139,6 +135,9 @@ class InstallCommand(install):
                   '         Execute the following then reinstall:\n\n'
                   '         $ python setup.py build_sphinx\n\n',
                   file=sys.stderr)
+
+from sphinx.cmd.build import build_main
+from sphinx.setup_command import BuildDoc
 
 class BuildSphinx(BuildDoc):
     """Build Sphinx documentation after compiling C extensions"""
