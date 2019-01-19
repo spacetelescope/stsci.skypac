@@ -1,6 +1,6 @@
-*************************************
-Utility functions for skypac.
-*************************************
+============================
+Utility functions for skypac
+============================
 
 .. moduleauthor:: Mihai Cara <help@stsci.edu>
 

@@ -43,27 +43,29 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
 
     Parameters
     ----------
+
     fname : str
         file name
 
-    detect_HST_FITS_suffix : bool (Default = True)
+    detect_HST_FITS_suffix : bool, optional
         If True, detects the suffix of most HST files by looking for the
         rightmost occurence of the underscore ('_') in the file name.
 
     Returns
     -------
+
     root : str
-        Root name of the file. When `detect_HST_FITS_suffix`\ =\ `True`,
+        Root name of the file. When ``detect_HST_FITS_suffix`` is `True`,
         this is the part of the file name *preceding* the rightmost suffix
         separator ('_'). Otherwise, it is the base file name without file
         extension.
 
     suffix : str
-        If `detect_HST_FITS_suffix`\ =\ `True`, this field will contain the
+        If ``detect_HST_FITS_suffix`` is `True`, this field will contain the
         suffix of most HST files, i.e., the part of the file name contained
         between the rightmost suffix separator ('_') and file
         extension separator. This return value will be an empty string if
-        If `detect_HST_FITS_suffix`\ =\ `False` or if the file name has no
+        If ``detect_HST_FITS_suffix`` is `False` or if the file name has no
         extension separator.
 
     fext : str
@@ -71,6 +73,7 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
 
     Examples
     --------
+
         >>> file_name_components('/data/m87/ua0x5001m_c0f.fits')
         ('ua0x5001m', 'c0f', '.fits')
         >>> file_name_components('/data/m87/ua0x5001m_c0f.fits',False)
@@ -99,8 +102,9 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
 
 def in_memory_mask(data):
     """
-    Creates an ImageRef object with that embeds an in memory
-    (i.e., not attached to a file) HDUList containing the supplied mask data.
+    Creates an `ImageRef` object with that embeds an in memory
+    (i.e., not attached to a file) ``HDUList`` containing the supplied mask
+    data.
 
 
     Parameters
@@ -156,42 +160,42 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
     rootname : str
         Root name of the file.
 
-    prefix : str (Default = 'tmp')
-        Prefix to be added in front of the root name. If `randomize_prefix`
+    prefix : str, optional
+        Prefix to be added in front of the root name. If ``randomize_prefix``
         is `True`, then a random string will be added to the right of the
-        string specified by `prefix` (with no separator between them).
+        string specified by ``prefix`` (with no separator between them).
         Prefix (or the randomized prefix) will be separated from the
-        root name by the string specified in `sep`. If prefix is an empty
+        root name by the string specified in ``sep``. If ``prefix`` is an empty
         string (``''``) then no prefix will be prepended to the root file
         name.
 
-    suffix : str (Default = 'mask')
+    suffix : str, optional
         Suffix to be added to the root name. Suffix will be separated from
-        the root name by the string specified in `sep`.
+        the root name by the string specified in ``sep``.
 
-    ext : int, str, or tuple of the form (str, int)
+    ext : int, str, or tuple of the form (str, int), optional
         Extention to be added to the temporary file *after* the suffix.
         Extension name string will be separated from
-        the suffix by the string specified in `sep`.
+        the suffix by the string specified in ``sep``.
 
-    sep : str (Default = '_')
+    sep : str, optional
         Separator string to be inserted between (randomized) prefix
         and root name, root name and suffix, and suffix and extension.
 
-    randomize_prefix : bool (Default = True)
+    randomize_prefix : bool, optional
         Specifies whether to add (postpend) a random string to string
-        specified by `prefix`.
+        specified by ``prefix``.
 
-    dir : str (Default = os.path.curdir)
+    dir : str, optional
         Directory to which the temporary file should be written. If directory
-        `dir`\ =\ `None` then the file will be written to the default
-        (for more details, see the explanation for argument `dir` to the
+        ``dir`` is `None` then the file will be written to the default
+        (for more details, see the explanation for argument ``dir`` to the
         `tempfile.mstemp <http://docs.python.org/2/library/\
         tempfile.html#tempfile.mkstemp>`_ function).
 
-    fnameOnly : bool (Default = False)
+    fnameOnly : bool, optional
         Specifies what should `temp_mask_file` return: file name of the
-        created file (if `fnameOnly`\ =\ `True`), or a tuple with the file
+        created file (if ``fnameOnly`` is `True`), or a tuple with the file
         name of the created file and an open
         :py:class:`~skypac.utils.ImageRef` object of that file.
 
@@ -203,7 +207,7 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
     mask : ImageRef
         An open :py:class:`~skypac.utils.ImageRef` object of the temporary
         FITS file. This is returned as a tuple together with the file name
-        only when `fnameOnly`\ =\ `False`.
+        only when ``fnameOnly`` is `False`.
 
         .. note::
             Mask data will be in the Primary HDU.
@@ -296,8 +300,8 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
 
 def get_extver_list(img, extname='SCI'):
     """
-    Return a list of all extension versions with `extname` extension
-    names. If `extname` is `None`, return extension **numbers** of all
+    Return a list of all extension versions with ``extname`` extension
+    names. If ``extname`` is `None`, return extension **numbers** of all
     image-like extensions.
 
     .. note::
@@ -307,22 +311,22 @@ def get_extver_list(img, extname='SCI'):
     Parameters
     ----------
     img : str, `astropy.io.fits.HDUList`, or `~skypac.utils.ImageRef`
-        Input image object. If `img` is a string object (file name) then that
+        Input image object. If ``img`` is a string object (file name) then that
         file will be opened. If the file pointed to by the file name is a
         GEIS or WAIVER FITS file, it will be converted to a simple/MEF FITS
-        format if `clobber`=`True`.
+        format if ``clobber`` is `True`.
 
-    extname : str (Default = 'SCI')
+    extname : str, optional
         Indicates extension *name* for which all existing extension *versions*
-        should be found. If `extname`=`None`, then
+        should be found. If ``extname`` is `None`, then
         `~skypac.utils.get_extver_list` will return a list of extension
         *numbers* of all image-like extensions.
 
     Returns
     -------
     extver : list
-        List of extension versions corresponding to the input `extname`.
-        If `extname`=`None`, it will return a list of extension
+        List of extension versions corresponding to the input ``extname``.
+        If ``extname`` is `None`, it will return a list of extension
         *numbers* of all image-like extensions.
 
     Raises
@@ -335,7 +339,7 @@ def get_extver_list(img, extname='SCI'):
         an `~.utils.ImageRef`, or a `astropy.io.fits.HDUList` object.
 
     TypeError
-        Argument `extname` must be either a string or None.
+        Argument `extname` must be either a string or `None`.
 
     See Also
     --------
@@ -413,13 +417,13 @@ def get_extver_list(img, extname='SCI'):
 
 def get_ext_list(img, extname='SCI'):
     """
-    Return a list of all extension versions of `extname` extensions.
-    `img` can be either a file name or a `astropy.io.fits.HDUList` object.
+    Return a list of all extension versions of ``extname`` extensions.
+    ``img`` can be either a file name or a `astropy.io.fits.HDUList` object.
 
     This function is similar to :py:func:`get_extver_list`, the main
-    difference being that it returns a list of fully qualified extensions: \
-    either tuples of the form (\ `extname`\ ,\ `extver`\ ) or integer extension
-    numbers (when `extname`\ =\ `None`).
+    difference being that it returns a list of fully qualified extensions:
+    either tuples of the form `(extname, extver)` or integer extension
+    numbers (when ``extname`` is `None`).
 
     See Also
     --------
@@ -444,8 +448,8 @@ def get_ext_list(img, extname='SCI'):
 
 def count_extensions(img, extname='SCI'):
     """
-    Return the number of `extname` extensions in the input image `img`\ .
-    If `extname` is `None`\ , return the number of all image-like extensions.
+    Return the number of `extname` extensions in the input image ``img``.
+    If ``extname`` is `None`, return the number of all image-like extensions.
 
     Input parameters are identical to those of :py:func:`get_extver_list`.
 
@@ -461,7 +465,6 @@ def count_extensions(img, extname='SCI'):
     10
 
     """
-
     return len(get_extver_list(img=img, extname=extname))
 
 
@@ -476,21 +479,21 @@ def ext2str(ext, compact=False, default_extver=1):
         ('sci',1), an integer (extension number), or a string (extension
         name).
 
-    compact : bool (Default = False)
-        If `compact`\ =\ `True` the returned string will have extension
+    compact : bool, optional
+        If ``compact`` is `True` the returned string will have extension
         name quoted and separated by a comma from the extension number,
-        e.g., "'sci',1".
-        If `compact`\ =\ `False` the returned string will have extension
-        version immediately follow the extension name, e.g., 'sci1'.
+        e.g., ``"'sci',1"``.
+        If ``compact`` is `False` the returned string will have extension
+        version immediately follow the extension name, e.g., ``'sci1'``.
 
-    default_extver : int (Default = 1)
-        Specifies the extension version to be used when the `ext` parameter
+    default_extver : int, optional
+        Specifies the extension version to be used when the ``ext`` parameter
         is a string (extension name).
 
     Returns
     -------
     strext : str
-        String representation of extension specification `ext`.
+        String representation of extension specification ``ext``.
 
     Raises
     ------
@@ -541,10 +544,10 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
     """
     Infer the units of the data of the input image from the input image.
     Specifically, it tries to infer whether the units are counts (or
-    count-like) or if the units are count-\ `rate`\ .
+    count-like) or if the units are count-``rate``.
 
     The units of data are determined from the ``BUNIT`` header keyword by
-    searching its value for the division sign '/'. If the division sign is
+    searching its value for the division sign ``'/'``. If the division sign is
     not found, then the units are assumed to be "counts". If the division
     sign is found in the ``BUNIT`` value and if the numerator is one of
     the following: 'ELECTRONS','COUNTS', or 'DN', and denumerator is either
@@ -557,40 +560,41 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     ext : tuple, int, str
         Extension specification for whose data the units need to be inferred.
-        An int `ext` specifies extension number. A tuple in the form
-        (str, int) specifies extension name and number. A string `ext`
+        An int ``ext`` specifies extension number. A tuple in the form
+        (str, int) specifies extension name and number. A string ``ext``
         specifies extension name and the extension version is assumed to be
         1. See documentation for `astropy.io.fits.getData`
         for examples.
 
-    units_kwd : str (Default = 'BUNIT')
+    units_kwd : str, optional
         FITS header keyword describing data units of the image. This keyword
         is assumed to be in the header of the extension specified by the
-        `ext` parameter.
+        ``ext`` parameter.
 
-    guess_if_missing : bool (Default = True)
+    guess_if_missing : bool, optional
         Instructs to try make best guess on image units when the keyword
-        specified by `units_kwd` is not found in the image header. The first
+        specified by ``units_kwd`` is not found in the image header. The first
         action will be to look for this keyword in the primary header, and
         if not found, infer the units based on the telescope, instrument,
         and detector information.
 
-    telescope : str, None (Default = None)
+    telescope : str, None, optional
         Specifies the telescope from which the data came. If not specified,
-        the value specified in the ``TELESCOP`` keyword in the primary
+        the value specified in the ``'TELESCOP'`` keyword in the primary
         header will be used.
 
-    instrument : str, None (Default = None)
+    instrument : str, None, optional
         Specifies the instrument used for acquiring data. If not specified,
-        the value specified in the ``INSTRUME`` keyword in the primary
+        the value specified in the ``'INSTRUME'`` keyword in the primary
         header will be used.
 
-    verbose : bool (Default = True)
+    verbose : bool, optional
         Specifies whether to print warning messages.
 
-    flog : str, file, MultiFileLog, None (Default = None)
+    flog : str, file, MultiFileLog, None, optional
         Specifies the log file to which the messages should be printed.
-        It can be a file name, a file object, a MultiFileLog object, or None.
+        It can be a file name, a file object, a `MultiFileLog` object, or
+        `None`.
 
     Returns
     -------
@@ -784,34 +788,34 @@ class MultiFileLog(object):
     functions that automate such things as appending EOL at the end of the
     log entry, flushing the files (to avoid losing log entries in case of
     uncaught exceptions), displaying ``WARNING``, ``ERROR``, etc. in bold
-    on standard streams (sys.stdout, etc.)
+    on standard streams (`sys.stdout`, etc.)
 
     Parameters
     ----------
-    console : bool (Default = True)
+    console : bool, optional
         Enables writting to the standard output.
 
-    enableBold : bool (Default = True)
-        Enable or disable writing bold text to console, e.g., 'WARNING:'
-        'ERROR:', etc.
+    enableBold : bool, optional
+        Enable or disable writing bold text to console, e.g., ``'WARNING:'``
+        ``'ERROR:'``, etc.
 
-    flog : str, file, None, list of str or file objects (Default = None)
+    flog : str, file, None, list of str or file objects, optional
         File name or file object to be added to `MultiFileLog` during the
         initialization. More files can be added lated with
-        :py:meth:`add_logfile`\ .
+        :py:meth:`add_logfile`.
 
-    append : bool (Default = True)
+    append : bool, optional
         Default open mode for the files that need to be opened (e.g., that
-        are passed as file names). If `append` is `True`\ , new files added
+        are passed as file names). If ``append`` is `True`, new files added
         to a `MultiFileLog` object will be opened in the "append"
         mode: new log entries will be appended to existing files -- same as
-        mode 'a' of standard function :py:func:`open`\ . When `append` is
-        `False`\ , any existing files will be overwritten.
+        mode 'a' of standard function :py:func:`open`. When ``append`` is
+        `False`, any existing files will be overwritten.
 
-    autoflush : bool (Default = True)
+    autoflush : bool, optional
         Indicates whether or not to flush files after each log entry.
 
-    appendEOL : bool (Default = True)
+    appendEOL : bool, optional
         Indicates whether or not to add EOL at the end of each log entry.
 
     """
@@ -858,16 +862,16 @@ class MultiFileLog(object):
 
     def enable_console(self, enable=True, enableBold=True):
         """
-        Enable output to the standard console -- `sys.stdout`\ .
+        Enable output to the standard console -- `sys.stdout`.
 
         Parameters
         ----------
-        enable : bool (Default = True)
-            Enable or disable output to `sys.stdout`\ .
+        enable : bool, optional
+            Enable or disable output to `sys.stdout`.
 
-        enableBold : bool (Default = True)
-            Enable or disable writing bold text to console, e.g., 'WARNING:'
-            'ERROR:', etc.
+        enableBold : bool, optional
+            Enable or disable writing bold text to console, e.g.,
+            ``'WARNING:'``, ``'ERROR:'``, etc.
 
         """
         if enable:
@@ -885,27 +889,27 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        flog : str, file, None, list of str or file objects (Default = None)
+        flog : str, file, None, list of str or file objects, optional
             File name or file object to be added.
 
-        initial_skip : int (Default = 2)
+        initial_skip : int, optional
             The number of blank line to be written to the file *if* *not*
             at the beginning of the file.
 
-        can_close : bool, None (Default = None)
+        can_close : bool, None, optional
             Indicates whether the file object can be closed by the
             :py:meth:`~skypac.utils.MultiFileLog.close` function:
 
-            * `can_close`\ =\ `True` -- file can be closed by the
+            * ``can_close`` is `True` -- file can be closed by the
               :py:meth:`~skypac.utils.MultiFileLog.close` function;
-            * `can_close`\ =\ `False` -- file will not be closed by the
+            * ``can_close`` is `False` -- file will not be closed by the
               :py:meth:`~skypac.utils.MultiFileLog.close` function;
-            * `can_close`\ =\ `None` -- automatic selection based on the type
+            * ``can_close`` is `None` -- automatic selection based on the type
               of the `flog` argument: `True` if flog is a string
               (e.g., file name), `False` otherwise.
 
-        mode : str, None (Default = None)
-            File open mode: same meaning as the `mode` parameter of the
+        mode : str, None, optional
+            File open mode: same meaning as the ``mode`` parameter of the
             Python's built-in :py:func:`open` function. If `None`, the mode
             will be inherited from file open mode set during initialization.
 
@@ -960,12 +964,12 @@ class MultiFileLog(object):
         ----------
         fh : file object
 
-        can_close : bool (Default = True)
+        can_close : bool, optional
             Indicates if the file can be closed by the :py:meth:`close`
             function.
 
             .. note::
-                File object `fh` **must** have been already added to
+                File object ``fh`` **must** have been already added to
                 the `MultiFileLog` object.
 
         """
@@ -1024,11 +1028,11 @@ class MultiFileLog(object):
         ----------
         msg : str
             String to be printed. Can contain replacement fields delimited
-            by braces {}.
+            by braces ``{}``.
 
         fmt
             Parameters to be passed to :py:meth:`str.format` method for
-            formatting the string `msg`\ .
+            formatting the string ``msg``.
 
         skip : int
             Number of empty lines that should follow the log message.
@@ -1039,7 +1043,6 @@ class MultiFileLog(object):
         will print:
         Sky background for chip SCI1 is 10.0
         followed by two blank lines.
-
 
         """
         if 'skip' in skip:
@@ -1057,13 +1060,13 @@ class MultiFileLog(object):
             if self._autoflush:
                 fh.flush()
 
-    def skip(self,nlines=1):
+    def skip(self, nlines=1):
         """
         Skip a specified number of blank lines.
 
         Parameters
         ----------
-        nlines : int (Default = 1)
+        nlines : int, optional
 
         """
         msg = nlines * self._lsep
@@ -1125,7 +1128,7 @@ class MultiFileLog(object):
 class ResourceRefCount(object):
     """
     A class that implements reference counting for various resources:
-    file objects, PyFITS HDU lists, etc. It is intended to be used as a
+    file objects, FITS HDU lists, etc. It is intended to be used as a
     mechanism of controlling the "lifespan" of resources that can be used
     in different parts of the code "indipendently". The resource is kept
     open as long as the reference count is larger than zero. Once the
@@ -1141,21 +1144,21 @@ class ResourceRefCount(object):
     resource
         An object who must be kept open or closed based on reference count.
 
-    resource_close_fnct : function (Default = None)
-        The function (usually a method of the attached resource), that can
-        "close" the resource.
-
     close_args : tuple
         Positional arguments to be passed to the
         :py:meth:`resource_close_fnct` function.
+
+    resource_close_fnct : function, optional
+        The function (usually a method of the attached resource), that can
+        "close" the resource.
 
     close_kwargs : dict
         Keyword arguments to be passed to the :py:meth:`resource_close_fnct`
         function.
 
     """
-    def __init__(self, resource, resource_close_fnct=None,
-                 *close_args, **close_kwargs):
+    def __init__(self, resource, *close_args, resource_close_fnct=None,
+                 **close_kwargs):
         self._resource     = resource
         self._count        = 0
         self._close_args   = close_args
@@ -1283,26 +1286,26 @@ class ImageRef(object):
     Attributes
     ----------
     filename : str
-        Name of the opened file. Can be `None` for in-memory created \
-       `astropy.io.fits.HDUList` objects.
+        Name of the opened file. Can be `None` for in-memory created
+        `astropy.io.fits.HDUList` objects.
 
     can_reload_data : bool
-        `True` for files attached to a physical file, `False` for in-memory \
+        `True` for files attached to a physical file, `False` for in-memory
         `astropy.io.fits.HDUList` objects.
 
     original_fname : str
-        Original name of the file as requested by the user. *Note:* may be \
-        different from `filename` if the orininal file was in GEIS or \
-        WAIVER FITS format and subsequently was converted to a MEF FITS \
-        format. In that case this attribute will show the name of the \
+        Original name of the file as requested by the user. *Note:* may be
+        different from ``filename`` if the orininal file was in GEIS or
+        WAIVER FITS format and subsequently was converted to a MEF FITS
+        format. In that case this attribute will show the name of the
         original GEIS or WAIVER FITS file.
 
     original_ftype : str
-        Type of the original file. Can take one of the following values: \
+        Type of the original file. Can take one of the following values:
         'MEF', 'SIMPLE', 'GEIS', 'WAIVER', or 'UNKNOWN'.
 
     original_exists : bool
-        Indicates if the physical file exists. It is `False` for in-memory \
+        Indicates if the physical file exists. It is `False` for in-memory
         images.
 
     mef_fname : str, None
@@ -1312,10 +1315,10 @@ class ImageRef(object):
         Indicates whether the MEF FITS file exists.
 
     DQ_model : str, None
-        Type of the DQ model: 'external' for WFPC, WFPC2, and FOC \
-        instruments (or non-HST data if set so) that have DQ data in a \
-        separate (from image) file and 'intrinsic' for ACS, etc. images \
-        that have DQ extensions in the image file. It is `None` if \
+        Type of the DQ model: 'external' for WFPC, WFPC2, and FOC
+        instruments (or non-HST data if set so) that have DQ data in a
+        separate (from image) file and 'intrinsic' for ACS, etc. images
+        that have DQ extensions in the image file. It is `None` if
         the image does not have DQ data.
 
     telescope : str
@@ -1325,11 +1328,11 @@ class ImageRef(object):
         Instrument used to acquire data.
 
     fmode : str
-        File mode used to open FITS file. See `astropy.io.fits.open` for more details.
+        File mode used to open FITS file. See `astropy.io.fits.open` for
+        more details.
 
     memmap : bool
         Is the `astropy.io.fits.HDUList` memory mapped?
-
 
     """
     def __init__(self, hdulist_refcnt=None):
@@ -1430,7 +1433,7 @@ class ImageRef(object):
         ----------
         hdulist_refcnt : ResourceRefCount, None
             A :py:class:`ResourceRefCount` object containing a
-            `astropy.io.fits.HDUList` object. If it is `None`\ ,it will release
+            `astropy.io.fits.HDUList` object. If it is `None`,it will release
             and close the attached :py:class:`ResourceRefCount` object.
 
         Raises
@@ -1506,7 +1509,7 @@ class ImageRef(object):
         """
         Decrement reference count of the attached resource. If the reference
         count reaches zero, the attached :py:class:`ResourceRefCount` object
-        will be closed and set to `None`\ .
+        will be closed and set to `None`.
 
         """
         if self._hdulist_refcnt is not None:
@@ -1578,7 +1581,7 @@ def _extract_instr_info(header):
 
 def basicGEIScheck(fname):
     """
-    Perform a *quick* but *very* *basic* check if the input file
+    Perform a *quick* but *very basic* check if the input file
     possibly might be a GEIS file.
 
     Parameters
@@ -1650,7 +1653,7 @@ def basicGEIScheck(fname):
 
 def basicFITScheck(fname):
     """
-    Perform a *quick* but *very* *basic* check if the input file
+    Perform a *quick* but *very basic* check if the input file
     possibly might be a FITS file.
 
     Parameters
@@ -1837,8 +1840,8 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
     name, DQ model ("intrinsic", where DQ data are placed in the same file
     as the science data, or "extrinsic" when DQ data are in a separate file
     from the science data), etc. Because of the way it was implemented, it
-    requires half of the number of calls to `astropy.io.fits.open` thus making it
-    almost twice as fast as the :py:func:`~stsci.tools.fileutil.openImage`
+    requires half of the number of calls to `astropy.io.fits.open` thus making
+    it almost twice as fast as the :py:func:`~stsci.tools.fileutil.openImage`
     function.
 
     Parameters
@@ -1847,50 +1850,50 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
         File name of the file to be opened. The image file formats are
         recognized: simple/MEF FITS, HST GEIS format, or WAIVER FITS format.
 
-    mode : str (Default = 'readonly')
+    mode : str, optional
         File mode used to open main image FITS file. See `astropy.io.fits.open`
         for more details.
 
-    dqmode : str (Default = 'readonly')
-        File mode used to open DQ image FITS file. See parameter `mode`
+    dqmode : str, optional
+        File mode used to open DQ image FITS file. See parameter ``mode``
         above for more details.
 
-    memmap : bool (Default = True)
+    memmap : bool, optional
         Should memory mapping to be used whe opening simple/MEF FITS?
 
-    saveAsMEF : bool (Default = True)
+    saveAsMEF : bool, optional
         Should an input GEIS or WAIVER FITS be converted to simple/MEF FITS?
 
-    output_base_fitsname : str, None (Default = None)
-        The base name of the output simple/MEF FITS when `saveAsMEF` is
-        `True`\ . If it is `None`\ , the file name of the converted file
+    output_base_fitsname : str, None, optional
+        The base name of the output simple/MEF FITS when ``saveAsMEF`` is
+        `True`. If it is `None`, the file name of the converted file
         will be determined according to HST file naming conventions.
 
-    clobber : bool (Default = True)
-        If `saveAsMEF` is `True`\ , should any existing output files be
+    clobber : bool, optional
+        If ``saveAsMEF`` is `True`, should any existing output files be
         overwritten?
 
-    imageOnly : bool (Default = False)
-        Should this function open the image file only? If `True`\ , then
+    imageOnly : bool, optional
+        Should this function open the image file only? If `True`, then
         the DQ-related attributes will not be valid.
 
-    openImageHDU : bool (Default = True)
+    openImageHDU : bool, optional
         Indicates whether the returned :py:class:`ImageRef` object
         corresponding to the science image file should be
         in an open or closed state.
 
-    openDQHDU : bool (Default = False)
+    openDQHDU : bool, optional
         Indicates whether the returned :py:class:`ImageRef` object
         corresponding to the DQ image file should be in an open or closed
         state.
 
-    preferMEF : bool (Default = True)
+    preferMEF : bool, optional
         Should this function open an existing MEF file that complies with
         HST naming convention when the input file is in GEIS or WAIVER FITS
-        format, even when `saveAsMEF`\ =\ `False` or `clobber`\ =\ `False`\ ?
+        format, even when ``saveAsMEF`` is `False` or ``clobber`` is `False`?
 
-    verbose : bool (Default = True)
-        If `True`\ , some addition information will be printed out to
+    verbose : bool, optional
+        If `True`, some addition information will be printed out to
         standard output.
 
     Returns
@@ -1910,7 +1913,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             `dqimg` component of the returned tuple will hold a reference
             counter to the same image. Thus, for "intrinsic" DQ data models,
             the reference count of the returned objects may be 2 (if both
-            science `openImageHDU` and `openDQHDU` are `True`).
+            science ``openImageHDU`` and ``openDQHDU`` are `True`).
 
     Raises
     ------
@@ -2180,8 +2183,8 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
 def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
     """
-    Compares two values, or values of `ndarray` and verifies that these values
-    are close to each other. For exact type (integers and boolean) the
+    Compares two values, or values of `numpy.ndarray` and verifies that these
+    values are close to each other. For exact type (integers and boolean) the
     comparison is exact. For inexact types (`float`, `numpy.float32`, etc.)
     it checks that the values (or *all* values in a `numpy.ndarray`)
     satisfy the following inequality:
@@ -2189,7 +2192,7 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
     .. math::
         |v1-v2| \leq a + 10^{-p} \cdot |v2|,
 
-    where `a` is the accuracy ("absolute error") and `p` is precision
+    where ``a`` is the accuracy ("absolute error") and ``p`` is precision
     ("relative error").
 
     Parameters
@@ -2200,13 +2203,13 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
     arr2 : float, int, bool, str, numpy.ndarray, None, etc.
         Second value or array of values to be compared.
 
-    fp_accuracy : int, float, None (Default = None)
+    fp_accuracy : int, float, None, optional
         Accuracy to withing values should be close. Default value will use
         twice the value of the machine accuracy (machine epsilon) for
         the input type. This parameter has effect only when the values
         to be compared are of inexact type (e.g., `float`).
 
-    fp_precision : int, float, None (Default = None)
+    fp_precision : int, float, None, optional
         Accuracy to withing values should be close. Default value will use
         twice the value of the machine precision (resolution) for the
         input type. This parameter has effect only when the values
@@ -2288,7 +2291,7 @@ def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
     images which takes considerable time. Saving computed sky values to a text
     file allows re-running ``AstroDrizzle()`` without re-computing sky values.
 
-    .. warn::
+    .. warning::
        The file specified by ``skyfile`` is overwritten without warning.
 
     .. note::

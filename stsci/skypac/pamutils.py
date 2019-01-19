@@ -46,29 +46,29 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
     ----------
 
     wcs : astropy.wcs.WCS, stwcs.wcsutil.HSTWCS
-        A `WCS` object containing the distortion model.
+        A ``WCS`` object containing the distortion model.
 
-    shape : tuple of int, None (Default = None)
+    shape : tuple of int, None, optional
         A tuple of two integers (ny, nx) indicating the size of the PAM image
         to be generated. When the default value is used (`None`), the size
-        of the returned PAM array will be determined from `wcs.array_shape`
-        attribute of the supplied `WCS` object.
+        of the returned PAM array will be determined from ``wcs.array_shape``
+        attribute of the supplied ``WCS`` object.
 
-    blc : tuple of int or float (Default = (1, 1))
+    blc : tuple of int or float, optional
         A tuple indicating the coordinates of the bottom-left pixel of the
         PAM array to be computed. These coordinates should be given
-        in the image coordinate system defined by the input WCS (in which,
-        for example, `WCS.crpix` is defined). The first element specifies
-        the column (`"x"`-coordinate) and the second element specifies
-        the row (`"y"`-coordinate).
+        in the image coordinate system defined by the input ``WCS`` (in which,
+        for example, ``WCS.crpix`` is defined). The first element specifies
+        the column (``"x"``-coordinate) and the second element specifies
+        the row (``"y"``-coordinate).
 
-    idcscale : float (Default = 1.0)
+    idcscale : float, optional
         A positive number indicating the pixel scale used in the
         "Instrument Distortion Correction" for HST instruments. For
         non-HST instruments this parameter may be set to be equal
-        to `cdscale`.
+        to ``cdscale``.
 
-    cdscale : float (Default = 1.0)
+    cdscale : float, optional
         A positive number indicating the pixel scale as computed from the
         CD matrix. HST instruments CD matrix includes linear distortion
         terms.
@@ -136,7 +136,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
 
     .. note::
        PAM computation is performed using the distortion model defined in the
-       ``WCS and described through Simple Image Polynomials (SIP).
+       ``WCS`` and described through Simple Image Polynomials (SIP).
        Non-polynomial distortions are ignored!
 
     Parameters
@@ -159,7 +159,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
             without warnings.
 
     ignore_vacorr : bool, optional
-        When set to `True`, ``PAM`` will be generated _as if_ vellocity
+        When set to `True`, ``PAM`` will be generated *as if* vellocity
         aberration has not applied to the ``WCS``.
 
         .. warning::
@@ -205,7 +205,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
 
     .. note::
        PAM computation is performed using the distortion model defined in the
-       ``WCS and described through Simple Image Polynomials (SIP).
+       ``WCS`` and described through Simple Image Polynomials (SIP).
        Non-polynomial distortions are ignored!
 
     Parameters
@@ -220,7 +220,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
         value of ``array_shape`` attribute of the input ``wcs`` object.
 
     ignore_vacorr : bool, optional
-        When set to `True`, ``PAM`` will be generated _as if_ vellocity
+        When set to `True`, ``PAM`` will be generated *as if* vellocity
         aberration has not applied to the ``WCS``.
 
         .. warning::
