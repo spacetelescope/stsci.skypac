@@ -116,7 +116,7 @@ INSTALL_REQUIRES=[
     'stsci.imagestats',
     'stsci.tools',
     'stwcs',
-    'shpinx'
+    'sphinx'
 ]
 
 # Distribute compiled documentation alongside the installed package
