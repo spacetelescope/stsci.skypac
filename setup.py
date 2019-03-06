@@ -8,7 +8,7 @@ import shutil
 from configparser import ConfigParser
 from setuptools import setup, find_packages
 from subprocess import check_call, CalledProcessError
-from setuptools import setup, find_packages, Extension, _install_setup_requires
+from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install
 
 try:
@@ -37,23 +37,6 @@ LICENSE = metadata.get('license', 'BSD-3-Clause')
 this_dir = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_dir, LONG_DESCRIPTION), encoding='utf-8') as f:
     long_description = f.read()
-
-# Due to overriding `install` and `build_sphinx` we need to download
-# setup_requires dependencies before reaching `setup()`. This allows
-# `sphinx` to exist before the `BuildSphinx` class is injected.
-SETUP_REQUIRES = [
-    'sphinx',
-]
-
-_install_setup_requires(dict(setup_requires=SETUP_REQUIRES))
-for dep_pkg in SETUP_REQUIRES:
-    try:
-        importlib.import_module(dep_pkg)
-    except ImportError:
-        print("{0} is required in order to install '{1}'.\n"
-              "Please install {0} first.".format(dep_pkg, PACKAGENAME),
-              file=sys.stderr)
-        exit(1)
 
 # release version control:
 if not pkgutil.find_loader('relic'):
