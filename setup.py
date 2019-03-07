@@ -2,14 +2,8 @@
 import os
 import pkgutil
 import sys
-import importlib
-import inspect
-import shutil
-from configparser import ConfigParser
 from setuptools import setup, find_packages
 from subprocess import check_call, CalledProcessError
-from setuptools import setup, find_packages, Extension
-from setuptools.command.install import install
 
 try:
     from distutils.config import ConfigParser
@@ -92,59 +86,15 @@ PACKAGE_DATA = {
     ],
 }
 
-INSTALL_REQUIRES=[
+INSTALL_REQUIRES = [
     'astropy>=3.1',
     'numpy',
     'spherical_geometry>=1.2.2',
     'stsci.imagestats',
     'stsci.tools',
     'stwcs',
-    'sphinx'
 ]
 
-# Distribute compiled documentation alongside the installed package
-docs_compiled_src = os.path.normpath('build/sphinx/html')
-docs_compiled_dest = os.path.normpath(
-    '{0}/htmlhelp'.format(os.path.join(*PACKAGENAME.split('.')))
-)
-
-class InstallCommand(install):
-    """ Inform users to build (if desired) html help locally. """
-    def run(self):
-        super().run()
-
-        if not os.path.exists(docs_compiled_dest):
-            print('\nwarning: Sphinx "htmlhelp" documentation was NOT bundled!\n'
-                  '         Execute the following then reinstall:\n\n'
-                  '         $ python setup.py build_sphinx\n\n',
-                  file=sys.stderr)
-
-from sphinx.cmd.build import build_main
-from sphinx.setup_command import BuildDoc
-
-class BuildSphinx(BuildDoc):
-    """Build Sphinx documentation after compiling C extensions"""
-
-    description = 'Build Sphinx documentation'
-
-    def initialize_options(self):
-        BuildDoc.initialize_options(self)
-
-    def finalize_options(self):
-        BuildDoc.finalize_options(self)
-
-    def run(self):
-        build_cmd = self.reinitialize_command('build_ext')
-        build_cmd.inplace = 1
-        self.run_command('build_ext')
-        build_main(['-b', 'html', 'docs/source', 'build/sphinx/html'])
-
-        # Bundle documentation inside of drizzlepac
-        if os.path.exists(docs_compiled_src):
-            if os.path.exists(docs_compiled_dest):
-                shutil.rmtree(docs_compiled_dest)
-
-            shutil.copytree(docs_compiled_src, docs_compiled_dest)
 
 setup(
     name=PACKAGENAME,
@@ -166,13 +116,9 @@ setup(
     install_requires=INSTALL_REQUIRES,
     packages=find_packages(),
     package_data=PACKAGE_DATA,
-    cmdclass={
-        'install': InstallCommand,
-        'build_sphinx': BuildSphinx,
-    },
     project_urls={
         'Bug Reports': 'https://github.com/spacetelescope/stsci.skypac/issues/',
         'Source': 'https://github.com/spacetelescope/stsci.skypac/',
         'Help': 'https://hsthelp.stsci.edu/',
-        },
+    },
 )
