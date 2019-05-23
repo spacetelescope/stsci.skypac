@@ -1098,9 +1098,9 @@ stsci_python_sphinxdocs_2.13/drizzlepac/astrodrizzle.html>`_\ .
 
     # match sky "Up" or "Down":
     if match_down:
-        refsky = np.amin(sky_deltas[sky_good])
+        refsky = np.amin(sky_deltas[sky_good], initial=0.0)
     else:
-        refsky = np.amax(sky_deltas[sky_good])
+        refsky = np.amax(sky_deltas[sky_good], initial=0.0)
     sky_deltas[sky_good] -= refsky
 
     # apply sky differences and report computed sky values:
@@ -1572,7 +1572,14 @@ def _find_optimum_sky_deltas(skylines, skystat, mlog):
                 invalid[j] = False
                 ieq += 1
 
-    rank = np.linalg.matrix_rank(K, 1.0e-12)
+    try:
+        rank = np.linalg.matrix_rank(K, 1.0e-12)
+    except np.linalg.LinAlgError:
+        log.warning("Unable to compute sky: No valid data in common "
+                    "image areas")
+        deltas = np.full(ns, np.nan, dtype=np.float)
+        return deltas
+
     if rank < ns-1:
         mlog.warning("There are more unknown sky values ({}) "
                    "to be solved for\nthan there are independent "
@@ -1673,7 +1680,14 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
                 invalid[jk] = False
                 ieq += 1
 
-    rank = np.linalg.matrix_rank(K, 1.0e-12)
+    try:
+        rank = np.linalg.matrix_rank(K, 1.0e-12)
+    except np.linalg.LinAlgError:
+        log.warning("Unable to compute sky: No valid data in common "
+                    "image areas")
+        deltas = np.full(ns, np.nan, dtype=np.float)
+        return deltas
+
     if rank < ns-1:
         mlog.warning("There are more unknown sky values ({}) "
                    "to be solved for\nthan there are independent "
