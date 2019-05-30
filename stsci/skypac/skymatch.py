@@ -1275,7 +1275,12 @@ def _calc_sky(s1, s2, skystat):
 
     for m1 in s1.members:
         for m2 in s2.members:
-            intersect_poly = m1.polygon.intersection(m2.polygon)
+            pts1 = np.sort(list(m1.polygon.points)[0], axis=0)
+            pts2 = np.sort(list(m2.polygon.points)[0], axis=0)
+            if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
+                intersect_poly = m1.polygon.copy()
+            else:
+                intersect_poly = m1.polygon.intersection(m2.polygon)
 
             # Check if we even have regions that potentially may have an area.
             # This is done mostly to make sure tha code that follows does
