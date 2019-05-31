@@ -13,14 +13,11 @@ def test_import(env_name, module) {
 
 // Globals
 PIP_INST = "pip install"
-CONDA_CHANNEL = "http://ssb.stsci.edu/astroconda"
-CONDA_CREATE = "conda create -y -q -c ${CONDA_CHANNEL}"
-CONDA_INST = "conda install -y -q -c ${CONDA_CHANNEL}"
-PY_SETUP = "python setup.py"
-PYTEST_ARGS = "tests --basetemp=tests_output --junitxml results.xml"
-DEPS = "astropy graphviz numpy numpydoc \
-        spherical-geometry sphinx sphinx_rtd_theme \
-        stsci_rtd_theme stsci.imagestats stwcs setuptools"
+def CONDA_CHANNEL = "http://ssb.stsci.edu/astroconda"
+def DEPS = ['astropy', 'graphviz', 'numpy', 'numpydoc',
+        'spherical-geometry',  'sphinx',  'sphinx_rtd_theme',
+        'stsci_rtd_theme', 'stsci.imagestats', 'stwcs', 'setuptools']
+
 
 matrix_python = ["3.5", "3.6"]
 matrix_astropy = ["3"]
@@ -30,21 +27,23 @@ matrix = []
 
 // RUN ONCE:
 //    "sdist" is agnostic enough to work without any big dependencies
-sdist = new BuildConfig()
+def sdist = new BuildConfig()
 sdist.nodetype = "linux"
 sdist.name = "sdist"
-sdist.build_cmds = ["${CONDA_CREATE} -n dist astropy numpy",
-                    "with_env -n dist ${PY_SETUP} sdist"]
+sdist.conda_channels = [CONDA_CHANNEL]
+sdist.conda_packages = ['astropy', 'numpy']
+sdist.build_cmds = ["python setup.py sdist"]
 matrix += sdist
 
 
 // RUN ONCE:
 //    "build_sphinx" with default python
-docs = new BuildConfig()
+def docs = new BuildConfig()
 docs.nodetype = "linux"
 docs.name = "docs"
-docs.build_cmds = ["${CONDA_CREATE} -n docs ${DEPS}",
-                   "with_env -n docs ${PY_SETUP} build_sphinx"]
+docs.conda_channels = [CONDA_CHANNEL]
+docs.conda_packages = DEPS
+docs.build_cmds = ["python setup.py build_sphinx"]
 matrix += docs
 
 
@@ -56,26 +55,17 @@ for (python_ver in matrix_python) {
             if (python_ver == "2.7" && astropy_ver == "3") {
                 continue
             }
-
-            DEPS_INST = "python=${python_ver} "
-
-            if (astropy_ver != "latest") {
-                DEPS_INST += "astropy=${astropy_ver} "
-            }
-
-            if (numpy_ver != "latest") {
-                DEPS_INST += "numpy=${numpy_ver} "
-            }
-
-            DEPS_INST += DEPS
-
-            install = new BuildConfig()
-            install.nodetype = "linux"
+            def install = utils.copy(docs)
             install.name = "install-py=${python_ver},np=${numpy_ver},ap=${astropy_ver}"
-            install.build_cmds = ["${CONDA_CREATE} -n ${python_ver} ${DEPS_INST}",
-                                  "with_env -n ${python_ver} ${PY_SETUP} egg_info",
-                                  "with_env -n ${python_ver} ${PY_SETUP} install",
-
+            install.conda_packages.add("python=${python_ver}")
+            if (astropy_ver != "latest") {
+                install.conda_packages += "astropy=${astropy_ver}"
+            }
+            if (numpy_ver != "latest") {
+                install.conda_packages += "numpy=${numpy_ver}"
+            }
+            install.build_cmds = ["python setup.py egg_info",
+                                  "python setup.py install",
                                   test_import(python_ver, 'stsci.skypac'),
                                   test_import(python_ver, 'stsci.skypac.hstinfo'),
                                   test_import(python_ver, 'stsci.skypac.pamutils'),
