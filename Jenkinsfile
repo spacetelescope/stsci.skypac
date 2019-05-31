@@ -13,8 +13,8 @@ def test_import(env_name, module) {
 
 // Globals
 PIP_INST = "pip install"
-CONDA_CHANNEL = "http://ssb.stsci.edu/astroconda"
-DEPS = ['astropy', 'graphviz', 'numpy', 'numpydoc',
+def CONDA_CHANNEL = "http://ssb.stsci.edu/astroconda"
+def DEPS = ['astropy', 'graphviz', 'numpy', 'numpydoc',
         'spherical-geometry',  'sphinx',  'sphinx_rtd_theme',
         'stsci_rtd_theme', 'stsci.imagestats', 'stwcs', 'setuptools']
 
@@ -55,12 +55,8 @@ for (python_ver in matrix_python) {
             if (python_ver == "2.7" && astropy_ver == "3") {
                 continue
             }
-
-            def install = new BuildConfig()
-            install.nodetype = "linux"
+            def install = utils.copy(docs)
             install.name = "install-py=${python_ver},np=${numpy_ver},ap=${astropy_ver}"
-            install.conda_channels = [CONDA_CHANNEL]
-            install.conda_packages = DEPS
             install.conda_packages.add("python=${python_ver}")
             if (astropy_ver != "latest") {
                 install.conda_packages += "astropy=${astropy_ver}"
