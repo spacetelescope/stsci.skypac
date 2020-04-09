@@ -61,6 +61,7 @@ INSTALL_REQUIRES = [
 
 SETUP_REQUIRES = [
     'setuptools_scm',
+    'pytest-runner',
 ]
 
 TESTS_REQUIRE = [
@@ -96,7 +97,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Development Status :: 5 - Production/Stable',
     ],
-    use_scm_version=True,
+    use_scm_version={'write_to': 'stsci/skypac/version.py'},
     setup_requires=SETUP_REQUIRES,
     python_requires='>=3.5',
     install_requires=INSTALL_REQUIRES,

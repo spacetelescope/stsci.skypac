@@ -18,8 +18,6 @@ from astropy.io import fits
 from astropy import wcs as fitswcs
 import stwcs
 
-from . import __version__
-
 
 __author__ = 'Mihai Cara'
 
