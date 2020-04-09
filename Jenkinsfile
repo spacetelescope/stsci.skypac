@@ -43,7 +43,8 @@ docs.nodetype = "linux"
 docs.name = "docs"
 docs.conda_channels = [CONDA_CHANNEL]
 docs.conda_packages = DEPS
-docs.build_cmds = ["python setup.py build_sphinx"]
+docs.build_cmds = ["pip install -e.",
+                   "python setup.py build_sphinx",]
 matrix += docs
 
 

@@ -23,8 +23,6 @@ from .hstinfo import (supported_telescopes, supported_instruments,
                       counts_only_instruments, mixed_units_instruments,
                       rates_only_instruments)
 
-from . import __version__, __version_date__
-
 __all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
            'ResourceRefCount', 'ImageRef', 'openImageEx',
            'count_extensions', 'get_ext_list', 'get_extver_list',
