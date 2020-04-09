@@ -221,6 +221,11 @@ class Polygon(Region):
         while y <=scline:
             if y < scline:
                 AET = self.update_AET(y, AET)
+
+            if self._bbox[2] <= 0:
+                y += 1
+                continue
+
             scan_line = Edge('scan_line', start=[self._bbox[0], y],
                              stop=[self._bbox[0]+self._bbox[2], y])
             x = [int(np.ceil(e.compute_AET_entry(scan_line)[1])) for e in AET if e is not None]
