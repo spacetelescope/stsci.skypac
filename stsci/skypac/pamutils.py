@@ -8,18 +8,12 @@ on polynomial distortion model contained in a FITS WCS. Tabular distortions
 :License: :doc:`LICENSE`
 
 """
-import sys
 import numbers
-from distutils.version import LooseVersion
-
 import numpy as np
-import astropy
 from astropy.io import fits
 from astropy import wcs as fitswcs
 import stwcs
 
-
-__author__ = 'Mihai Cara'
 
 __all__ = ['pam_from_file', 'pam_from_wcs']
 
@@ -43,16 +37,16 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
     Parameters
     ----------
 
-    wcs : astropy.wcs.WCS, stwcs.wcsutil.HSTWCS
+    wcs: astropy.wcs.WCS, stwcs.wcsutil.HSTWCS
         A ``WCS`` object containing the distortion model.
 
-    shape : tuple of int, None, optional
+    shape: tuple of int, None, optional
         A tuple of two integers (ny, nx) indicating the size of the PAM image
         to be generated. When the default value is used (`None`), the size
         of the returned PAM array will be determined from ``wcs.array_shape``
         attribute of the supplied ``WCS`` object.
 
-    blc : tuple of int or float, optional
+    blc: tuple of int or float, optional
         A tuple indicating the coordinates of the bottom-left pixel of the
         PAM array to be computed. These coordinates should be given
         in the image coordinate system defined by the input ``WCS`` (in which,
@@ -60,20 +54,20 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
         the column (``"x"``-coordinate) and the second element specifies
         the row (``"y"``-coordinate).
 
-    idcscale : float, optional
+    idcscale: float, optional
         A positive number indicating the pixel scale used in the
         "Instrument Distortion Correction" for HST instruments. For
         non-HST instruments this parameter may be set to be equal
         to ``cdscale``.
 
-    cdscale : float, optional
+    cdscale: float, optional
         A positive number indicating the pixel scale as computed from the
         CD matrix. HST instruments CD matrix includes linear distortion
         terms.
 
     Returns
     -------
-    PAM : numpy.ndarray
+    PAM: numpy.ndarray
         Pixel area map.
 
     """
@@ -127,7 +121,7 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
 
 def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
                   normalize_at=None):
-    """
+    r"""
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from the ``FITS``
     ``WCS`` contained in an image extension of a calibrated ``HST`` image
     file specified by ``image``.
@@ -140,23 +134,23 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
     Parameters
     ----------
 
-    image : str
+    image: str
         File name of a ``FITS`` image that will provide a ``FITS`` ``WCS``
         (`stwcs.wcsutils.HSTWCS` or `astropy.wcs.WCS`).
 
-    ext : int, str, tuple of (str, int)
+    ext: int, str, tuple of (str, int)
         Extension specification. May be an integer extension number,
         a string extension name, or a tuple of extension name *and*
         extension version.
 
-    output_pam : str
+    output_pam: str
         Output file name to which PAM will be written.
 
         .. warning::
             If the output file already exists, it will be overwritten
             without warnings.
 
-    ignore_vacorr : bool, optional
+    ignore_vacorr: bool, optional
         When set to `True`, ``PAM`` will be generated *as if* vellocity
         aberration has not applied to the ``WCS``.
 
@@ -168,7 +162,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
            ``WCS`` was not VA-corrected will result in larger errors in
            computed ``PAM``. **Default value is highly recommended!**
 
-    normalize_at : tuple of int, optional
+    normalize_at: tuple of int, optional
         Indicates whether to normalize computed ``PAM`` to 1 at the provided
         zero-based pixel position. By default, PAM is computed relative to
         (or, in units of) the ``idcscale`` (for ``HST`` instruments) value
@@ -186,7 +180,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
         data_shape = h[ext].data.shape
         try:
             wcs = stwcs.wcsutil.HSTWCS(h, ext)
-        except:
+        except Exception:
             wcs = fitswcs.WCS(h[ext].header, h)
 
     pam = pam_from_wcs(wcs, shape=data_shape, ignore_vacorr=ignore_vacorr,
@@ -197,7 +191,7 @@ def pam_from_file(image, ext, output_pam, ignore_vacorr=False,
 
 def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
                  normalize_at=None):
-    """
+    r"""
     Generate a **P**\ ixel **A**\ rea **M**\ ap (PAM) file from a ``FITS``
     ``WCS``.
 
@@ -209,15 +203,15 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     Parameters
     ----------
 
-    wcs : stwcs.wcsutils.HSTWCS, astropy.wcs.WCS
+    wcs: stwcs.wcsutils.HSTWCS, astropy.wcs.WCS
         An `~astropy.wcs.WCS` object to be used for generating PAM file.
 
-    shape : tuple of two int, None, optional
+    shape: tuple of two int, None, optional
         Shape of the output image ``(ny, nx)``. If se to default `None`, this
         function will try to deduce the shape of the output image from the
         value of ``array_shape`` attribute of the input ``wcs`` object.
 
-    ignore_vacorr : bool, optional
+    ignore_vacorr: bool, optional
         When set to `True`, ``PAM`` will be generated *as if* vellocity
         aberration has not applied to the ``WCS``.
 
@@ -229,7 +223,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
            ``WCS`` was not VA-corrected will result in larger errors in
            computed ``PAM``. **Default value is highly recommended!**
 
-    normalize_at : tuple of int, optional
+    normalize_at: tuple of int, optional
         Indicates whether to normalize computed ``PAM`` to 1 at the provided
         zero-based pixel position. By default, PAM is computed relative to
         (or, in units of) the ``idcscale`` (for ``HST`` instruments) value
@@ -245,7 +239,7 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
     Returns
     -------
 
-    pam : numpy.ndarray
+    pam: numpy.ndarray
         A 2D `numpy.ndarray` containing PAM.
 
     Raises
@@ -280,8 +274,8 @@ def pam_from_wcs(wcs, shape=None, ignore_vacorr=False,
                                  "coordinates.")
             if not all([_is_int(coord) for coord in normalize_at]):
                 raise TypeError("Each pixel coordinate must be an integer.")
-            if (normalize_at[0] >= shape[1] or normalize_at[1] >= shape[0] or
-                normalize_at[0] < 0 or normalize_at[1] < 0):
+            if normalize_at[0] >= shape[1] or normalize_at[1] >= shape[0] or \
+               normalize_at[0] < 0 or normalize_at[1] < 0:
                 raise ValueError(
                     "Pixel coordinates specified by 'normalize_at' must be "
                     "within output image borders.")

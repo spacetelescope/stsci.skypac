@@ -13,23 +13,18 @@ import weakref
 import tempfile
 from os import path
 from copy import copy, deepcopy
-from distutils.version import LooseVersion
 
 import numpy as np
-import astropy
 from astropy.io import fits
 from stsci.tools import fileutil, readgeis, convertwaiveredfits
 from .hstinfo import (supported_telescopes, supported_instruments,
-                      counts_only_instruments, mixed_units_instruments,
-                      rates_only_instruments)
+                      counts_only_instruments, rates_only_instruments)
 
-__all__ = ['is_countrate', 'ext2str', 'MultiFileLog',
-           'ResourceRefCount', 'ImageRef', 'openImageEx',
-           'count_extensions', 'get_ext_list', 'get_extver_list',
-           'file_name_components', 'temp_mask_file', 'get_instrument_info',
-           'almost_equal', 'skyval2txt']
 
-__author__ = 'Mihai Cara'
+__all__ = ['is_countrate', 'ext2str', 'MultiFileLog', 'ResourceRefCount',
+           'ImageRef', 'openImageEx', 'count_extensions', 'get_ext_list',
+           'get_extver_list', 'file_name_components', 'temp_mask_file',
+           'get_instrument_info', 'almost_equal', 'skyval2txt']
 
 
 def file_name_components(fname, detect_HST_FITS_suffix=True):
@@ -42,23 +37,23 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
     Parameters
     ----------
 
-    fname : str
+    fname: str
         file name
 
-    detect_HST_FITS_suffix : bool, optional
+    detect_HST_FITS_suffix: bool, optional
         If True, detects the suffix of most HST files by looking for the
         rightmost occurence of the underscore ('_') in the file name.
 
     Returns
     -------
 
-    root : str
+    root: str
         Root name of the file. When ``detect_HST_FITS_suffix`` is `True`,
         this is the part of the file name *preceding* the rightmost suffix
         separator ('_'). Otherwise, it is the base file name without file
         extension.
 
-    suffix : str
+    suffix: str
         If ``detect_HST_FITS_suffix`` is `True`, this field will contain the
         suffix of most HST files, i.e., the part of the file name contained
         between the rightmost suffix separator ('_') and file
@@ -66,7 +61,7 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
         If ``detect_HST_FITS_suffix`` is `False` or if the file name has no
         extension separator.
 
-    fext : str
+    fext: str
         File extension
 
     Examples
@@ -80,19 +75,19 @@ def file_name_components(fname, detect_HST_FITS_suffix=True):
     """
     # get root name of the image file:
     (root, fname) = path.split(fname)
-    (base, fext)  = path.splitext(fname)
+    (base, fext) = path.splitext(fname)
 
     if detect_HST_FITS_suffix and fext.lower() in ['.fits', '.fit']:
-        ind    = base.rfind('_')
+        ind = base.rfind('_')
         if ind >= 0:
-            root   = base[:ind]
-            suffix = base[ind+1:]
+            root = base[:ind]
+            suffix = base[ind + 1:]
             #TODO: Additional check may be performed here to see if
             # the 'suffix' is in the list of registered HST suffixes,
             # e.g., '_raw', '_flt', '_c0f', etc.
-            return (root,suffix,fext)
+            return (root, suffix, fext)
 
-    root   = base
+    root = base
     suffix = ''
 
     return (root, suffix, fext)
@@ -107,7 +102,7 @@ def in_memory_mask(data):
 
     Parameters
     ----------
-    data : numpy.ndarray
+    data: numpy.ndarray
         Data to be used to create an in-memory FITS file. Data will be
         written in the primary HDU.
 
@@ -129,8 +124,8 @@ def in_memory_mask(data):
 
     """
     # create HDUList object
-    hdu      = fits.PrimaryHDU(data)
-    hdulist  = fits.HDUList([hdu])
+    hdu = fits.PrimaryHDU(data)
+    hdulist = fits.HDUList([hdu])
     imageref = ImageRef(ResourceRefCount(hdulist))
     imageref.memmap = False
     imageref.can_reload_data = False
@@ -141,24 +136,24 @@ def in_memory_mask(data):
 ## Returned mask file is a simple FITS and the data are in the
 ## primary HDU (ext=0).
 def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
-                   ext=('sci',1), randomize_prefix=True,
-                   sep='_', dir=os.path.curdir,
-                   fnameOnly=False):
+                   ext=('sci', 1), randomize_prefix=True,
+                   sep='_', dir=os.path.curdir, fnameOnly=False):
     """
-    temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, fnameOnly=False)
+    temp_mask_file(rootname, suffix, ext, data, dir=os.path.curdir, \
+    fnameOnly=False)
     Saves 2D data array to temporary simple FITS file.
     The name of the emporary file is generated based on the input parameters.
 
     Parameters
     ----------
-    data : numpy array
+    data: numpy array
         Data to be written to the temporary FITS file. Data will be
         written in the primary HDU.
 
-    rootname : str
+    rootname: str
         Root name of the file.
 
-    prefix : str, optional
+    prefix: str, optional
         Prefix to be added in front of the root name. If ``randomize_prefix``
         is `True`, then a random string will be added to the right of the
         string specified by ``prefix`` (with no separator between them).
@@ -167,31 +162,31 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
         string (``''``) then no prefix will be prepended to the root file
         name.
 
-    suffix : str, optional
+    suffix: str, optional
         Suffix to be added to the root name. Suffix will be separated from
         the root name by the string specified in ``sep``.
 
-    ext : int, str, or tuple of the form (str, int), optional
+    ext: int, str, or tuple of the form (str, int), optional
         Extention to be added to the temporary file *after* the suffix.
         Extension name string will be separated from
         the suffix by the string specified in ``sep``.
 
-    sep : str, optional
+    sep: str, optional
         Separator string to be inserted between (randomized) prefix
         and root name, root name and suffix, and suffix and extension.
 
-    randomize_prefix : bool, optional
+    randomize_prefix: bool, optional
         Specifies whether to add (postpend) a random string to string
         specified by ``prefix``.
 
-    dir : str, optional
+    dir: str, optional
         Directory to which the temporary file should be written. If directory
         ``dir`` is `None` then the file will be written to the default
         (for more details, see the explanation for argument ``dir`` to the
-        `tempfile.mstemp <http://docs.python.org/2/library/\
+        `tempfile.mstemp <http://docs.python.org/2/library/
         tempfile.html#tempfile.mkstemp>`_ function).
 
-    fnameOnly : bool, optional
+    fnameOnly: bool, optional
         Specifies what should `temp_mask_file` return: file name of the
         created file (if ``fnameOnly`` is `True`), or a tuple with the file
         name of the created file and an open
@@ -199,10 +194,10 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
 
     Returns
     -------
-    fname : str
+    fname: str
         File name of the temporary file.
 
-    mask : ImageRef
+    mask: ImageRef
         An open :py:class:`~skypac.utils.ImageRef` object of the temporary
         FITS file. This is returned as a tuple together with the file name
         only when ``fnameOnly`` is `False`.
@@ -237,9 +232,9 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
     # convert extension to a string:
     try:
         strext = ext2str(ext, compact=True, default_extver=None)
-    except:
-        raise TypeError("Extension specifier must be either an integer, " \
-                         "a string, or a tuple of the form (\'str\', int).")
+    except Exception:
+        raise TypeError("Extension specifier must be either an integer, "
+                        "a string, or a tuple of the form (\'str\', int).")
 
     if prefix is None:
         prefix = ''
@@ -262,8 +257,8 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
                 .format(sep, rootname, suffix, strext, os.extsep, 'fits')
         else:
             fname = "{1:s}{0:s}{2:s}{0:s}{3:s}{0:s}{4:s}{5:s}{6:s}" \
-                .format(sep, prefix, rootname, suffix, strext,
-                        os.extsep, 'fits')
+                .format(sep, prefix, rootname, suffix, strext, os.extsep,
+                        'fits')
         full_name = os.path.join(dir, fname)
         fh = open(full_name, 'wb')
 
@@ -273,8 +268,8 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
         fname = fh.name
 
     # create HDUList object
-    hdu      = fits.PrimaryHDU(data)
-    hdulist  = fits.HDUList([hdu])
+    hdu = fits.PrimaryHDU(data)
+    hdulist = fits.HDUList([hdu])
 
     # write data to the "temporary" file
     hdulist.writeto(fh)
@@ -288,10 +283,11 @@ def temp_mask_file(data, rootname, prefix='tmp', suffix='mask',
         return fname
 
     # open the "temporary" file and create a new ImageRef object:
-    mask, dummy = openImageEx(fname, mode='readonly', memmap=False,
-                    saveAsMEF=False, clobber=False,
-                    imageOnly=True, openImageHDU=True, openDQHDU=False,
-                    preferMEF=True, verbose=False)
+    mask, dummy = openImageEx(
+        fname, mode='readonly', memmap=False, saveAsMEF=False, clobber=False,
+        imageOnly=True, openImageHDU=True, openDQHDU=False, preferMEF=True,
+        verbose=False
+    )
 
     return (fname, mask)
 
@@ -308,13 +304,13 @@ def get_extver_list(img, extname='SCI'):
 
     Parameters
     ----------
-    img : str, `astropy.io.fits.HDUList`, or `~skypac.utils.ImageRef`
+    img: str, `astropy.io.fits.HDUList`, or `~skypac.utils.ImageRef`
         Input image object. If ``img`` is a string object (file name) then that
         file will be opened. If the file pointed to by the file name is a
         GEIS or WAIVER FITS file, it will be converted to a simple/MEF FITS
         format if ``clobber`` is `True`.
 
-    extname : str, optional
+    extname: str, optional
         Indicates extension *name* for which all existing extension *versions*
         should be found. If ``extname`` is `None`, then
         `~skypac.utils.get_extver_list` will return a list of extension
@@ -322,7 +318,7 @@ def get_extver_list(img, extname='SCI'):
 
     Returns
     -------
-    extver : list
+    extver: list
         List of extension versions corresponding to the input ``extname``.
         If ``extname`` is `None`, it will return a list of extension
         *numbers* of all image-like extensions.
@@ -356,11 +352,12 @@ def get_extver_list(img, extname='SCI'):
         hdulist = img
     elif isinstance(img, str):
         try:
-            (img, dq) = openImageEx(img, mode='readonly', memmap=False,
-                              saveAsMEF=False, output_base_fitsname=None,
-                              clobber=False, imageOnly=True,
-                              openImageHDU=True, openDQHDU=False,
-                              preferMEF=False, verbose=False)
+            (img, dq) = openImageEx(
+                img, mode='readonly', memmap=False, saveAsMEF=False,
+                output_base_fitsname=None, clobber=False, imageOnly=True,
+                openImageHDU=True, openDQHDU=False, preferMEF=False,
+                verbose=False
+            )
         except IOError:
             raise IOError("Unable to open file: \'{:s}\'".format(img))
         hdulist = img.hdu
@@ -371,10 +368,11 @@ def get_extver_list(img, extname='SCI'):
         hdulist = img.hdu
         doRelease = True
     else:
-        raise TypeError("Argument 'img' must be either a file name (string), "  \
+        raise TypeError("Argument 'img' must be either a file name (string), "
                         "an ImageRef, or a `astropy.io.fits.HDUList` object.")
 
-    # when extver is None - return the range of all 'image'-like FITS extensions
+    # when extver is None - return the range of all 'image'-like FITS
+    # extensions
     if extname is None:
         extn = []
         for i in range(len(hdulist)):
@@ -393,10 +391,12 @@ def get_extver_list(img, extname='SCI'):
     if not isinstance(extname, str):
         if doRelease:
             img.release()
-        raise TypeError("Argument 'extname' must be either a string "          \
-            "indicating the value of the 'EXTNAME' keyword of the extensions " \
-            "whose versions are to be returned or None to return "             \
-            "extension numbers of all HDUs in the 'img' FITS file.")
+        raise TypeError(
+            "Argument 'extname' must be either a string indicating the value"
+            "of the 'EXTNAME' keyword of the extensions whose versions are to "
+            "be returned or None to return extension numbers of all HDUs in "
+            "the 'img' FITS file."
+        )
 
     extname = extname.upper()
 
@@ -439,8 +439,7 @@ def get_ext_list(img, extname='SCI'):
     if extname is None:
         return extver
 
-    extlist = [ (extname,extv) for extv in extver ]
-
+    extlist = [(extname, extv) for extv in extver]
     return extlist
 
 
@@ -472,25 +471,25 @@ def ext2str(ext, compact=False, default_extver=1):
 
     Parameters
     ----------
-    ext : tuple, int, str
+    ext: tuple, int, str
         Extension specification can be a tuple of the form (str,int), e.g.,
         ('sci',1), an integer (extension number), or a string (extension
         name).
 
-    compact : bool, optional
+    compact: bool, optional
         If ``compact`` is `True` the returned string will have extension
         name quoted and separated by a comma from the extension number,
         e.g., ``"'sci',1"``.
         If ``compact`` is `False` the returned string will have extension
         version immediately follow the extension name, e.g., ``'sci1'``.
 
-    default_extver : int, optional
+    default_extver: int, optional
         Specifies the extension version to be used when the ``ext`` parameter
         is a string (extension name).
 
     Returns
     -------
-    strext : str
+    strext: str
         String representation of extension specification ``ext``.
 
     Raises
@@ -515,7 +514,7 @@ def ext2str(ext, compact=False, default_extver=1):
 
     """
     if isinstance(ext, tuple) and len(ext) == 2 and \
-        isinstance(ext[0], str) and isinstance(ext[1], int):
+       isinstance(ext[0], str) and isinstance(ext[1], int):
         if compact:
             return "{:s}{:d}".format(ext[0], ext[1])
         else:
@@ -524,21 +523,23 @@ def ext2str(ext, compact=False, default_extver=1):
     elif isinstance(ext, int):
         return "{:d}".format(ext)
 
-    elif isinstance(ext,str):
+    elif isinstance(ext, str):
+        if default_extver is None:
+            extver = ''
+        else:
+            extver = '{:d}'.format(default_extver)
+
         if compact:
-            extver = '' if default_extver is None else '{:d}'.format(default_extver)
             return "{:s}{:s}".format(ext, extver)
         else:
-            extver = '' if default_extver is None else ',{:d}'.format(default_extver)
-            return "\'{:s}\'{:s}".format(ext, extver)
+            return "\'{:s}\',{:s}".format(ext, extver)
 
     else:
         raise TypeError("Unexpected extension type.")
 
 
-def is_countrate(hdulist, ext, units_kwd='BUNIT',
-                 guess_if_missing=True, telescope=None, instrument=None,
-                 verbose=True, flog=None):
+def is_countrate(hdulist, ext, units_kwd='BUNIT', guess_if_missing=True,
+                 telescope=None, instrument=None, verbose=True, flog=None):
     """
     Infer the units of the data of the input image from the input image.
     Specifically, it tries to infer whether the units are counts (or
@@ -553,10 +554,10 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     Parameters
     ----------
-    hdulist : `astropy.io.fits.HDUList`
+    hdulist: `astropy.io.fits.HDUList`
         `astropy.io.fits.HDUList` of the image.
 
-    ext : tuple, int, str
+    ext: tuple, int, str
         Extension specification for whose data the units need to be inferred.
         An int ``ext`` specifies extension number. A tuple in the form
         (str, int) specifies extension name and number. A string ``ext``
@@ -564,32 +565,32 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
         1. See documentation for `astropy.io.fits.getData`
         for examples.
 
-    units_kwd : str, optional
+    units_kwd: str, optional
         FITS header keyword describing data units of the image. This keyword
         is assumed to be in the header of the extension specified by the
         ``ext`` parameter.
 
-    guess_if_missing : bool, optional
+    guess_if_missing: bool, optional
         Instructs to try make best guess on image units when the keyword
         specified by ``units_kwd`` is not found in the image header. The first
         action will be to look for this keyword in the primary header, and
         if not found, infer the units based on the telescope, instrument,
         and detector information.
 
-    telescope : str, None, optional
+    telescope: str, None, optional
         Specifies the telescope from which the data came. If not specified,
         the value specified in the ``'TELESCOP'`` keyword in the primary
         header will be used.
 
-    instrument : str, None, optional
+    instrument: str, None, optional
         Specifies the instrument used for acquiring data. If not specified,
         the value specified in the ``'INSTRUME'`` keyword in the primary
         header will be used.
 
-    verbose : bool, optional
+    verbose: bool, optional
         Specifies whether to print warning messages.
 
-    flog : str, file, MultiFileLog, None, optional
+    flog: str, file, MultiFileLog, None, optional
         Specifies the log file to which the messages should be printed.
         It can be a file name, a file object, a `MultiFileLog` object, or
         `None`.
@@ -607,13 +608,13 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
     if isinstance(flog, MultiFileLog):
         ml = flog
     else:
-        ml = MultiFileLog(console = verbose)
+        ml = MultiFileLog(console=verbose)
         if flog not in ('', None):
             ml.add_logfile(flog)
             ml.skip(2)
 
-    data_units = [ 'ELECTRONS','COUNTS','DN' ]
-    time_units = [ 'S','SEC','SECOND' ]
+    data_units = ['ELECTRONS', 'COUNTS', 'DN']
+    time_units = ['S', 'SEC', 'SECOND']
 
     fname = os.path.basename(hdulist.filename())
 
@@ -634,7 +635,8 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     if bunit is not None:
 
-        bunit_parts = list(map(str.upper,list(map(str.strip, bunit.split('/')))))
+        bunit_parts = list(map(str.upper,
+                               list(map(str.strip, bunit.split('/')))))
         nbunit_parts = len(bunit_parts)
 
         if nbunit_parts == 1 and bunit_parts[0] in data_units:
@@ -673,7 +675,7 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     if telescope not in supported_telescopes:
         ml.warning("Unable to infer units of data for non-HST file "
-                   "\'{:s}\': Unsupported telescope.",fname)
+                   "\'{:s}\': Unsupported telescope.", fname)
         ml.close()
         return None
 
@@ -688,7 +690,7 @@ def is_countrate(hdulist, ext, units_kwd='BUNIT',
 
     if instrument not in supported_instruments:
         ml.warning("Unable to infer units of data for file "
-                   "\'{:s}\': Unsupported instrument.",fname)
+                   "\'{:s}\': Unsupported instrument.", fname)
         return None
 
     if instrument in counts_only_instruments:
@@ -790,19 +792,19 @@ class MultiFileLog(object):
 
     Parameters
     ----------
-    console : bool, optional
+    console: bool, optional
         Enables writting to the standard output.
 
-    enableBold : bool, optional
+    enableBold: bool, optional
         Enable or disable writing bold text to console, e.g., ``'WARNING:'``
         ``'ERROR:'``, etc.
 
-    flog : str, file, None, list of str or file objects, optional
+    flog: str, file, None, list of str or file objects, optional
         File name or file object to be added to `MultiFileLog` during the
         initialization. More files can be added lated with
         :py:meth:`add_logfile`.
 
-    append : bool, optional
+    append: bool, optional
         Default open mode for the files that need to be opened (e.g., that
         are passed as file names). If ``append`` is `True`, new files added
         to a `MultiFileLog` object will be opened in the "append"
@@ -810,23 +812,22 @@ class MultiFileLog(object):
         mode 'a' of standard function :py:func:`open`. When ``append`` is
         `False`, any existing files will be overwritten.
 
-    autoflush : bool, optional
+    autoflush: bool, optional
         Indicates whether or not to flush files after each log entry.
 
-    appendEOL : bool, optional
+    appendEOL: bool, optional
         Indicates whether or not to add EOL at the end of each log entry.
 
     """
     def __init__(self, console=True, enableBold=True, flog=None, append=True,
                  autoflush=True, appendEOL=True):
-        self._console   = sys.stdout if console else None
-        self._lsep      = "{:s}".format(os.linesep)
-        self._eol       = self._lsep if appendEOL else ''
-        self._fmode     = 'a' if append else 'w'
-        self._logfh     = []
-        self._close     = []
+        self._console = sys.stdout if console else None
+        self._eol = '\n' if appendEOL else ''
+        self._fmode = 'a' if append else 'w'
+        self._logfh = []
+        self._close = []
         self._autoflush = autoflush
-        self._enableBold= enableBold
+        self._enableBold = enableBold
         if flog:
             self.add_logfile(flog)
 
@@ -844,8 +845,8 @@ class MultiFileLog(object):
         passed.
 
         """
-        newMultiFileLog        = copy(self)
-        newclose               = self.count * [ False ]
+        newMultiFileLog = copy(self)
+        newclose = self.count * [False]
         newMultiFileLog._close = newclose
         return newMultiFileLog
 
@@ -864,10 +865,10 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        enable : bool, optional
+        enable: bool, optional
             Enable or disable output to `sys.stdout`.
 
-        enableBold : bool, optional
+        enableBold: bool, optional
             Enable or disable writing bold text to console, e.g.,
             ``'WARNING:'``, ``'ERROR:'``, etc.
 
@@ -887,14 +888,14 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        flog : str, file, None, list of str or file objects, optional
+        flog: str, file, None, list of str or file objects, optional
             File name or file object to be added.
 
-        initial_skip : int, optional
+        initial_skip: int, optional
             The number of blank line to be written to the file *if* *not*
             at the beginning of the file.
 
-        can_close : bool, None, optional
+        can_close: bool, None, optional
             Indicates whether the file object can be closed by the
             :py:meth:`~skypac.utils.MultiFileLog.close` function:
 
@@ -906,14 +907,14 @@ class MultiFileLog(object):
               of the `flog` argument: `True` if flog is a string
               (e.g., file name), `False` otherwise.
 
-        mode : str, None, optional
+        mode: str, None, optional
             File open mode: same meaning as the ``mode`` parameter of the
             Python's built-in :py:func:`open` function. If `None`, the mode
             will be inherited from file open mode set during initialization.
 
         Returns
         -------
-        flog : file object
+        flog: file object
             File object of newly opened (or attached) file.
 
         """
@@ -923,14 +924,14 @@ class MultiFileLog(object):
                 fhlist.append(self.add_logfile(f))
             return fhlist
 
-        if flog == None:
+        if flog is None:
             return None
 
         if flog == sys.stdout:
             self.enable_console(True)
             return None
 
-        if isinstance(flog,str):
+        if isinstance(flog, str):
             fmode = self._fmode if mode is None else mode
             fh = open(flog, fmode)
             self._logfh.append(fh)
@@ -939,7 +940,7 @@ class MultiFileLog(object):
             # skip 'initial_skip' number of lines
             # if not at the beginning of the file:
             if fh.tell() > 0:
-                fh.write(initial_skip * self._lsep)
+                fh.write(initial_skip * '\n')
             return fh
 
         if flog not in self._logfh:
@@ -947,9 +948,10 @@ class MultiFileLog(object):
             self._close.append(False if can_close is None else can_close)
             # skip 'initial_skip' number of lines
             # if not at the beginning of the file:
-            if flog.tell() > 0: #TODO: may not work well in Windows if fgets
-                                # was used previously on the handle (see Python doc)
-                flog.write(initial_skip * self._lsep)
+            # TODO: may not work well in Windows if fgets was used previously
+            #       on the handle (see Python doc)
+            if flog.tell() > 0:
+                flog.write(initial_skip * '\n')
             return flog
         else:
             return None
@@ -960,9 +962,9 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        fh : file object
+        fh: file object
 
-        can_close : bool, optional
+        can_close: bool, optional
             Indicates if the file can be closed by the :py:meth:`close`
             function.
 
@@ -1012,11 +1014,11 @@ class MultiFileLog(object):
         if self._console:
             for fh in self._logfh:
                 if hasattr(fh, 'name'):
-                    self._console.write("Log written to \'{:s}\'.{}" \
-                                        .format(fh.name,self._eol))
+                    self._console.write("Log written to \'{:s}\'.{}"
+                                        .format(fh.name, self._eol))
                 else:
-                    self._console.write("Log written to an object of " \
-                                        "\'{}\'.{}".format( type(fh), self._eol ))
+                    self._console.write("Log written to an object of \'{}\'.{}"
+                                        .format(type(fh), self._eol))
 
     def logentry(self, msg, *fmt, **skip):
         """
@@ -1024,7 +1026,7 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        msg : str
+        msg: str
             String to be printed. Can contain replacement fields delimited
             by braces ``{}``.
 
@@ -1032,7 +1034,7 @@ class MultiFileLog(object):
             Parameters to be passed to :py:meth:`str.format` method for
             formatting the string ``msg``.
 
-        skip : int
+        skip: int
             Number of empty lines that should follow the log message.
 
         Examples
@@ -1048,7 +1050,7 @@ class MultiFileLog(object):
             nskip = max(nskip, 0)
         else:
             nskip = 1
-        m = msg.format(*fmt) + nskip*self._eol
+        m = msg.format(*fmt) + nskip * self._eol
         # output to console
         if self._console:
             self._console.write(m)
@@ -1064,10 +1066,10 @@ class MultiFileLog(object):
 
         Parameters
         ----------
-        nlines : int, optional
+        nlines: int, optional
 
         """
-        msg = nlines * self._lsep
+        msg = nlines * '\n'
         if self._console:
             self._console.write(msg)
         for fh in self._logfh:
@@ -1142,33 +1144,33 @@ class ResourceRefCount(object):
     resource
         An object who must be kept open or closed based on reference count.
 
-    close_args : tuple
+    close_args: tuple
         Positional arguments to be passed to the
         :py:meth:`resource_close_fnct` function.
 
-    resource_close_fnct : function, optional
+    resource_close_fnct: function, optional
         The function (usually a method of the attached resource), that can
         "close" the resource.
 
-    close_kwargs : dict
+    close_kwargs: dict
         Keyword arguments to be passed to the :py:meth:`resource_close_fnct`
         function.
 
     """
     def __init__(self, resource, *close_args, resource_close_fnct=None,
                  **close_kwargs):
-        self._resource     = resource
-        self._count        = 0
-        self._close_args   = close_args
+        self._resource = resource
+        self._count = 0
+        self._close_args = close_args
         self._close_kwargs = close_kwargs
 
         if resource_close_fnct is not None:
             self._res_close = resource_close_fnct
-        elif hasattr(resource,'close'):
+        elif hasattr(resource, 'close'):
             self._res_close = resource.close
         else:
-            self._res_close = (lambda:None)
-            self._close_args   = ()
+            self._res_close = (lambda: None)
+            self._close_args = ()
             self._close_kwargs = {}
 
         self._close_notify = weakref.WeakKeyDictionary()
@@ -1205,7 +1207,7 @@ class ResourceRefCount(object):
             if not n:
                 continue
             cb = self._close_notify[n]
-            getattr(n,cb)()
+            getattr(n, cb)()
 
     @property
     def resource(self):
@@ -1241,7 +1243,7 @@ class ResourceRefCount(object):
                     self._res_close()
                 self._res_close = None
                 del self._resource
-                self._resource  = None
+                self._resource = None
                 self._close_notify = {}
 
     @property
@@ -1277,106 +1279,114 @@ class ImageRef(object):
 
     Parameters
     ----------
-    hdulist_refcnt : ResourceRefCount
-        A :py:class:`ResourceRefCount` object holding a `astropy.io.fits.HDUList`
-        object.
+    hdulist_refcnt: ResourceRefCount
+        A :py:class:`ResourceRefCount` object holding a
+        `astropy.io.fits.HDUList` object.
 
     Attributes
     ----------
-    filename : str
+    filename: str
         Name of the opened file. Can be `None` for in-memory created
         `astropy.io.fits.HDUList` objects.
 
-    can_reload_data : bool
+    can_reload_data: bool
         `True` for files attached to a physical file, `False` for in-memory
         `astropy.io.fits.HDUList` objects.
 
-    original_fname : str
+    original_fname: str
         Original name of the file as requested by the user. *Note:* may be
         different from ``filename`` if the orininal file was in GEIS or
         WAIVER FITS format and subsequently was converted to a MEF FITS
         format. In that case this attribute will show the name of the
         original GEIS or WAIVER FITS file.
 
-    original_ftype : str
+    original_ftype: str
         Type of the original file. Can take one of the following values:
         'MEF', 'SIMPLE', 'GEIS', 'WAIVER', or 'UNKNOWN'.
 
-    original_exists : bool
+    original_exists: bool
         Indicates if the physical file exists. It is `False` for in-memory
         images.
 
-    mef_fname : str, None
+    mef_fname: str, None
         Name of the MEF FITS file if exists, `None` otherwise.
 
-    mef_exists : bool
+    mef_exists: bool
         Indicates whether the MEF FITS file exists.
 
-    DQ_model : str, None
+    DQ_model: str, None
         Type of the DQ model: 'external' for WFPC, WFPC2, and FOC
         instruments (or non-HST data if set so) that have DQ data in a
         separate (from image) file and 'intrinsic' for ACS, etc. images
         that have DQ extensions in the image file. It is `None` if
         the image does not have DQ data.
 
-    telescope : str
+    telescope: str
         Telescope that acquired the image.
 
-    instrument : str
+    instrument: str
         Instrument used to acquire data.
 
-    fmode : str
+    fmode: str
         File mode used to open FITS file. See `astropy.io.fits.open` for
         more details.
 
-    memmap : bool
+    memmap: bool
         Is the `astropy.io.fits.HDUList` memory mapped?
 
     """
     def __init__(self, hdulist_refcnt=None):
-        self.filename        = None # loaded file name. This can be None
-                                    # for "pure" in-memory objects. However,
-                                    # it will indicate the "original" file on
-                                    # the disk if the "in-memory" HDUList was
-                                    # created with 'readgeis' or
-                                    # 'convertwaiveredfits'
-        self.can_reload_data = False # True for not-in-memory HDULists (e.g.,
-                                     # loaded with fits.open() from existing
-                                     # 'simple' or 'mef' FITS files)
+        # loaded file name. This can be None for "pure" in-memory objects.
+        # However, it will indicate the "original" file on the disk if the
+        # "in-memory" HDUList was created with 'readgeis' or
+        # 'convertwaiveredfits'
+        self.filename = None
+        # True for not-in-memory HDULists (e.g., loaded with fits.open()
+        # from existing 'simple' or 'mef' FITS files)
+        self.can_reload_data = False
 
         if hdulist_refcnt is not None:
             if hdulist_refcnt.closed:
-                raise ValueError("Resource reference counter must not be closed.")
+                raise ValueError(
+                    "Resource reference counter must not be closed."
+                )
             hdulist_refcnt.hold()
-            hdulist_refcnt.subscribe_close_notify(self, '_refcnt_about_to_close')
+            hdulist_refcnt.subscribe_close_notify(
+                self, '_refcnt_about_to_close'
+            )
         self._hdulist_refcnt = hdulist_refcnt
 
-        self._img_extname    = None # EXTNAME of the standard image extensions.
-                                    # When it is obtained from openImageEx,
-                                    # this is valid only for HST products and
-                                    # is computed based on file name suffix,
-                                    # file type, and instrument.
+        # EXTNAME of the standard image extensions. When it is obtained
+        # from openImageEx, this is valid only for HST products and
+        # is computed based on file name suffix, file type, and instrument.
+        self._img_extname = None
 
-        self.original_fname  = None # input file name supplied to openImageEx
-        self.original_ftype  = 'UNKNOWN' # 'MEF', 'SIMPLE', 'GEIS', 'WAIVER', 'UNKNOWN'
-        self.original_exists = False # It can be False for DQ images that do
-                                     # not exist when the science image is
-                                     # opened with openImageEx
+        self.original_fname = None  # input file name supplied to openImageEx
 
-        self.mef_fname       = None
-        self.mef_exists      = False
+        # Possible values for original_ftype: 'MEF', 'SIMPLE', 'GEIS',
+        # 'WAIVER', 'UNKNOWN'
+        self.original_ftype = 'UNKNOWN'
 
-        self.DQ_model        = None # 'external' for WFPC, WFPC2, and FOC instruments
-                                    # or non-HST data if set so;
-                                    # 'intrinsic' for ACS, etc. that have DQ extensions
-                                    # in the image file;
-                                    # None if the image does not have DQ data.
+        # original_exists can be False for DQ images that do not exist when the
+        # science image is opened with openImageEx
+        self.original_exists = False
 
-        self.telescope       = 'UNKNOWN'
-        self.instrument      = 'UNKNOWN'
+        self.mef_fname = None
+        self.mef_exists = False
 
-        self.fmode           = 'readonly'
-        self.memmap          = True
+        # Possible values for DQ_model:
+        # - 'external' for WFPC, WFPC2, and FOC instruments or non-HST data
+        #   if set so;
+        # - 'intrinsic' for ACS, etc. that have DQ extensions in the image
+        #   file;
+        # - None if the image does not have DQ data.
+        self.DQ_model = None
+
+        self.telescope = 'UNKNOWN'
+        self.instrument = 'UNKNOWN'
+
+        self.fmode = 'readonly'
+        self.memmap = True
 
     def __copy__(self):
         cp = ImageRef(self._hdulist_refcnt)
@@ -1392,10 +1402,7 @@ class ImageRef(object):
 
     @property
     def extname(self):
-        """
-        Extension name of the first extension.
-
-        """
+        """ Extension name of the first extension. """
         return self._img_extname
 
     @extname.setter
@@ -1404,9 +1411,7 @@ class ImageRef(object):
 
     @property
     def refcount(self):
-        """
-        Reference count of the attached `astropy.io.fits.HDUList`.
-        """
+        """ Reference count of the attached `astropy.io.fits.HDUList`. """
         if self._hdulist_refcnt is not None:
             return self._hdulist_refcnt.refcount
         else:
@@ -1416,7 +1421,7 @@ class ImageRef(object):
     # closed
     def _refcnt_about_to_close(self):
         self.can_reload_data = False
-        self.filename        = None
+        self.filename = None
         self._hdulist_refcnt = None
 
     def set_HDUList_RefCount(self, hdulist_refcnt=None):
@@ -1429,7 +1434,7 @@ class ImageRef(object):
 
         Parameters
         ----------
-        hdulist_refcnt : ResourceRefCount, None
+        hdulist_refcnt: ResourceRefCount, None
             A :py:class:`ResourceRefCount` object containing a
             `astropy.io.fits.HDUList` object. If it is `None`,it will release
             and close the attached :py:class:`ResourceRefCount` object.
@@ -1447,18 +1452,17 @@ class ImageRef(object):
         """
         # for now, allow setting a new RefCount object only if the
         # existing counter can be closed. see comments below...
-        if self._hdulist_refcnt is not None and self._hdulist_refcnt.refcount > 1:
-            raise ValueError("set_HDUList_RefCount cannot replace the " \
-                             "assigned ResourceRefCount object when it " \
+        if self._hdulist_refcnt is not None and self._hdulist_refcnt.refcount:
+            raise ValueError("set_HDUList_RefCount cannot replace the "
+                             "assigned ResourceRefCount object when it "
                              "its reference count is larger than one.")
 
         if hdulist_refcnt is self._hdulist_refcnt:
             return
 
         if self._hdulist_refcnt is not None:
-
             if hdulist_refcnt.closed:
-                raise ValueError("The new resource reference counter must " \
+                raise ValueError("The new resource reference counter must "
                                  "not be closed.")
 
             #TODO: this will 'release' _hdulist_refcnt only once.
@@ -1466,30 +1470,34 @@ class ImageRef(object):
             # that "hold" the original (before replacement) _hdulist_refcnt.
             # Therefore, the original resource might still be open.
             #
-            # Should we forbid replacing the resource counter if it is not "closed"?
+            # Should we forbid replacing the resource counter if it is not
+            # "closed"?
             # -- see RuntimeError below...
             #
             # In addition, wouldn't it be better to set callbacks to the
             # reference counter so that "subscribed" images could be "notified"
             # that the resource counter is about to be replaced?
             #
-            # Also, there is the issue of dealing with multiple copies/instances
-            # of this class: we should 'release' the refcount as many times
-            # as it was held by a given instance of the ImageRef class.
-            # At this moment this is not implemented.
+            # Also, there is the issue of dealing with multiple
+            # copies/instances of this class: we should 'release' the refcount
+            # as many times as it was held by a given instance of the ImageRef
+            # class. At this moment this is not implemented.
             #
             self._hdulist_refcnt.release()
 
             if not self._hdulist_refcnt.closed:
-                raise ValueError("An attempt was made to replace an open " \
-                                 "resource reference counter. The "   \
-                                 "existing resource counter must be " \
-                                 "closed first before it can be replaced.")
+                raise ValueError(
+                    "An attempt was made to replace an open resource reference"
+                    " counter. The existing resource counter must be closed "
+                    "first before it can be replaced."
+                )
 
         self._hdulist_refcnt = hdulist_refcnt
         if hdulist_refcnt is not None:
             self._hdulist_refcnt.hold()
-            hdulist_refcnt.subscribe_close_notify(self, '_refcnt_about_to_close')
+            hdulist_refcnt.subscribe_close_notify(
+                self, '_refcnt_about_to_close'
+            )
 
     @property
     def closed(self):
@@ -1519,7 +1527,7 @@ class ImageRef(object):
             if self._hdulist_refcnt is not None and \
                self._hdulist_refcnt.refcount <= 0:
                 self.can_reload_data = False
-                self.filename        = None
+                self.filename = None
                 self._hdulist_refcnt = None
 
     def hold(self):
@@ -1547,25 +1555,26 @@ class ImageRef(object):
         Print a summary of the object attributes.
 
         """
-        fh.write("Loaded file name:     \'{}\'{:s}".format(self.filename, os.linesep))
-        fh.write("Original file name:   \'{}\'{:s}".format(self.original_fname, os.linesep))
-        fh.write("Original file type:   \'{}\'{:s}".format(self.original_ftype, os.linesep))
-        fh.write("Original file exists: \'{}\'{:s}".format(self.original_exists, os.linesep))
-        fh.write("MEF file name:        \'{}\'{:s}".format(self.mef_fname, os.linesep))
-        fh.write("MEF file exists:      \'{}\'{:s}".format(self.mef_exists, os.linesep))
-        fh.write("Can reload data:      \'{}\'{:s}".format(self.can_reload_data, os.linesep))
-        fh.write("EXTNAME:    \'{}\'{:s}".format(self.extname, os.linesep))
-        fh.write("DQ model:   \'{}\'{:s}".format(self.DQ_model, os.linesep))
-        fh.write("Telescope:  \'{}\'{:s}".format(self.telescope, os.linesep))
-        fh.write("Instrument: \'{}\'{:s}".format(self.instrument, os.linesep))
-        fh.write("File open mode:     \'{}\'{:s}".format(self.fmode, os.linesep))
-        fh.write("File memory mapped: \'{}\'{:s}".format(self.memmap, os.linesep))
-        fh.write("Reference counter object: \'{}\'{:s}".format(self._hdulist_refcnt, os.linesep))
-        fh.write("Reference counter value:  \'{}\'{:s}".format(self.refcount, os.linesep))
+        fh.write("Loaded file name:     '{}'\n".format(self.filename))
+        fh.write("Original file name:   '{}'\n".format(self.original_fname))
+        fh.write("Original file type:   '{}'\n".format(self.original_ftype))
+        fh.write("Original file exists: '{}'\n".format(self.original_exists))
+        fh.write("MEF file name:        '{}'\n".format(self.mef_fname))
+        fh.write("MEF file exists:      '{}'\n".format(self.mef_exists))
+        fh.write("Can reload data:      '{}'\n".format(self.can_reload_data))
+        fh.write("EXTNAME:    '{}'\n".format(self.extname))
+        fh.write("DQ model:   '{}'\n".format(self.DQ_model))
+        fh.write("Telescope:  '{}'\n".format(self.telescope))
+        fh.write("Instrument: '{}'\n".format(self.instrument))
+        fh.write("File open mode:     '{}'\n".format(self.fmode))
+        fh.write("File memory mapped: '{}'\n".format(self.memmap))
+        fh.write("Reference counter object: '{}'\n"
+                 .format(self._hdulist_refcnt))
+        fh.write("Reference counter value:  '{}'\n".format(self.refcount))
 
 
 def _extract_instr_info(header):
-    tel   = None
+    tel = None
     instr = None
     ftype = None
     if 'TELESCOP' in header:
@@ -1584,7 +1593,7 @@ def basicGEIScheck(fname):
 
     Parameters
     ----------
-    fname : str, file object
+    fname: str, file object
 
     Returns
     -------
@@ -1601,7 +1610,7 @@ def basicGEIScheck(fname):
         fh = fname
         closefh = False
 
-    cardLen   = fits.Card.length
+    cardLen = fits.Card.length
     readbytes = cardLen + 1
 
     try:
@@ -1611,16 +1620,18 @@ def basicGEIScheck(fname):
             try:
                 card = card.decode(encoding='ascii')
             except UnicodeDecodeError:
-                if closefh: fh.close()
+                if closefh:
+                    fh.close()
                 return False
         if len(card) != readbytes or card[-1] != '\n' or \
            card[:29].upper() != 'SIMPLE  =                    ':
-            if closefh: fh.close()
+            if closefh:
+                fh.close()
             return False
 
         endcard_found = False
         while True:
-            card  = fh.read(readbytes)
+            card = fh.read(readbytes)
             if not isinstance(card, str):
                 try:
                     card = card.decode(encoding='ascii')
@@ -1628,7 +1639,7 @@ def basicGEIScheck(fname):
                     break
             cardn = len(card)
             if (cardn == cardLen or cardn == readbytes) and \
-               card[:cardLen].upper() == 'END'+(cardLen-3)*' ':
+               card[:cardLen].upper() == 'END' + (cardLen - 3) * ' ':
                 # we have reached the 'END' card
                 endcard_found = True
                 break
@@ -1638,16 +1649,19 @@ def basicGEIScheck(fname):
             if card[-1] != '\n':
                 # card does not end with a new line character
                 break
-            ## EXTRA CHECK (these errors would make fits.verify to fail):
-            #if card[0].isspace():
-                #if card[:8] != '        ':
-                    #break
-            #elif card[:8].upper() not in [ 'COMMENT ', 'HISTORY ' ] and card[8:10] != '= ':
-                #break
+            # # EXTRA CHECK (these errors would make fits.verify to fail):
+            # if card[0].isspace():
+            #     if card[:8] != '        ':
+            #         break
+            # elif (card[:8].upper() not in ['COMMENT ', 'HISTORY '] and
+            #       card[8:10] != '= '):
+            #     break
     finally:
-        if closefh: fh.close()
+        if closefh:
+            fh.close()
 
     return endcard_found
+
 
 def basicFITScheck(fname):
     """
@@ -1656,7 +1670,7 @@ def basicFITScheck(fname):
 
     Parameters
     ----------
-    fname : str, file object
+    fname: str, file object
 
     Returns
     -------
@@ -1682,17 +1696,21 @@ def basicFITScheck(fname):
             try:
                 card = card.decode(encoding='ascii')
             except UnicodeDecodeError:
-                if closefh: fh.close()
+                if closefh:
+                    fh.close()
                 return False
 
         if len(card) != cardLen or \
-            card[:29].upper() != 'SIMPLE  =                    ':
-            if closefh: fh.close()
+           card[:29].upper() != 'SIMPLE  =                    ':
+            if closefh:
+                fh.close()
             return False
+
         # process second "card":
         card = fh.read(cardLen)
         if len(card) != cardLen:
-            if closefh: fh.close()
+            if closefh:
+                fh.close()
             return False
         # test whether card is a byte or a string
         # Required to support Python3 binary file operations vs
@@ -1701,30 +1719,35 @@ def basicFITScheck(fname):
             try:
                 card = card.decode(encoding='ascii')
             except UnicodeDecodeError:
-                if closefh: fh.close()
+                if closefh:
+                    fh.close()
                 return False
         if len(card) != cardLen or \
-         card[:26].upper() != 'BITPIX  =                 ':
-            if closefh: fh.close()
+           card[:26].upper() != 'BITPIX  =                 ':
+            if closefh:
+                fh.close()
             return False
-    except:
+
+    except Exception:
         return False
+
     finally:
-        if closefh: fh.close()
+        if closefh:
+            fh.close()
 
     return True
 
 
 def _geis2FITSName(rootname, geisext):
-    return rootname+'_'+geisext[1:]+os.extsep+'fits'
+    return rootname + '_' + geisext[1:] + os.extsep + 'fits'
 
 
-#def _waiver2FITSName(rootname, waiverext):
-    #if len(rootname) > 0:
-        #ch = 'h' if rootname[-1].islower() else 'H'
-        #return rootname[:-1] + ch + waiverext
-    #else:
-        #return rootname[:-1] + waiverext
+# def _waiver2FITSName(rootname, waiverext):
+#     if len(rootname) > 0:
+#         ch = 'h' if rootname[-1].islower() else 'H'
+#         return rootname[:-1] + ch + waiverext
+#     else:
+#         return rootname[:-1] + waiverext
 
 
 def _getExtname(hdulist):
@@ -1739,14 +1762,14 @@ def _getExtname(hdulist):
 def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
     if doOpen:
         assert(rc_orig.refcount > 0)
-        if imageRef.original_ftype in ['MEF','SIMPLE']:
+        if imageRef.original_ftype in ['MEF', 'SIMPLE']:
             rc_new = rc_orig
             rc_new.hold()
-            imageRef.extname         = _getExtname(rc_orig.resource)
-            imageRef.filename        = imageRef.mef_fname
+            imageRef.extname = _getExtname(rc_orig.resource)
+            imageRef.filename = imageRef.mef_fname
             imageRef.can_reload_data = True
-            imageRef.memmap          = memmap
-            imageRef.fmode           = fmode
+            imageRef.memmap = memmap
+            imageRef.fmode = fmode
 
         else:
             if preferMEF and imageRef.mef_exists:
@@ -1754,15 +1777,15 @@ def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
                 try:
                     hdulist = fits.open(imageRef.mef_fname, mode=fmode,
                                         memmap=memmap)
-                    rc_new  = ResourceRefCount(hdulist)
+                    rc_new = ResourceRefCount(hdulist)
                     rc_new.hold()
-                    imageRef.extname         = _getExtname(hdulist)
-                    imageRef.filename        = imageRef.mef_fname
+                    imageRef.extname = _getExtname(hdulist)
+                    imageRef.filename = imageRef.mef_fname
                     imageRef.can_reload_data = True
-                    imageRef.memmap          = memmap
-                    imageRef.fmode           = fmode
+                    imageRef.memmap = memmap
+                    imageRef.fmode = fmode
 
-                except:
+                except Exception:
                     imageRef.can_reload_data = False
                     if not rc_new.closed:
                         rc_new.release()
@@ -1772,9 +1795,9 @@ def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
                 rc_new = rc_orig
                 rc_new.hold()
     else:
-        rc_new                   = ResourceRefCount(None)
-        imageRef.filename        = None
-        imageRef.extname         = None
+        rc_new = ResourceRefCount(None)
+        imageRef.filename = None
+        imageRef.extname = None
         imageRef.can_reload_data = False
 
     return rc_new
@@ -1783,10 +1806,10 @@ def _openHDU(imageRef, doOpen, preferMEF, rc_orig, fmode, memmap):
 def _getDQHDUList(dqimage, dqfile, doOpen, ftype, basicChk, openOrigFn,
                   kw_openOrigFn, verbose):
     dqimage.original_exists = path.isfile(dqfile)
-    dqimage.original_fname  = dqfile
-    dqimage.original_ftype  = ftype
-    dqimage.mef_exists      = dqimage.mef_fname is not None \
-                               and path.isfile(dqimage.mef_fname)
+    dqimage.original_fname = dqfile
+    dqimage.original_ftype = ftype
+    dqimage.mef_exists = dqimage.mef_fname is not None \
+        and path.isfile(dqimage.mef_fname)
 
     if doOpen and not dqimage.original_exists and verbose:
         print("Data quality file \'{}\' not found.".format(dqfile))
@@ -1797,11 +1820,11 @@ def _getDQHDUList(dqimage, dqfile, doOpen, ftype, basicChk, openOrigFn,
         try:
             if basicChk(dqfile):
                 dqhdulist = openOrigFn(dqfile, **kw_openOrigFn)
-                dqhdr     = dqhdulist[0].header
+                dqhdr = dqhdulist[0].header
 
-                dqimage.filename        = dqfile
+                dqimage.filename = dqfile
                 dqimage.original_exists = True
-                dqimage.extname         = _getExtname(dqhdulist)
+                dqimage.extname = _getExtname(dqhdulist)
 
                 if 'FILETYPE' in dqhdr and \
                    dqhdr['FILETYPE'].strip().upper() == 'SDQ':
@@ -1809,15 +1832,15 @@ def _getDQHDUList(dqimage, dqfile, doOpen, ftype, basicChk, openOrigFn,
                 else:
                     dqhdulist.close()
                     if verbose:
-                        print("Unsupported \'FILETYPE\' value in " \
+                        print("Unsupported \'FILETYPE\' value in "
                               "data quality file \'{}\'".format(dqfile))
-        except:
+        except Exception:
             if verbose:
-                print("Could not read data quality file " \
+                print("Could not read data quality file "
                       "\'{}\'".format(dqfile))
 
         dqimage.original_exists = False
-        dqimage.original_ftype  = 'UNKNOWN'
+        dqimage.original_ftype = 'UNKNOWN'
 
     dqimage.filename = None
     return None
@@ -1844,59 +1867,59 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
     Parameters
     ----------
-    filename : str
+    filename: str
         File name of the file to be opened. The image file formats are
         recognized: simple/MEF FITS, HST GEIS format, or WAIVER FITS format.
 
-    mode : str, optional
+    mode: str, optional
         File mode used to open main image FITS file. See `astropy.io.fits.open`
         for more details.
 
-    dqmode : str, optional
+    dqmode: str, optional
         File mode used to open DQ image FITS file. See parameter ``mode``
         above for more details.
 
-    memmap : bool, optional
+    memmap: bool, optional
         Should memory mapping to be used whe opening simple/MEF FITS?
 
-    saveAsMEF : bool, optional
+    saveAsMEF: bool, optional
         Should an input GEIS or WAIVER FITS be converted to simple/MEF FITS?
 
-    output_base_fitsname : str, None, optional
+    output_base_fitsname: str, None, optional
         The base name of the output simple/MEF FITS when ``saveAsMEF`` is
         `True`. If it is `None`, the file name of the converted file
         will be determined according to HST file naming conventions.
 
-    clobber : bool, optional
+    clobber: bool, optional
         If ``saveAsMEF`` is `True`, should any existing output files be
         overwritten?
 
-    imageOnly : bool, optional
+    imageOnly: bool, optional
         Should this function open the image file only? If `True`, then
         the DQ-related attributes will not be valid.
 
-    openImageHDU : bool, optional
+    openImageHDU: bool, optional
         Indicates whether the returned :py:class:`ImageRef` object
         corresponding to the science image file should be
         in an open or closed state.
 
-    openDQHDU : bool, optional
+    openDQHDU: bool, optional
         Indicates whether the returned :py:class:`ImageRef` object
         corresponding to the DQ image file should be in an open or closed
         state.
 
-    preferMEF : bool, optional
+    preferMEF: bool, optional
         Should this function open an existing MEF file that complies with
         HST naming convention when the input file is in GEIS or WAIVER FITS
         format, even when ``saveAsMEF`` is `False` or ``clobber`` is `False`?
 
-    verbose : bool, optional
+    verbose: bool, optional
         If `True`, some addition information will be printed out to
         standard output.
 
     Returns
     -------
-    (img, dqimg) : (ImageRef, ImageRef)
+    (img, dqimg): (ImageRef, ImageRef)
         A tuple of :py:class:`ImageRef` objects corresponding to the science
         image and to the DQ image. Each object in the returned tuple open
         or closed depending on the input arguments.
@@ -1925,20 +1948,20 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
     """
     # Initialize output dictionary:
     sci_image = ImageRef()
-    dq_image  = ImageRef()
+    dq_image = ImageRef()
 
     # Image file:
-    hdulist        = None
+    hdulist = None
 
     # Data Quality (DQ) file (valid only if 'associated_DQ_file' is True):
-    dqhdulist      = None
+    dqhdulist = None
 
     # Extra Info:
-    telescope      = 'UNKNOWN'
-    instrument     = 'UNKNOWN'
+    telescope = 'UNKNOWN'
+    instrument = 'UNKNOWN'
 
     # supported GEISS/WAIVER instruments (for DQ detection):
-    supported_extern_DQ = [ 'WFPC2', 'WFPC', 'FOC', 'HRS' ]
+    supported_extern_DQ = ['WFPC2', 'WFPC', 'FOC', 'HRS']
 
     # Insure that the filename is always fully expanded
     # This will not affect filenames without paths or
@@ -1947,7 +1970,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
     # Extract the rootname and extension specification
     # from input image name
-    _fname,_iextn = fileutil.parseFilename(filename)
+    _fname, _iextn = fileutil.parseFilename(filename)
     sci_image.original_fname = _fname
 
     (_root, fext) = path.splitext(_fname)
@@ -1959,44 +1982,49 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
     # readgeis may hang on incorrect (non-GEIS) files. To avoid this,
     # do a basic GEIS file check:
-    if (len(fext) == 4 and fext[-1].lower() == 'h' and basicGEIScheck(_fname)):
+    if len(fext) == 4 and fext[-1].lower() == 'h' and basicGEIScheck(_fname):
         # input file might be in GEIS format so try to read it:
         hdulist = readgeis.readgeis(_fname)
         ftype = 'GEIS'
         convert2MEF = saveAsMEF
 
         sci_image.original_exists = True
-        sci_image.original_ftype  = ftype
-        sci_image.filename        = _fname
-        sci_image.mef_fname       = _geis2FITSName(_outroot, fext)
-        sci_image.mef_exists      = path.isfile(sci_image.mef_fname)
-        sci_image.extname         = _getExtname(hdulist)
-        sci_image.fmode           = 'readonly'
-        sci_image.memmap          = False
+        sci_image.original_ftype = ftype
+        sci_image.filename = _fname
+        sci_image.mef_fname = _geis2FITSName(_outroot, fext)
+        sci_image.mef_exists = path.isfile(sci_image.mef_fname)
+        sci_image.extname = _getExtname(hdulist)
+        sci_image.fmode = 'readonly'
+        sci_image.memmap = False
 
-        (telescope, instrument, hstftype) = _extract_instr_info(hdulist[0].header)
+        (telescope, instrument, hstftype) = _extract_instr_info(
+            hdulist[0].header
+        )
 
-        has_DQ = telescope == 'HST' and hstftype == 'SCI' and \
-                 instrument in supported_extern_DQ and fext[-2] == '0'
+        has_DQ = (telescope == 'HST' and hstftype == 'SCI' and
+                  instrument in supported_extern_DQ and fext[-2] == '0')
 
         if has_DQ:
             sci_image.DQ_model = 'external'
 
-            _dqfext   = fext[:2]+'1'+fext[-1]
-            _dqfname  = _root + _dqfext
+            _dqfext = fext[:2] + '1' + fext[-1]
+            _dqfname = _root + _dqfext
             dq_image.mef_fname = _geis2FITSName(_outroot, _dqfext)
 
-            dqhdulist = _getDQHDUList(dq_image, _dqfname, not imageOnly, ftype, \
-                                basicGEIScheck, readgeis.readgeis, {}, verbose)
+            dqhdulist = _getDQHDUList(
+                dq_image, _dqfname, not imageOnly, ftype, basicGEIScheck,
+                readgeis.readgeis, {}, verbose
+            )
         else:
             sci_image.DQ_model = 'intrinsic'
 
     else:
-
         # Assume the input file is a FITS file
         if not basicFITScheck(_fname):
-            raise ValueError("Input file \'{}\' is neither a GEIS file nor a " \
-                             "FITS file.".format(_fname))
+            raise ValueError(
+                "Input file \'{}\' is neither a GEIS file nor a FITS file."
+                .format(_fname)
+            )
 
         hdulist = fits.open(_fname, mode=mode, memmap=memmap)
 
@@ -2011,16 +2039,18 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             if len(hdulist) > 1:
                 ftype = 'MEF'
             else:
-                raise ValueError("Input file \'{}\' has either an unsupported " \
-                                 "FITS format, contains no image data, or is "  \
-                                 "from an unsupported instrument.".format(_fname))
+                raise ValueError(
+                    "Input file \'{}\' has either an unsupported FITS format, "
+                    "contains no image data, or is from an unsupported "
+                    "instrument.".format(_fname)
+                )
         else:
             if len(hdulist) > 1 and isinstance(hdulist[1], fits.TableHDU):
                 ftype = 'WAIVER'
-                if not (telescope == 'HST' and instrument in supported_extern_DQ) \
-                   and verbose:
-                    print("Input file \'{}\' appears to have \'WAIVER\'-FITS " \
-                          "like structure but originates from an unsupported " \
+                if (not (telescope == 'HST' and
+                         instrument in supported_extern_DQ) and verbose):
+                    print("Input file \'{}\' appears to have \'WAIVER\'-FITS "
+                          "like structure but originates from an unsupported "
                           "instrument.".format(_fname))
             else:
                 ftype = 'SIMPLE'
@@ -2031,26 +2061,34 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
             convert2MEF = False
 
             sci_image.original_exists = True
-            sci_image.original_ftype  = ftype
-            sci_image.filename        = _fname
-            sci_image.mef_fname       = _fname
-            sci_image.mef_exists      = True
-            sci_image.extname         = _getExtname(hdulist)
+            sci_image.original_ftype = ftype
+            sci_image.filename = _fname
+            sci_image.mef_fname = _fname
+            sci_image.mef_exists = True
+            sci_image.extname = _getExtname(hdulist)
 
-            has_DQ = telescope == 'HST' and instrument in supported_extern_DQ and \
-               hstftype == 'SCI' and len(_root) > 2 and _root[-2] == '0'
+            has_DQ = (telescope == 'HST' and
+                      instrument in supported_extern_DQ and
+                      hstftype == 'SCI' and len(_root) > 2 and
+                      _root[-2] == '0')
 
             if has_DQ:
                 sci_image.DQ_model = 'external'
 
-                _dqfname  = _root[:-2] + '1' + _root[-1] + fext
+                _dqfname = _root[:-2] + '1' + _root[-1] + fext
                 dq_image.mef_fname = _dqfname
-                dq_image.fmode     = dqmode
+                dq_image.fmode = dqmode
 
-                dqhdulist = _getDQHDUList(dq_image, _dqfname, not imageOnly, \
-                            ftype, (lambda x : True),                        \
-                            fits.open, {'mode' : dqmode, 'memmap' : memmap}, \
-                            verbose)
+                dqhdulist = _getDQHDUList(
+                    dq_image,
+                    _dqfname,
+                    not imageOnly,
+                    ftype,
+                    (lambda x: True),
+                    fits.open,
+                    {'mode': dqmode, 'memmap': memmap},
+                    verbose
+                )
 
                 if dqhdulist is None:
                     dq_image.mef_exists = False
@@ -2058,7 +2096,6 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
                 sci_image.DQ_model = 'intrinsic'
 
         else:
-
             # "WAIVER"-FITS FORMAT:
             convert2MEF = saveAsMEF
 
@@ -2068,29 +2105,34 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
                 ch = 'h' if _root[-1].islower() else 'H'
 
             whdulist = hdulist
+
             try:
                 hdulist = convertwaiveredfits.convertwaiveredfits(whdulist)
-            except:
+
+            except Exception as e:
                 hdulist = None
-                raise
+                raise e
+
             finally:
                 whdulist.close()
                 del whdulist
 
             sci_image.original_exists = True
-            sci_image.original_ftype  = ftype
-            sci_image.filename        = _fname
-            sci_image.mef_fname       = _root[:-1] + ch + fext
-            sci_image.mef_exists      = path.isfile(sci_image.mef_fname)
-            sci_image.extname         = _getExtname(hdulist)
-            sci_image.fmode           = 'readonly'
-            sci_image.memmap          = False
+            sci_image.original_ftype = ftype
+            sci_image.filename = _fname
+            sci_image.mef_fname = _root[:-1] + ch + fext
+            sci_image.mef_exists = path.isfile(sci_image.mef_fname)
+            sci_image.extname = _getExtname(hdulist)
+            sci_image.fmode = 'readonly'
+            sci_image.memmap = False
 
-            (telescope, instrument, hstftype) = _extract_instr_info(hdulist[0].header)
+            telescope, instrument, hstftype = _extract_instr_info(
+                hdulist[0].header
+            )
 
-            has_DQ = telescope == 'HST' and hstftype == 'SCI' and \
-                     instrument in supported_extern_DQ and        \
-                     len(_root) > 2 and _root[-2] == '0'
+            has_DQ = (telescope == 'HST' and hstftype == 'SCI' and
+                      instrument in supported_extern_DQ and
+                      len(_root) > 2 and _root[-2] == '0')
 
             if has_DQ:
                 sci_image.DQ_model = 'external'
@@ -2098,35 +2140,42 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
                 _dqfname = _root[:-2] + '1' + _root[-1] + fext
                 dq_image.mef_fname = _outroot[:-2] + '1' + ch + fext
 
-                dqhdulist = _getDQHDUList(dq_image, _dqfname, not imageOnly, \
-                                ftype, basicFITScheck,                       \
-                                convertwaiveredfits.convertwaiveredfits, {}, \
-                                verbose)
+                dqhdulist = _getDQHDUList(
+                    dq_image,
+                    _dqfname,
+                    not imageOnly,
+                    ftype,
+                    basicFITScheck,
+                    convertwaiveredfits.convertwaiveredfits,
+                    {},
+                    verbose
+                )
+
             else:
                 sci_image.DQ_model = 'intrinsic'
 
-    sci_image.telescope  = telescope
+    sci_image.telescope = telescope
     sci_image.instrument = instrument
-    sci_image.ftype      = hstftype
+    sci_image.ftype = hstftype
 
-    dq_image.telescope   = telescope
-    dq_image.instrument  = instrument
-    dq_image.ftype       = hstftype
+    dq_image.telescope = telescope
+    dq_image.instrument = instrument
+    dq_image.ftype = hstftype
 
     if convert2MEF:
         # convert GEIS or WAIVER to MEF:
         if (sci_image.mef_exists and clobber) or not sci_image.mef_exists:
             if verbose:
-                print("Writing out {} as MEF to \'{}\'".format( \
-                    ftype, sci_image.mef_fname))
+                print("Writing out {} as MEF to \'{}\'"
+                      .format(ftype, sci_image.mef_fname))
             hdulist.writeto(sci_image.mef_fname, overwrite=clobber)
             sci_image.mef_exists = True
 
         if dq_image.original_exists and not imageOnly and \
            ((dq_image.mef_exists and clobber) or not dq_image.mef_exists):
             if verbose:
-                print("Writing out DQ {} as MEF to \'{}\'".format( \
-                    ftype, dq_image.mef_fname))
+                print("Writing out DQ {} as MEF to \'{}\'"
+                      .format(ftype, dq_image.mef_fname))
             dqhdulist.writeto(dq_image.mef_fname, overwrite=clobber)
             dq_image.mef_exists = True
 
@@ -2137,24 +2186,28 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
         rcdq_orig.hold()
         fmode = mode if openImageHDU else dqmode
         if openImageHDU or (openDQHDU and not imageOnly):
-            rcim = _openHDU(sci_image, True, preferMEF, rcim_orig, fmode, memmap)
+            rcim = _openHDU(sci_image, True, preferMEF, rcim_orig,
+                            fmode, memmap)
             dq_image = copy(sci_image)
             if openDQHDU:
                 rcdq = rcim
                 rcdq.hold()
             else:
-                rcdq = _openHDU(dq_image, False, preferMEF, rcdq_orig, fmode, memmap)
+                rcdq = _openHDU(dq_image, False, preferMEF, rcdq_orig, fmode,
+                                memmap)
             if not openImageHDU:
                 rcim.release()
-                rcim = _openHDU(sci_image, False, preferMEF, rcim_orig, mode, memmap)
+                rcim = _openHDU(sci_image, False, preferMEF, rcim_orig, mode,
+                                memmap)
         else:
             dq_image = copy(sci_image)
-            rcim = _openHDU(sci_image, False, preferMEF, rcim_orig, mode, memmap)
-            rcdq = _openHDU(dq_image,  False, preferMEF, rcdq_orig, fmode, memmap)
+            rcim = _openHDU(sci_image, False, preferMEF, rcim_orig, mode,
+                            memmap)
+            rcdq = _openHDU(dq_image, False, preferMEF, rcdq_orig, fmode,
+                            memmap)
 
         # try to "guess" DQ extension name
-        #if len(hdulist) > 1 and telescope == 'HST' and \
-        if count_extensions(hdulist,'DQ') > 0:
+        if count_extensions(hdulist, 'DQ') > 0:
             dq_image.extname = 'DQ'
         else:
             dq_image.extname = None
@@ -2162,9 +2215,22 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
     else:
         rcdq_orig = ResourceRefCount(dqhdulist)
         rcdq_orig.hold()
-        rcim = _openHDU(sci_image, openImageHDU, preferMEF, rcim_orig, mode, memmap)
-        rcdq = _openHDU(dq_image,  openDQHDU and not imageOnly and not rcdq_orig.closed,
-                        preferMEF, rcdq_orig, dqmode, memmap)
+        rcim = _openHDU(
+            sci_image,
+            openImageHDU,
+            preferMEF,
+            rcim_orig,
+            mode,
+            memmap
+        )
+        rcdq = _openHDU(
+            dq_image,
+            openDQHDU and not imageOnly and not rcdq_orig.closed,
+            preferMEF,
+            rcdq_orig,
+            dqmode,
+            memmap
+        )
         dq_image.fmode = dqmode
 
     sci_image.set_HDUList_RefCount(None if rcim.closed else rcim)
@@ -2180,7 +2246,7 @@ def openImageEx(filename, mode='readonly', dqmode='readonly', memmap=True,
 
 
 def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
-    """
+    r"""
     Compares two values, or values of `numpy.ndarray` and verifies that these
     values are close to each other. For exact type (integers and boolean) the
     comparison is exact. For inexact types (`float`, `numpy.float32`, etc.)
@@ -2195,19 +2261,19 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
 
     Parameters
     ----------
-    arr1 : float, int, bool, str, numpy.ndarray, None, etc.
+    arr1: float, int, bool, str, numpy.ndarray, None, etc.
         First value or array of values to be compared.
 
-    arr2 : float, int, bool, str, numpy.ndarray, None, etc.
+    arr2: float, int, bool, str, numpy.ndarray, None, etc.
         Second value or array of values to be compared.
 
-    fp_accuracy : int, float, None, optional
+    fp_accuracy: int, float, None, optional
         Accuracy to withing values should be close. Default value will use
         twice the value of the machine accuracy (machine epsilon) for
         the input type. This parameter has effect only when the values
         to be compared are of inexact type (e.g., `float`).
 
-    fp_precision : int, float, None, optional
+    fp_precision: int, float, None, optional
         Accuracy to withing values should be close. Default value will use
         twice the value of the machine precision (resolution) for the
         input type. This parameter has effect only when the values
@@ -2215,7 +2281,7 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
 
     Returns
     -------
-    almost_equal : bool
+    almost_equal: bool
         Returns `True` if input values are close enough to each other
         or `False` otherwise.
 
@@ -2229,13 +2295,14 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
 
     """
     if fp_accuracy is not None:
-        if not (isinstance(fp_accuracy, float) or isinstance(fp_accuracy, int)) \
-           or ((isinstance(fp_accuracy, float) or \
-               isinstance(fp_accuracy, int)) and fp_accuracy < 0):
+        if not (isinstance(fp_accuracy, float) or
+                isinstance(fp_accuracy, int)) \
+           or ((isinstance(fp_accuracy, float) or
+                isinstance(fp_accuracy, int)) and fp_accuracy < 0):
             raise ValueError("Accuracy must be either a non-negative "
                              "number or None")
-    if fp_precision is not None and not (isinstance(fp_precision, float) \
-                                         or isinstance(fp_precision, int)):
+    if fp_precision is not None and not (isinstance(fp_precision, float) or
+                                         isinstance(fp_precision, int)):
         raise ValueError("Precision must be either None, an integer, or "
                          "a floating-point number")
 
@@ -2247,17 +2314,18 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
 
     t1 = a1.dtype.type
     t2 = a2.dtype.type
-    acc = None
-    prec = None
 
     if issubclass(t1, np.inexact):
         fi = np.finfo(t1)
         acc = 2.0 * fi.eps if fp_accuracy is None else fp_accuracy
         prec = 2.0 * fi.resolution if fp_precision is None \
-                                   else 10**(-fp_precision)
+            else 10**(-fp_precision)
     elif issubclass(t1, np.integer) or issubclass(t1, np.bool_):
         acc = 0
         prec = 0
+    else:
+        acc = None
+        prec = None
 
     if issubclass(t2, np.inexact):
         if acc is None:
@@ -2276,11 +2344,11 @@ def almost_equal(arr1, arr2, fp_accuracy=None, fp_precision=None):
     if acc is None or (acc == 0 and prec == 0):
         return np.all(a1 == a2)
     else:
-        return np.all(np.abs(a1-a2) <= acc + prec*np.abs(a2))
+        return np.all(np.abs(a1 - a2) <= acc + prec * np.abs(a2))
 
 
 def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
-               default_ext=('SCI','*')):
+               default_ext=('SCI', '*')):
     """
     A convenience function that allows retrieving computed sky background
     values from image headers and storing them in a text file that can be
@@ -2297,7 +2365,7 @@ def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
 
     Parameters
     ----------
-    files : str
+    files: str
         File name(s), including extension specification if necessary,
         from which sky values should be retrieved:
 
@@ -2336,7 +2404,7 @@ def skyval2txt(files='*_flt.fits', skyfile='skyfile.txt', skykwd='SKYUSER',
     skykwd: str, optional
         Header keyword holding the value of the computed sky background.
 
-    default_ext : int, tuple, optional
+    default_ext: int, tuple, optional
         Default extension to be used with image files that to not have
         an extension specified.
 
