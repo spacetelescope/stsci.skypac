@@ -19,7 +19,7 @@ def DEPS = ['astropy', 'graphviz', 'numpy', 'numpydoc',
         'stsci_rtd_theme', 'stsci.imagestats', 'stwcs', 'setuptools']
 
 
-matrix_python = ["3.5", "3.6"]
+matrix_python = ["3.6", "3.7"]
 matrix_astropy = ["3"]
 matrix_numpy = ["latest"]
 matrix = []
