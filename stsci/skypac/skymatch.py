@@ -201,7 +201,7 @@ clean=True, verbose=True, flog='skymatch_log.txt')
           "measured" sky values for median image generation and CR rejection.
 
         * **'globalmin+match'**\ : first find a minimum "global" sky value
-          in all input images and then use **``'match'``** method to
+          in all input images and then use ``'match'`` method to
           equalize sky values between images.
 
           .. note::
