@@ -7,24 +7,23 @@ by :py:mod:`stsci.skypac` module.
 :License: :doc:`LICENSE`
 
 """
-__author__ = 'Mihai Cara'
+supported_telescopes = ['HST']
 
-supported_telescopes    = [ 'HST' ]
+counts_only_instruments = ['WFPC', 'WFPC2', 'ACS', 'STIS']  # 'HRS'
+mixed_units_instruments = ['NICMOS', 'WFC3']
+rates_only_instruments = ['FOC', 'COS']
 
-counts_only_instruments = [ 'WFPC','WFPC2','ACS', 'STIS' ] # 'HRS'
-mixed_units_instruments = [ 'NICMOS','WFC3' ]
-rates_only_instruments  = [ 'FOC','COS' ]
-
-supported_instruments = counts_only_instruments+mixed_units_instruments+ \
-                        rates_only_instruments
+supported_instruments = (
+    counts_only_instruments + mixed_units_instruments + rates_only_instruments
+)
 
 photcorr_kwd = {
-    'FOC'    : [ 'WAVCORR',  'COMPLETE'  ],
-    'WFPC'   : [ 'DOPHOTOM', 'DONE'      ],
-    'WFPC2'  : [ 'DOPHOTOM', 'COMPLETE'  ],
-    'NICMOS' : [ 'PHOTDONE', 'PERFORMED' ],
-    'STIS'   : [ 'PHOTCORR', 'COMPLETE'  ],
-    'ACS'    : [ 'PHOTCORR', 'COMPLETE'  ],
-    'WFC3'   : [ 'PHOTCORR', 'COMPLETE'  ],
-    'COS'    : [ 'PHOTCORR', 'COMPLETE'  ]
+    'FOC': ['WAVCORR', 'COMPLETE'],
+    'WFPC': ['DOPHOTOM', 'DONE'],
+    'WFPC2': ['DOPHOTOM', 'COMPLETE'],
+    'NICMOS': ['PHOTDONE', 'PERFORMED'],
+    'STIS': ['PHOTCORR', 'COMPLETE'],
+    'ACS': ['PHOTCORR', 'COMPLETE'],
+    'WFC3': ['PHOTCORR', 'COMPLETE'],
+    'COS': ['PHOTCORR', 'COMPLETE'],
 }

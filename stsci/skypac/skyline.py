@@ -42,9 +42,10 @@ solely, not image data itself.
 
 """
 # STDLIB
-import sys, os
+import sys
+import os
 from copy import copy, deepcopy
-from os.path import basename, split, splitext
+from os.path import basename
 import numpy as np
 import math
 
@@ -59,9 +60,9 @@ except ImportError:
     from stsci.tools.bitmask import bitmask2mask as bitfield_to_boolean_mask
 
 # LOCAL
-from .utils import is_countrate, ext2str, MultiFileLog, ImageRef, \
-     file_name_components, temp_mask_file, in_memory_mask, \
-     get_instrument_info
+from .utils import (is_countrate, ext2str, MultiFileLog, ImageRef,
+                    file_name_components, temp_mask_file, in_memory_mask,
+                    get_instrument_info)
 from .parseat import FileExtMaskInfo, _Stat
 from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 
@@ -69,7 +70,7 @@ from .hstinfo import supported_telescopes, supported_instruments, photcorr_kwd
 SKYLINE_DEBUG = False
 
 __all__ = ['SkyLineMember', 'SkyLine']
-__author__ = 'Mihai Cara'
+
 
 class SkyLineMember(object):
     """
@@ -89,11 +90,11 @@ class SkyLineMember(object):
         """
         Parameters
         ----------
-        image : ImageRef
+        image: ImageRef
             An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
             to an open FITS file
 
-        ext : tuple, int, str
+        ext: tuple, int, str
             Extension specification in the `image` the `SkyLineMember`
             object will be associated with.
 
@@ -103,7 +104,7 @@ class SkyLineMember(object):
             to be 1. See documentation for `astropy.io.fits.getData`
             for examples.
 
-        dq_bits : int, None (Default = 0)
+        dq_bits: int, None (Default = 0)
             Integer sum of all the DQ bit values from the
             input `image`'s DQ array that should be considered "good"
             when building masks for sky computations. For example,
@@ -127,7 +128,7 @@ class SkyLineMember(object):
                 DQ masks (if used), *will be* combined with user masks
                 specified by the `usermask` parameter.
 
-        dqimage : ImageRef
+        dqimage: ImageRef
             An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
             to an open FITS file that has DQ data of the input `image`.
 
@@ -137,29 +138,29 @@ class SkyLineMember(object):
                `dqimage` may point to the
                same :py:class:`~stsci.skypac.utils.ImageRef` object.
                In this case the reference count of the
-               \ :py:class:`~stsci.skypac.utils.ImageRef` object must be
+               :py:class:`~stsci.skypac.utils.ImageRef` object must be
                increased adequately.
 
-        dqext : tuple, int, str
+        dqext: tuple, int, str
             Extension specification of the `dqimage` that contains
             `image`'s DQ information. See help for `ext` for more
             details on acceptable formats for this parameter.
 
-        usermask : ImageRef
+        usermask: ImageRef
             An :py:class:`~stsci.skypac.utils.ImageRef` object that refers
             to an open FITS file that has user mask data that indicate
             what pixels in the input `image` should be used for sky
             computations (``1``) and which pixels should **not** be used
             for sky computations (``0``).
 
-        usermask_ext : tuple, int, str
+        usermask_ext: tuple, int, str
             Extension specification of the `usermask` mask file that
             contains user's mask data that should be associated with
             the input `image` and `ext`. See help for `ext` for more
             details on acceptable formats for this parameter.
 
         """
-        assert(hasattr(self.__class__, '_initialized') and \
+        assert(hasattr(self.__class__, '_initialized') and
                self.__class__._initialized)
         self._reset()
 
@@ -171,38 +172,46 @@ class SkyLineMember(object):
                 dq_bits = 0
             else:
                 _check_valid_imgext(dqimage, 'dqimage', dqext, 'dqext')
-        _check_valid_imgext(usermask, 'usermask', usermask_ext,'usermask_ext')
+        _check_valid_imgext(usermask, 'usermask', usermask_ext, 'usermask_ext')
 
         # get telescope, instrument, and detector info:
         self.telescope, self.instrument, self.detector = get_instrument_info(
             image, ext)
 
         # check dq_bits:
-        if dq_bits is not None and not isinstance(dq_bits,int):
-            if image:  dqimage.release()
-            if usermask: usermask.release()
-            if dqimage:  dqimage.release()
-            raise TypeError("Argument 'dq_bits' must be either an integer or None.")
+        if dq_bits is not None and not isinstance(dq_bits, int):
+            if image:
+                dqimage.release()
+            if usermask:
+                usermask.release()
+            if dqimage:
+                dqimage.release()
+            raise TypeError(
+                "Argument 'dq_bits' must be either an integer or None."
+            )
 
         # buld mask:
         self._buildMask(image.original_fname, ext, dq_bits,
                         dqimage, dqext, usermask, usermask_ext)
-        if dqimage:  dqimage.release()
-        if usermask: usermask.release()
+        if dqimage:
+            dqimage.release()
+        if usermask:
+            usermask.release()
 
         # save file, user mask, and DQ extension info:
-        self._fname          = image.original_fname
-        self._basefname      = basename(self._fname)
-        self._image          = image
-        self._ext            = ext
-        self._can_free_image = image.can_reload_data and self.optimize != 'speed'
+        self._fname = image.original_fname
+        self._basefname = basename(self._fname)
+        self._image = image
+        self._ext = ext
+        self._can_free_image = (image.can_reload_data and
+                                self.optimize != 'speed')
 
         # check extension and create a string representation:
         try:
             extstr = ext2str(ext)
         except ValueError:
-            raise ValueError("Unexpected extension type \'{}\' for file {}.".\
-                             format(ext,self._basefname))
+            raise ValueError("Unexpected extension type '{}' for file {}.".
+                             format(ext, self._basefname))
 
         self._id = "{:s}[{:s}]".format(self._basefname, extstr)
 
@@ -217,13 +226,14 @@ class SkyLineMember(object):
                     self._wcs = pywcs.WCS(image.hdu[ext].header, image.hdu)
             if self._wcs is None:
                 raise Exception("Invalid WCS.")
-        except:
+
+        except Exception as e:
             msg = "Unable to obtain WCS information for the file {:s}." \
                 .format(self._id)
             self._ml.error(msg)
             self._ml.flush()
             self._release_all()
-            raise
+            raise e
 
         # determine pixel scale:
         self._get_pixel_scale()
@@ -238,19 +248,17 @@ class SkyLineMember(object):
         # Set polygon to be the bounding box of the chip:
         self._polygon = SphericalPolygon.from_wcs(self.wcs, steps=1)
 
-
     @classmethod
     def init_class(cls, skyuser_kwd='SKYUSER', units_kwd='BUNIT',
-                   invsens_kwd=None,
-                   verbose=True, logfile=sys.stdout, clobber=False,
-                   optimize='balanced'):
+                   invsens_kwd=None, verbose=True, logfile=sys.stdout,
+                   clobber=False, optimize='balanced'):
         cls._skyuser_header_keyword = skyuser_kwd
-        cls._units_header_keyword   = units_kwd
-        cls._inv_sensitivity_kwd    = invsens_kwd
-        cls._verbose                = verbose
-        cls._clobber                = clobber
-        if isinstance(optimize,str):
-            cls._optimize           = optimize.lower()
+        cls._units_header_keyword = units_kwd
+        cls._inv_sensitivity_kwd = invsens_kwd
+        cls._verbose = verbose
+        cls._clobber = clobber
+        if isinstance(optimize, str):
+            cls._optimize = optimize.lower()
         else:
             raise TypeError("The 'optimize' argument must be a string object.")
 
@@ -263,7 +271,7 @@ class SkyLineMember(object):
         if isinstance(logfile, MultiFileLog):
             cls._ml = logfile
         else:
-            cls._ml = MultiFileLog(console = verbose)
+            cls._ml = MultiFileLog(console=verbose)
             if logfile not in ('', None):
                 cls._ml.add_logfile(logfile)
                 cls._ml.skip(2)
@@ -275,28 +283,28 @@ class SkyLineMember(object):
             for f in self._files2clean:
                 try:
                     os.remove(f)
-                except:
-                    self._ml.warning("Unable to remove temporary file " \
-                                     "\'{:s}\'.", f)
+                except Exception:
+                    self._ml.warning("Unable to remove temporary file "
+                                     "'{:s}'.", f)
 
     def _reset(self):
-        self._image           = None
-        self._ext             = None
-        self._mask            = None
-        self._maskext         = None
-        self._files2clean     = []
-        self._can_free_mask   = False
-        self._mask_is_imref   = False
-        self._id              = ''
-        self._pixscale        = 1.0
-        self._is_countrate    = False
-        self._skyuser         = 0.0
-        self._skyuser_delta   = 0.0
-        self._polygon         = None
-        self._wcs             = None
+        self._image = None
+        self._ext = None
+        self._mask = None
+        self._maskext = None
+        self._files2clean = []
+        self._can_free_mask = False
+        self._mask_is_imref = False
+        self._id = ''
+        self._pixscale = 1.0
+        self._is_countrate = False
+        self._skyuser = 0.0
+        self._skyuser_delta = 0.0
+        self._polygon = None
+        self._wcs = None
         self._inv_sensitivity = None
-        self._exptime         = 1.0
-        self._data2brightness_conv= 1.0
+        self._exptime = 1.0
+        self._data2brightness_conv = 1.0
 
     def _release_all(self):
         if self._image is not None:
@@ -306,7 +314,8 @@ class SkyLineMember(object):
 
     def close(self, clean=True):
         self._release_all()
-        if clean: self._clean()
+        if clean:
+            self._clean()
         self._reset()
 
     def _buildMask(self, image_fname, ext, dq_bits, dq, dqext, msk, mskext):
@@ -314,16 +323,17 @@ class SkyLineMember(object):
             # we will use only the user mask:
             if msk is not None:
                 if (self._optimize == 'balanced' and msk.can_reload_data) or \
-                    self._optimize == 'speed' or self._optimize == 'inmemory':
+                   self._optimize == 'speed' or self._optimize == 'inmemory':
                     # nothing to do: simply re-use the user mask:
-                    self._mask     = msk
-                    self._maskext  = mskext
+                    self._mask = msk
+                    self._maskext = mskext
                     self._mask.hold()
                 else:
                     # self._optimize == 'balanced' but the mask cannot be freed
-                    # so we will create a temporary fits file to hold mask data:
+                    # so we will create a temporary fits file to hold mask
+                    # data:
                     maskdata = (msk.hdu[mskext].data != 0).astype(np.uint8)
-                    (root,suffix,fext)  = file_name_components(image_fname)
+                    root, suffix, fext = file_name_components(image_fname)
                     mfname, self._mask = temp_mask_file(
                         maskdata, root, prefix='',
                         suffix='skymatch_mask',
@@ -348,10 +358,13 @@ class SkyLineMember(object):
             # If dq_bits show the "bad" bits then DQ mask should be computed
             # using:
             #
-            #dqmskarr = np.logical_not(np.bitwise_and(dq.hdu[dqext].data,dq_bits))
+            # dqmskarr = np.logical_not(
+            #     np.bitwise_and(dq.hdu[dqext].data,dq_bits)
+            # )
             #
             # However, to keep the same convention with astrodrizzle, dq_bits
-            # will show the "good" bits that should be removed from the DQ array:
+            # will show the "good" bits that should be removed from the DQ
+            # array:
             dqmskarr = bitfield_to_boolean_mask(dq.hdu[dqext].data, dq_bits,
                                                 dtype=np.bool_)
 
@@ -363,7 +376,7 @@ class SkyLineMember(object):
             (root, suffix, fext) = file_name_components(image_fname)
             if self._optimize == 'inmemory':
                 self._mask = in_memory_mask(dqmskarr.astype(np.uint8))
-                strext = ext2str(ext, compact=True, default_extver=None)
+                # strext = ext2str(ext, compact=True, default_extver=None)
                 self._mask.original_fname = "{1:s}{0:s}{2:s}{0:s}{3:s}" \
                     .format('_', root, suffix, 'in-memory_skymatch_mask')
             else:
@@ -398,10 +411,12 @@ class SkyLineMember(object):
             self._idcscale = self._wcs.idcscale
             nominal_pscale = 'IDCSCALE'
         elif 'PAMSCALE' in self._image.hdu[self._ext].header:
-            self._idcscale = float(self._image.hdu[self._ext].header['PAMSCALE'])
+            self._idcscale = float(self._image.hdu[self._ext]
+                                   .header['PAMSCALE'])
             nominal_pscale = 'PAMSCALE'
         elif 'IDCSCALE' in self._image.hdu[self._ext].header:
-            self._idcscale = float(self._image.hdu[self._ext].header['IDCSCALE'])
+            self._idcscale = float(self._image.hdu[self._ext]
+                                   .header['IDCSCALE'])
             nominal_pscale = 'IDCSCALE'
         elif 'PAMSCALE' in self._image.hdu[0].header:
             self._idcscale = float(self._image.hdu[0].header['PAMSCALE'])
@@ -414,8 +429,9 @@ class SkyLineMember(object):
         #TODO: Add support for more WCS representations (PC, CDELT, CROTA)
         self._pixscale = None
         if self._wcs.wcs.has_cd():
-            self._pixscale = math.sqrt(
-                np.abs(np.linalg.det(self._wcs.wcs.cd)))*3600.0
+            self._pixscale = 3600.0 * math.sqrt(
+                np.abs(np.linalg.det(self._wcs.wcs.cd))
+            )
         else:
             if self._idcscale is not None:
                 self._pixscale = self._idcscale
@@ -442,7 +458,8 @@ class SkyLineMember(object):
                 "scale computed from CD matrix: {:g}",
                 self._basefname, ext2str(self._ext), self._pixscale)
 
-    def _brightness_conv_from_hdu(self, hdulist, pscale, primHDUname='PRIMARY'):
+    def _brightness_conv_from_hdu(self, hdulist, pscale,
+                                  primHDUname='PRIMARY'):
         #TODO: remove primHDUname from the argument list and
         # replace it with 0 once the bug in fileutil.getExtn() is fixed.
         # The bug causes imageObject[0] to return first image HDU instead
@@ -455,21 +472,23 @@ class SkyLineMember(object):
         inv_sensitivity_kwd = self.get_inv_sensitivity_kwd()
 
         # start with pixel-area scaling and add other conversion factors later
-        self._data2brightness_conv = 1.0/(pscale**2)
+        self._data2brightness_conv = 1.0 / (pscale**2)
 
         # check if image data are in counts or count-rate
-        self._is_countrate = is_countrate(hdulist, self.ext,
-                units_kwd=self.get_units_kwd(),
-                guess_if_missing=True,
-                verbose=self.is_verbose(), flog=self._ml.unclose_copy())
+        self._is_countrate = is_countrate(
+            hdulist, self.ext, units_kwd=self.get_units_kwd(),
+            guess_if_missing=True, verbose=self.is_verbose(),
+            flog=self._ml.unclose_copy()
+        )
 
         # Check that all the necessary information for conversion
         # to flux (brightness) units is available:
-        if self.is_countrate == None:
+        if self.is_countrate is None:
             self._ml.warning(
-                "Unable to determine units of data in file {0}.{1}"  \
-                "*ASSUMING* image data are \"COUNT-RATE\".". \
-                self._basefname, os.linesep)
+                "Unable to determine units of data in file {0}.\n"
+                "*ASSUMING* image data are \"COUNT-RATE\".",
+                self._basefname
+            )
 
         # retrieve PHOTFLAM:
 
@@ -485,26 +504,25 @@ class SkyLineMember(object):
             telescope = None
 
         if telescope not in supported_telescopes:
-            self._ml.warning("Skipping check of photometric correction " \
-                             "step for{:s}non-HST file \'{:s}\': "     \
-                             "Unsupported telescope.", os.linesep, self._basefname)
+            self._ml.warning("Skipping check of photometric correction "
+                             "step for\nnon-HST file '{:s}': "
+                             "Unsupported telescope.", self._basefname)
             telescope = None
 
         if telescope is not None:
             if 'INSTRUME' in primary_header:
                 instrument = primary_header['INSTRUME'].strip().upper()
                 if instrument not in supported_instruments:
-                    self._ml.warning("Skipping check of photometric "        \
-                                     "correction step for{:s}file \'{:s}\': "\
-                                     "Unsupported instrument \'{:s}\'.",
-                                     os.linesep, self._basefname, instrument)
+                    self._ml.warning("Skipping check of photometric "
+                                     "correction step for\nfile '{:s}': "
+                                     "Unsupported instrument '{:s}'.",
+                                     self._basefname, instrument)
                     instrument = None
             else:
                 # For HST instruments we expect 'INSTRUME' to be present
                 # in the primary header.
-                errmsg = "Missing instrument information in " \
-                               "\'{:s}\' data file \'{:s}\'." \
-                               .format(telescope, self._basefname)
+                errmsg = "Missing instrument information in '{:s}' data " \
+                    "file '{:s}'.".format(telescope, self._basefname)
                 self._ml.error(errmsg)
                 self._ml.close()
                 raise KeyError(errmsg)
@@ -513,24 +531,25 @@ class SkyLineMember(object):
         if telescope is not None and instrument is not None and \
            inv_sensitivity_kwd is not None:
             phot_switch = photcorr_kwd[instrument][0]
-            phot_done   = photcorr_kwd[instrument][1]
+            phot_done = photcorr_kwd[instrument][1]
 
             if phot_switch in primary_header:
                 phot_switch_val = primary_header[phot_switch].strip()
                 if phot_switch_val.upper() != phot_done:
                     photcorr = False
-                    self._ml.warning("Photometric correction was not " \
-                        "performed for data file {1:s}.{0:s}" \
-                        "Variations in detector sensitivity WILL NOT " \
-                        "be accounted for.",
-                        os.linesep, self._basefname)
+                    self._ml.warning(
+                        "Photometric correction was not performed for data "
+                        "file {:s}.\nVariations in detector sensitivity "
+                        "WILL NOT be accounted for.", self._basefname
+                    )
                     self._inv_sensitivity = None
             else:
                 # For HST instruments we expect ~'PHOTCORR' to be present
                 # in the primary header.
-                errmsg = "Missing photometry switch keyword \'{:s}\' in " \
-                         "{:s}-{:s} data file \'{:s}\'." \
-                         .format(phot_switch, telescope, instrument, self._basefname)
+                errmsg = "Missing photometry switch keyword '{:s}' in " \
+                         "{:s}-{:s} data file '{:s}'." \
+                         .format(phot_switch, telescope, instrument,
+                                 self._basefname)
                 self._ml.error(errmsg)
                 self._ml.close()
                 raise KeyError(errmsg)
@@ -542,12 +561,12 @@ class SkyLineMember(object):
                     self._data2brightness_conv *= self._inv_sensitivity
                 else:
                     self._ml.warning(
-                        "\'{4:s}\' value must be a *strictly* positive "  \
-                        "number.{0:s}Found: \'{4:s}\' = {1} in extension "\
-                        "{2:s} in data file \'{3:s}\'.{0:s}\'{4:s}\' "    \
-                        "value will be ignored.{0:s}Variations in detector " \
-                        "sensitivity WILL NOT be accounted for.",            \
-                        os.linesep, self._inv_sensitivity, ext2str(self.ext),
+                        "'{3:s}' value must be a *strictly* positive "
+                        "number.\nFound: '{3:s}' = {0} in extension "
+                        "{1:s} in data file '{2:s}'.\n'{3:s}' "
+                        "value will be ignored.\nVariations in detector "
+                        "sensitivity WILL NOT be accounted for.",
+                        self._inv_sensitivity, ext2str(self.ext),
                         self._basefname, inv_sensitivity_kwd)
                     self._inv_sensitivity = None
             elif inv_sensitivity_kwd in primary_header:
@@ -556,64 +575,65 @@ class SkyLineMember(object):
                     self._data2brightness_conv *= self._inv_sensitivity
                 else:
                     self._ml.warning(
-                        "\'{3:s}\' value must be a *strictly* positive "  \
-                        "number.{0}Found: \'{3:s}\' = {1} in the primary "\
-                        "header in data file \'{2:s}\'.{0:s}\'{3:s}\' "   \
-                        "value will be ignored.{0:s}Variations in detector " \
-                        "sensitivity WILL NOT be accounted for.",            \
-                        os.linesep, self._inv_sensitivity, self._basefname,
+                        "'{2:s}' value must be a *strictly* positive "
+                        "number.\nFound: '{2:s}' = {0} in the primary "
+                        "header in data file '{1:s}'.\n'{2:s}' "
+                        "value will be ignored.\nVariations in detector "
+                        "sensitivity WILL NOT be accounted for.",
+                        self._inv_sensitivity, self._basefname,
                         inv_sensitivity_kwd)
                     self._inv_sensitivity = None
             else:
                 self._inv_sensitivity = None
                 self._ml.warning(
-                    "Keyword \'{3:s}\' not found neither in the " \
-                    "Primary header nor{0:s}in the header of "       \
-                    "extension ({1:s}) in file {2:s}.{0:s}"          \
-                    "Variations in detector sensitivity WILL NOT "   \
-                    "be accounted for.",                             \
-                    os.linesep, ext2str(self.ext), self._basefname,
-                    inv_sensitivity_kwd)
+                    "Keyword '{2:s}' not found neither in the "
+                    "Primary header nor\nin the header of "
+                    "extension ({0:s}) in file {1:s}.\n"
+                    "Variations in detector sensitivity WILL NOT "
+                    "be accounted for.",
+                    ext2str(self.ext), self._basefname, inv_sensitivity_kwd)
 
         # retrieve EXPTIME:
         if 'EXPTIME' in primary_header:
             self._exptime = primary_header['EXPTIME']
-            if self.is_countrate == False:
+            if not self.is_countrate:
                 if self._exptime > 0.0:
                     self._data2brightness_conv /= self._exptime
                 else:
                     self._ml.warning(
-                        "\'EXPTIME\' value must be a *strictly* positive "   \
-                        "number.{0}Found: \'EXPTIME\' = {1} in the primary " \
-                        "header in data file \'{2:s}\'.{0:s}\'EXPTIME\' "    \
-                        "value will be ignored.{0:s}Variations in exposure " \
-                        "time WILL NOT be accounted for.",                   \
-                        os.linesep, self._exptime, self._basefname)
+                        "'EXPTIME' value must be a *strictly* positive "
+                        "number.\nFound: 'EXPTIME' = {} in the primary "
+                        "header in data file '{:s}'.\n'EXPTIME' "
+                        "value will be ignored.\nVariations in exposure "
+                        "time WILL NOT be accounted for.",
+                        self._exptime, self._basefname
+                    )
                     self._exptime = None
         elif 'EXPTIME' in sci_header:
             self._exptime = sci_header['EXPTIME']
-            if self.is_countrate == False:
+            if not self.is_countrate:
                 if self._exptime > 0.0:
                     self._data2brightness_conv /= self._exptime
                 else:
                     self._ml.warning(
-                        "\'EXPTIME\' value must be a *strictly* positive "   \
-                        "number.{0:s}Found: \'EXPTIME\' = {1} in extension " \
-                        "{2:s} in data file \'{3:s}\'.{0:s}\'EXPTIME\' "     \
-                        "value will be ignored.{0:s}Variations in exposure " \
-                        "time WILL NOT be accounted for.",                   \
-                        os.linesep, self._exptime, ext2str(self.ext),
-                        self._basefname)
+                        "'EXPTIME' value must be a *strictly* positive "
+                        "number.\nFound: 'EXPTIME' = {} in extension "
+                        "{:s} in data file '{:s}'.\n'EXPTIME' "
+                        "value will be ignored.\nVariations in exposure "
+                        "time WILL NOT be accounted for.",
+                        self._exptime, ext2str(self.ext), self._basefname
+                    )
                     self._exptime = None
         else:
             self._exptime = None
-            if self.is_countrate == False:
+            if not self.is_countrate:
                 self._ml.warning(
-                    "Keyword \'EXPTIME\' not found neither in the "  \
-                    "Primary header nor{0:s}in the header of "       \
-                    "extension ({1:s}) in file {2:s}.{0:s}"          \
-                    "Variations in exposure time WILL NOT be accounted for.",\
-                    os.linesep, ext2str(self.ext), self._basefname)
+                    "Keyword 'EXPTIME' not found neither in the "
+                    "Primary header nor\nin the header of "
+                    "extension ({:s}) in file {:s}.\n"
+                    "Variations in exposure time WILL NOT be accounted for.",
+                    ext2str(self.ext), self._basefname
+                )
 
     def __repr__(self):
         return '%s(%r, %r, %r, %r)' % (self.__class__.__name__, self.fname,
@@ -744,11 +764,11 @@ class SkyLineMember(object):
     def is_countrate(self):
         return self._is_countrate
 
-    def update_skyuser(self, delta_skyval = None):
+    def update_skyuser(self, delta_skyval=None):
         if delta_skyval is None:
-            self._skyuser      += self._skyuser_delta
+            self._skyuser += self._skyuser_delta
         else:
-            self._skyuser      += delta_skyval
+            self._skyuser += delta_skyval
         self._skyuser_delta = 0.0
 
     def update_skydelta(self, delta_skyval):
@@ -758,7 +778,7 @@ class SkyLineMember(object):
         self._skyuser_delta = delta_skyval
 
     def set_skyuser(self, skyval):
-        self._skyuser       = skyval
+        self._skyuser = skyval
         self._skyuser_delta = 0.0
 
     def data2brightness(self, data):
@@ -775,12 +795,13 @@ class SkyLine(object):
     Skylines are designed to capture and manipulate HST WCS image
     information as spherical polygons. They are represented by
     the :py:class:`~stsci.skypac.skyline.SkyLine` class, which is an
-    extension of :py:class:`~spherical_geometry.polygon.SphericalPolygon` class.
+    extension of :py:class:`~spherical_geometry.polygon.SphericalPolygon`
+    class.
 
-    Each skyline has a list of members, `~stsci.skypac.skyline.SkyLine.members`,
-    and a composite spherical polygon, `~stsci.skypac.skyline.SkyLine.polygon`,
-    members. The polygon has all the functionalities of
-    \ `~spherical_geometry.polygon.SphericalPolygon`.
+    Each skyline has a list of members,
+    `~stsci.skypac.skyline.SkyLine.members`, and a composite spherical polygon,
+    `~stsci.skypac.skyline.SkyLine.polygon`, members. The polygon has all
+    the functionalities of `~spherical_geometry.polygon.SphericalPolygon`.
 
     Each `SkyLine` has a list of `~SkyLine.members` and
     a composite `~SkyLine.polygon` with all the
@@ -794,19 +815,19 @@ class SkyLine(object):
     to find composite or intersecting skylines, the
     resulting skyline can have multiple members.
 
-    For example, a skyline from an ACS/WFC full-frame image would give 1 member,
-    which is a composite of extensions 1 and 4. A skyline from the union of 2 such
-    images would have 2 members, and so forth.
+    For example, a skyline from an ACS/WFC full-frame image would give 1
+    member, which is a composite of extensions 1 and 4. A skyline from the
+    union of 2 such images would have 2 members, and so forth.
 
     """
     def __init__(self, mlist):
         """
         Parameters
         ----------
-        fname : str
+        fname: str
             FITS image. `None` to create empty `SkyLine`.
 
-        ext : a list of tuples ('extname',extver).
+        ext: a list of tuples ('extname',extver).
 
         """
         if isinstance(mlist, FileExtMaskInfo):
@@ -824,51 +845,59 @@ class SkyLine(object):
 
         n = fi.count
         if n < 1:
-            raise ValueError("Input 'FileExtMaskInfo' object must contain " \
+            raise ValueError("Input 'FileExtMaskInfo' object must contain "
                              "at least one valid extension specification.")
 
         im = fi.image
         if im.closed:
-            raise ValueError("Input 'FileExtMaskInfo' object must contain " \
+            raise ValueError("Input 'FileExtMaskInfo' object must contain "
                              "at an opened image object.")
 
         if fi.DQimage.closed:
-            dq    = None
-            dqext = n * [ None ]
+            dq = None
+            dqext = n * [None]
         else:
-            dq    = fi.DQimage
+            dq = fi.DQimage
             dqext = fi.dqext
 
         slm = []
 
         for i in range(n):
-            um  = fi.mask_images[i]
+            um = fi.mask_images[i]
             ume = fi.maskext[i]
             if um.closed:
-                um  = None
+                um = None
                 ume = None
 
             im.hold()
-            if dq is not None: dq.hold()
-            if um is not None: um.hold()
+            if dq is not None:
+                dq.hold()
+            if um is not None:
+                um.hold()
             m = SkyLineMember(im, fi.fext[i], dq_bits=fi.dq_bits,
                               dqimage=dq, dqext=dqext[i],
                               usermask=um, usermask_ext=ume)
-            if um is not None: um.release()
+            if um is not None:
+                um.release()
             slm.append(m)
 
         # SkyLine does not need im, dq anymore:
         im.release()
-        if dq is not None: dq.release()
+        if dq is not None:
+            dq.release()
 
         self.members = slm
 
     def __getattr__(self, what):
-        """Control attribute access to `~spherical_geometry.polygon.SphericalPolygon`."""
+        """
+        Control attribute access to
+        `~spherical_geometry.polygon.SphericalPolygon`.
+
+        """
         if what in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
-            raise AttributeError('\'%s\' object has no attribute \'%s\'' %
+            raise AttributeError("'%s' object has no attribute '%s'"
                                  (self.__class__.__name__, what))
         else:
             return getattr(self.polygon, what)
@@ -877,8 +906,8 @@ class SkyLine(object):
         return deepcopy(self)
 
     def __repr__(self):
-        return '%s(%r, %r)' % (self.__class__.__name__,
-                               self.polygon, self.members)
+        return '%s(%r, %r)' % (self.__class__.__name__, self.polygon,
+                               self.members)
 
     def close(self, clean=True):
         for m in self.members:
@@ -936,23 +965,23 @@ class SkyLine(object):
 
     @members.setter
     def members(self, mlist):
-        self.set_members(mlist = mlist, polygon = None)
+        self.set_members(mlist=mlist, polygon=None)
 
     def set_members(self, mlist, polygon):
         if mlist is None:
             member_list = []
         elif isinstance(mlist, list):
             member_list = mlist
-            if [1 for m in mlist if not isinstance(m,SkyLineMember)]:
-                raise ValueError("The \'mlist\' argument must be either "\
-                                 "a single \'SkyLineMember\' object or a " \
-                                 "Python list of \'SkyLineMember\' objects.")
+            if [1 for m in mlist if not isinstance(m, SkyLineMember)]:
+                raise ValueError("The 'mlist' argument must be either "
+                                 "a single 'SkyLineMember' object or a "
+                                 "Python list of 'SkyLineMember' objects.")
         elif isinstance(mlist, SkyLineMember):
-            member_list = [ mlist ]
+            member_list = [mlist]
         else:
-            raise ValueError("The \'mlist\' argument must be either "\
-                             "a single \'SkyLineMember\' object or a " \
-                             "Python list of \'SkyLineMember\' objects.")
+            raise ValueError("The 'mlist' argument must be either "
+                             "a single 'SkyLineMember' object or a "
+                             "Python list of 'SkyLineMember' objects.")
 
         self._members = []
 
@@ -965,6 +994,7 @@ class SkyLine(object):
                 self.polygon = deepcopy(polygon)
             self._id = ''
             self._is_mf_mosaic = False
+
         elif n == 1:
             assert isinstance(member_list[0], SkyLineMember)
             if polygon is None:
@@ -974,6 +1004,7 @@ class SkyLine(object):
             self._id = member_list[0].id
             self._members.append(member_list[0])
             self._is_mf_mosaic = False
+
         else:
             assert isinstance(member_list[0], SkyLineMember)
             if polygon is None:
@@ -993,7 +1024,6 @@ class SkyLine(object):
 
             self.polygon = mpol
             self._update_mosaic_flag_id()
-
 
     def _update_mosaic_flag_id(self, val=None):
         # updates _is_mf_mosaic flag and recomputes SkyLine's _id
@@ -1021,11 +1051,12 @@ class SkyLine(object):
             for m in self.members:
                 if m.ext not in extlist:
                     extlist.append(m.ext)
-            self._id = self._id_from_fname_ext(self.members[0].basefname, \
+            self._id = self._id_from_fname_ext(self.members[0].basefname,
                                                extlist)
             return
 
-        else: # autodetect status
+        else:
+            # autodetect status
             basefname = None
             fstats = []
             nfnames = 0
@@ -1035,7 +1066,7 @@ class SkyLine(object):
                 mstat = _Stat(m.fname)
                 if mstat not in fstats:
                     if basefname is None:
-                        basefname = m.basefname # store the first occurence
+                        basefname = m.basefname  # store the first occurence
                     fstats.append(mstat)
                     nfnames += 1
                     if nfnames > 1:
@@ -1053,7 +1084,6 @@ class SkyLine(object):
                 self._is_mf_mosaic = True
                 self._id = "mosaic"
 
-
     def _indv_mem_wcslist(self):
         """List of original HSTWCS from each EXT in each member."""
         wcs_list = []
@@ -1062,7 +1092,6 @@ class SkyLine(object):
             wcs_list.append(m.wcs)
 
         return wcs_list
-
 
     def to_wcs(self):
         """
@@ -1088,27 +1117,27 @@ class SkyLine(object):
     def _id_from_fname_ext(fname, ext_list):
         extdic = {}
         for ext in ext_list:
-            if isinstance(ext,tuple):
+            if isinstance(ext, tuple):
                 extname = ext[0].upper()
-                extver  = ext[1]
-            elif isinstance(ext,int):
+                extver = ext[1]
+            elif isinstance(ext, int):
                 extname = None
-                extver  = ext
+                extver = ext
             if extname in extdic:
                 extdic[extname].append(extver)
             else:
-                extdic.update( {extname : [extver]} )
+                extdic.update({extname: [extver]})
 
         strext = []
         disctinct_ext = list(extdic.keys())
         disctinct_ext.sort()
         for extname in disctinct_ext:
             if extname is None:
-                strext.append("{:s}".format( \
-                    ','.join(map(str,extdic[extname])) ) )
+                strext.append("{:s}".format(
+                    ','.join(map(str, extdic[extname]))))
             else:
-                strext.append("\'{:s}\',{:s}".format(extname, \
-                              ','.join(map(str,extdic[extname])) ) )
+                strext.append("'{:s}',{:s}".format(extname,
+                              ','.join(map(str, extdic[extname]))))
 
         fextid = "{:s}[{:s}]".format(fname, ';'.join(strext))
 
@@ -1121,9 +1150,9 @@ class SkyLine(object):
 
         Parameters
         ----------
-        map : Basemap axes object
+        map: Basemap axes object
 
-        **kwargs : Any plot arguments to pass to basemap
+        **kwargs: Any plot arguments to pass to basemap
 
         """
         wcs_list = self._indv_mem_wcslist()
@@ -1139,15 +1168,15 @@ class SkyLine(object):
 
         Parameters
         ----------
-        self : obj
+        self: obj
             `SkyLine` instance.
 
-        given_members : list
+        given_members: list
             List of `SkyLineMember` to consider.
 
         Returns
         -------
-        new_members : list
+        new_members: list
             List of `SkyLineMember` belonging to *self*.
 
         """
@@ -1163,12 +1192,12 @@ class SkyLine(object):
         Return a new `SkyLine` that is the union of *self*
         and *other*.
 
-        .. warning:: `SkyLine.union` only returns `polygon`
-            without `members`.
+        .. warning::
+            `SkyLine.union` only returns `polygon` without `members`.
 
         Parameters
         ----------
-        other : `SkyLine` object
+        other: `SkyLine` object
 
         Examples
         --------
@@ -1204,7 +1233,7 @@ class SkyLine(object):
 
         Parameters
         ----------
-        other : `SkyLine` object
+        other: `SkyLine` object
 
         Examples
         --------
@@ -1215,7 +1244,7 @@ class SkyLine(object):
         """
         newcls = self.__class__(None)
         mlist = newcls._find_members(self.members + other.members)
-        poly  = self.intersection(other)
+        poly = self.intersection(other)
         newcls.set_members(mlist, poly)
         return newcls
 
@@ -1226,22 +1255,21 @@ class SkyLine(object):
 
         Parameters
         ----------
-        skylines : list
+        skylines: list
             A list of `SkyLine` instances.
 
         Returns
         -------
-        max_skyline : `SkyLine` instance or `None`
+        max_skyline: `SkyLine` instance or `None`
             `SkyLine` that overlaps the most or `None` if no
             overlap found. This is *not* a copy.
 
-        max_overlap_area : float
+        max_overlap_area: float
             Area of intersection.
 
         """
-        #from mpl_toolkits.basemap import Basemap
-        #from matplotlib import pyplot as plt
-
+        # from mpl_toolkits.basemap import Basemap
+        # from matplotlib import pyplot as plt
 
         max_skyline = None
         max_overlap_area = 0.0
@@ -1252,9 +1280,9 @@ class SkyLine(object):
                 overlap_area = intersect_poly.area()
             except (ValueError, AssertionError):
 
-                #m = Basemap()
-                #self.polygon.draw(m)
-                #next_s.polygon.draw(m)
+                # m = Basemap()
+                # self.polygon.draw(m)
+                # next_s.polygon.draw(m)
 
                 if SKYLINE_DEBUG:
                     print('WARNING: Intersection failed for {0} and {1}. '
@@ -1276,12 +1304,12 @@ class SkyLine(object):
 
         Parameters
         ----------
-        skylines : list
+        skylines: list
             A list of `SkyLine` instances.
 
         Returns
         -------
-        max_pair : tuple
+        max_pair: tuple
             Pair of `SkyLine` objects with max overlap
             among given *skylines*. If no overlap found,
             return `None`. These are *not* copies.
@@ -1292,13 +1320,14 @@ class SkyLine(object):
 
         for i in range(len(skylines) - 1):
             curr_s = skylines[i]
-            next_s, i_area = curr_s.find_max_overlap(skylines[i+1:])
+            next_s, i_area = curr_s.find_max_overlap(skylines[i + 1:])
 
             if i_area > max_overlap_area:
                 max_overlap_area = i_area
                 max_pair = (curr_s, next_s)
 
         return max_pair
+
 
 def _is_valid_ext(ext):
     if isinstance(ext, int):
@@ -1309,14 +1338,14 @@ def _is_valid_ext(ext):
 
 
 def _check_valid_imgext(image, imgargname, ext, extargname,
-                     can_img_be_None=True):
+                        can_img_be_None=True):
     # check image object:
     if (image is None and not can_img_be_None) or \
        (image is not None and not isinstance(image, ImageRef)):
-        raise ValueError("Input argument \'{:s}\' must be a valid " \
-                         "\'ImageRef\' object.".format(imgargname))
+        raise ValueError("Input argument '{:s}' must be a valid "
+                         "'ImageRef' object.".format(imgargname))
     # check extension:
     if image is not None and (ext is None or not _is_valid_ext(ext)):
-        raise TypeError("Input argument \'{:s}\' must be either an " \
-                         "integer or a tuple of the form (\'str\', int)."\
-                         .format(extargname))
+        raise TypeError("Input argument '{:s}' must be either an "
+                        "integer or a tuple of the form ('str', int)."
+                        .format(extargname))

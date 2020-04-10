@@ -11,66 +11,70 @@ import os
 import sys
 import glob
 from copy import copy, deepcopy
-from .utils import (MultiFileLog, ImageRef, openImageEx, count_extensions,
-                    get_ext_list, get_extver_list)
-from stsci.tools import fileutil, parseinput
+from .utils import MultiFileLog, ImageRef, openImageEx, get_ext_list
+from stsci.tools import fileutil, parseinput, asnutil
+
 
 try:
-    from stsci.tools.fileutil import osfn # added to provide interpretation of environment variables
-except:
+    # added to provide interpretation of environment variables
+    from stsci.tools.fileutil import osfn
+except ImportError:
     osfn = None
 
 __all__ = ['parse_at_file', 'parse_at_line', 'parse_cs_line',
            'FileExtMaskInfo']
-__author__ = 'Mihai Cara'
 
 
-# Because os.stat is not supported on all platforms, we use STDLIB implemenation
-# on posix platforms and our own implementation (through simple file name
-# comparison) of os.stat on other platforms.
+# Because os.stat is not supported on all platforms, we use STDLIB
+# implemenation on posix platforms and our own implementation (through simple
+# file name comparison) of os.stat on other platforms.
 if os.name == 'posix':
     _sameFile = os.path.samefile
     _sameStat = os.path.samestat
-    #_Stat     = os.stat
+
+    # _Stat = os.stat
+
     def _Stat(fn):
-        #class st(object):
-            #def __init__(self, ino, dev):
-                #self.st_ino = ino
-                #self.st_dev = dev
+        # class st(object):
+        #     def __init__(self, ino, dev):
+        #         self.st_ino = ino
+        #         self.st_dev = dev
         if fn is None:
-            #return st(None, None)
-            return os.stat_result(10*(None,))
+            # return st(None, None)
+            return os.stat_result(10 * (None,))
         else:
             return os.stat(fn)
 
 else:
-    #TODO: not sure if this is needed for cygwin. check this at a later time!
+    # TODO: not sure if this is needed for cygwin. check this at a later time!
     def _sameFile(fn1, fn2):
-        #TODO: A better way would be to use GetFileInformationByHandle as
-        # shown here: http://timgolden.me.uk/python/win32_how_do_i/see_if_two_files_are_the_same_file.html
-        # or as it is implemented in Python 3.3 though _getfinalpathname (still relying on
-        # WinAPI calls). Same applies to _Stat function below.
-        return ( fn1.st_ino == fn2.st_ino and fn1.st_dev == fn2.st_dev )
+        # TODO: A better way would be to use GetFileInformationByHandle as
+        #       shown here:
+        # http://timgolden.me.uk/python/win32_how_do_i/see_if_two_files_are_the_same_file.html
+        #       or as it is implemented in Python 3.3 though _getfinalpathname
+        #       (still relying on WinAPI calls). Same applies to _Stat
+        #       function below.
+        return (fn1.st_ino == fn2.st_ino and fn1.st_dev == fn2.st_dev)
 
     def _sameStat(st1, st2):
         return st1 == st2
 
     def _Stat(fn):
-        #class st(object):
-            #def __init__(self, ino, dev):
-                #self.st_ino = ino
-                #self.st_dev = dev
+        # class st(object):
+        #     def __init__(self, ino, dev):
+        #         self.st_ino = ino
+        #         self.st_dev = dev
         if fn is None:
-            #return st(None, None)
-            return os.stat_result(10*(None,))
+            # return st(None, None)
+            return os.stat_result(10 * (None,))
         else:
             fname = os.path.abspath(os.path.expanduser(fn))
-            #return st(fname, 0)
-            return os.stat_result((0, fname) + 8*(0,))
+            # return st(fname, 0)
+            return os.stat_result((0, fname) + 8 * (0,))
 
 
 class CharAccumulator(object):
-    def __init__(self, allowed_qmarks = ['\'', '\"']):
+    def __init__(self, allowed_qmarks=['\'', '\"']):
         self.quotes = deepcopy(allowed_qmarks)
         self.dirty = False
         self.reset()
@@ -88,18 +92,18 @@ class CharAccumulator(object):
         elif self.closed:
             return self._buff
         else:
-            raise SyntaxError("CharAccumulator object contains a "    \
-                              "string with an opening quotation mark but " \
-                              "without a corresponding closing quotation " \
+            raise SyntaxError("CharAccumulator object contains a "
+                              "string with an opening quotation mark but "
+                              "without a corresponding closing quotation "
                               "mark (EOL).")
 
     def reset(self):
-        #if self.dirty:
-        self._buff   = ''
-        self._dirty  = False
+        # if self.dirty:
+        self._buff = ''
+        self._dirty = False
         self._closed = False
         self._quoted = False
-        self._qmark  = ''
+        self._qmark = ''
 
     @property
     def length(self):
@@ -121,7 +125,7 @@ class CharAccumulator(object):
     def qmark(self, quotation_mark):
         assert(quotation_mark in self.quotes)
         self._qmark = quotation_mark
-        self.dirty  = True
+        self.dirty = True
         self.quoted = True
 
     @property
@@ -157,7 +161,7 @@ class CharAccumulator(object):
         if self.closed:
             if ch.isspace():
                 return
-            raise BufferError("An attempt was made to add a character to " \
+            raise BufferError("An attempt was made to add a character to "
                               "a closed CharAccumulator object.")
 
         # trim leading white spaces:
@@ -165,8 +169,8 @@ class CharAccumulator(object):
             return
 
         if ch in self.quotes:
-            if  not (self.quoted or self.dirty):
-                self.qmark  = ch
+            if not (self.quoted or self.dirty):
+                self.qmark = ch
                 return
             elif self.quoted and ch == self.qmark:
                 self.close()
@@ -183,36 +187,36 @@ class ExtSpec(object):
 
     def _set_sigle_ext_style(self):
         assert(self._ncomp <= 1)
-        self._compound_ext_delim = [ None, None ]
-        self._ext_style          = 0
+        self._compound_ext_delim = [None, None]
+        self._ext_style = 0
         self._nmin = 1
         self._nmax = 1
 
     def _set_square_ext_style(self):
         assert(self._ncomp <= 2)
-        self._compound_ext_delim = [ '[', ']' ]
-        self._ext_style          = 1
+        self._compound_ext_delim = ['[', ']']
+        self._ext_style = 1
         self._nmin = 1
         self._nmax = 2
 
     def _set_tuple_ext_style(self):
         assert(self._ncomp <= 2)
-        self._compound_ext_delim = [ '(', ')' ]
-        self._ext_style          = 2
+        self._compound_ext_delim = ['(', ')']
+        self._ext_style = 2
         self._nmin = 2
         self._nmax = 2
 
     def reset(self, fname=None):
         if fname is not None:
             self.fname = fname
-        self._ext       = None
-        self._extcomp   = []
-        self._ncomp     = 0
+        self._ext = None
+        self._extcomp = []
+        self._ncomp = 0
         self._cntbraket = 0
-        self._dirty     = False
-        self._closed    = False
+        self._dirty = False
+        self._closed = False
         self._extstr.reset()
-        self._set_sigle_ext_style() # default
+        self._set_sigle_ext_style()  # default
 
     @property
     def ext_style(self):
@@ -241,11 +245,8 @@ class ExtSpec(object):
     def can_close(self):
         if not self.dirty or self.closed:
             return True
-        if self.ext_style == 0 and \
-           (not self._extstr.quoted or self._extstr.closed):
-            return True
-        else:
-            return False
+        return (self.ext_style == 0 and (not self._extstr.quoted or
+                                         self._extstr.closed))
 
     def close(self):
         if self.closed:
@@ -259,15 +260,15 @@ class ExtSpec(object):
         # validate extension specification and convert to one of
         # the following formats: int, str, tuple
         if self._cntbraket != 0:
-            raise ValueError("Unbalanced or nested brackets " \
+            raise ValueError("Unbalanced or nested brackets "
                              "have been detected.")
 
         if self.count > self._nmax:
-            raise ValueError("Invalid extension specifier for file " \
-                             "\'{:s}\'.".format(self.fname))
+            raise ValueError("Invalid extension specifier for file "
+                             "'{:s}'.".format(self.fname))
 
         if self.ext_style == 0:
-            if self.count < self._nmin or self._extcomp[0] == None:
+            if self.count < self._nmin or self._extcomp[0] is None:
                 raise ValueError("Extension name (or number) cannot be empty.")
 
             try:
@@ -281,13 +282,13 @@ class ExtSpec(object):
         elif self.ext_style == 1:
             # [extname, extver], [extname], or [extnumber]
             if self.count < self._nmin or \
-               (self.count == 1 and self._extcomp[0] == None):
+               (self.count == 1 and self._extcomp[0] is None):
                 raise ValueError("An extension specifier cannot be empty.")
 
             if self.count == 2:
-                if self._extcomp[0] == None:
+                if self._extcomp[0] is None:
                     raise ValueError('Extension name cannot be empty.')
-                elif self._extcomp[1] == None:
+                elif self._extcomp[1] is None:
                     raise ValueError('Extension version cannot be empty.')
 
                 # make sure first component is a string and second one is
@@ -301,27 +302,29 @@ class ExtSpec(object):
                     try:
                         self._ext = (self._extcomp[0], int(self._extcomp[1]))
                     except ValueError:
-                        raise ValueError("Extension version must be either " \
+                        raise ValueError("Extension version must be either "
                                          "an integer or a wild-card ('*').")
 
             elif self.count == 1:
                 try:
-                    self._ext = int(self._extcomp[0]) # is an integer?
+                    self._ext = int(self._extcomp[0])  # is an integer?
                 except ValueError:
-                    self._ext = (self._extcomp[0], 1) # [sci] == [sci,1]
+                    self._ext = (self._extcomp[0], 1)  # [sci] == [sci,1]
 
             else:
-                assert(False) # we should not get here
+                assert(False)  # we should not get here
 
-        elif self.ext_style == 2: # (extname, extver)
+        elif self.ext_style == 2:  # (extname, extver)
             if self.count < self._nmin:
-                raise ValueError("A tuple extension specifier must " \
-                                 "contain precisely two components: " \
-                                 "(extname, extver).")
+                raise ValueError(
+                    "A tuple extension specifier must contain precisely two "
+                    "components: (extname, extver)."
+                )
 
-            if self._extcomp[0] == None:
+            if self._extcomp[0] is None:
                 raise ValueError('Extension name cannot be empty.')
-            elif self._extcomp[1] == None:
+
+            elif self._extcomp[1] is None:
                 raise ValueError('Extension version cannot be empty.')
 
             # make sure first component is a string and second one is
@@ -331,11 +334,12 @@ class ExtSpec(object):
 
             if self._extcomp[1] == '*':
                 self._ext = (self._extcomp[0], '*')
+
             else:
                 try:
                     self._ext = (self._extcomp[0], int(self._extcomp[1]))
                 except ValueError:
-                    raise ValueError("Extension version must be either " \
+                    raise ValueError("Extension version must be either "
                                      "an integer or a wild-card ('*').")
 
     def append(self, ch):
@@ -353,12 +357,12 @@ class ExtSpec(object):
         if self.closed:
             if ch.isspace():
                 return
-            if ch in [ '(', ')', '[', ']', '{', '}' ]:
-                raise ValueError("Misplaced, unbalanced, or nested " \
+            if ch in ['(', ')', '[', ']', '{', '}']:
+                raise ValueError("Misplaced, unbalanced, or nested "
                                  "brackets have been detected.")
-            raise ValueError("An attempt was made to add a character to " \
-                             "a closed ExtSpec object. Extension " \
-                             "specification cannot be followed by " \
+            raise ValueError("An attempt was made to add a character to "
+                             "a closed ExtSpec object. Extension "
+                             "specification cannot be followed by "
                              "non-white space characters.")
 
         if not self.dirty:
@@ -377,7 +381,7 @@ class ExtSpec(object):
                     self._set_tuple_ext_style()
                     return
                 else:
-                    self._cntbraket  = 0
+                    self._cntbraket = 0
                     self._set_sigle_ext_style()
 
         if ch == ',' and (self._extstr.closed or not self._extstr.quoted):
@@ -389,8 +393,8 @@ class ExtSpec(object):
                 self._ncomp += 1
                 self._extstr.reset()
                 if self.count > self._nmax:
-                    raise ValueError("Invalid extension specifier for file " \
-                                     "\'{:s}\'.".format(self.fname))
+                    raise ValueError("Invalid extension specifier for file "
+                                     "'{:s}'.".format(self.fname))
 
             return
 
@@ -398,13 +402,14 @@ class ExtSpec(object):
            (self._extstr.closed or not self._extstr.quoted):
             self._cntbraket -= 1
             if self._cntbraket < 0:
-                raise ValueError("Unbalanced or nested brackets " \
-                                 "have been detected.")
+                raise ValueError(
+                    "Unbalanced or nested brackets have been detected."
+                )
             self.close()
             return
 
-        if not self._extstr.quoted and ch in [ '(', ')', '[', ']', '{', '}' ]:
-            raise ValueError("Misplaced, unbalanced, or nested brackets " \
+        if not self._extstr.quoted and ch in ['(', ')', '[', ']', '{', '}']:
+            raise ValueError("Misplaced, unbalanced, or nested brackets "
                              "have been detected.")
 
         self._extstr.append(ch)
@@ -413,7 +418,7 @@ class ExtSpec(object):
 
 class MultiExtSpec(object):
     def __init__(self, fname='Unknown', default_strextv='*'):
-        self._compound_ext_delim = [ '{', '}' ]
+        self._compound_ext_delim = ['{', '}']
         self._extspec = ExtSpec(fname)
         self._defextv = default_strextv
         self.reset()
@@ -422,11 +427,11 @@ class MultiExtSpec(object):
         if fname is not None:
             self.fname = fname
         self._extspec.reset()
-        self._extlist   = []
-        self._next      = 0
+        self._extlist = []
+        self._next = 0
         self._cntbraket = 0
-        self._dirty     = False
-        self._closed    = False
+        self._dirty = False
+        self._closed = False
 
     @property
     def count(self):
@@ -455,7 +460,7 @@ class MultiExtSpec(object):
         if self._extspec.dirty:
             self._extspec.close()
 
-        if self._extspec.ext is not None :
+        if self._extspec.ext is not None:
             # for a string extension: leave a str extension == '*'
             # unchanged, otherwise create a tuple with
             # (str, default extension):
@@ -469,7 +474,7 @@ class MultiExtSpec(object):
         # validate extension specification and convert to one of
         # the following formats: int, str, tuple
         if self._cntbraket != 0:
-            raise ValueError("Unbalanced or nested brackets " \
+            raise ValueError("Unbalanced or nested brackets "
                              "have been detected.")
 
     def append(self, ch):
@@ -487,12 +492,12 @@ class MultiExtSpec(object):
         if self.closed:
             if ch.isspace():
                 return
-            if ch in [ '(', ')', '[', ']', '{', '}' ]:
-                raise ValueError("Misplaced, unbalanced, or nested " \
+            if ch in ['(', ')', '[', ']', '{', '}']:
+                raise ValueError("Misplaced, unbalanced, or nested "
                                  "brackets have been detected.")
-            raise ValueError("An attempt was made to add a character to " \
-                             "a closed MultiExtSpec object. Extension " \
-                             "specification cannot be followed by " \
+            raise ValueError("An attempt was made to add a character to "
+                             "a closed MultiExtSpec object. Extension "
+                             "specification cannot be followed by "
                              "non-white space characters.")
 
         if not self.dirty:
@@ -506,15 +511,14 @@ class MultiExtSpec(object):
                     self._cntbraket += 1
                     return
                 else:
-                    raise ValueError("Multi-extension specification must " \
+                    raise ValueError("Multi-extension specification must "
                                      "start with left curly ('{') bracket.")
 
         if ch == ',' and self._extspec.can_close:
-
             if self._extspec.dirty:
                 self._extspec.close()
 
-            if self._extspec.ext is not None :
+            if self._extspec.ext is not None:
                 # for a string extension: leave a str extension == '*'
                 # unchanged, otherwise create a tuple with
                 # (str, default extension):
@@ -531,7 +535,7 @@ class MultiExtSpec(object):
         if ch == self._compound_ext_delim[1] and self._extspec.can_close:
             self._cntbraket -= 1
             if self._cntbraket < 0:
-                raise ValueError("Unbalanced or nested brackets " \
+                raise ValueError("Unbalanced or nested brackets "
                                  "have been detected.")
             self.close()
             return
@@ -557,107 +561,118 @@ class FileExtMaskInfo(object):
        extensions to be used with the files (when a specific extension
        for a file is not provided) and the open modes for the files;
 
-    #. Add image file using :py:meth:`image`\ ;
+    #. Add image file using :py:meth:`image`;
 
-    #. Add image's extension(s) using :py:meth:`append_ext`\ ;
+    #. Add image's extension(s) using :py:meth:`append_ext`;
 
     #. [Optional; can be performed at any **later** stage] Add DQ file and
        extensions using :py:meth:`DQimage` and :py:meth:`dqext` methods;
 
-    #. Append mask files and extensions using :py:meth:`append_mask`\ ;
+    #. Append mask files and extensions using :py:meth:`append_mask`;
 
     #. [Optional] Finalize the :py:meth:`FileExtMaskInfo` object.
 
     Parameters
     ----------
-    default_ext : int, tuple (Default = ('SCI','*'))
+    default_ext: int, tuple, optional
         Default extension to be used with image files that to not have
         an extension specified.
 
-    default_mask_ext : int, tuple (Default = 0)
+    default_mask_ext: int, tuple, optional
         Default extension to be used with image mask files that to not have
         an extension specified.
 
-    clobber : bool (Default = False)
+    clobber: bool, optional
         If a file being appended is in GEIS or WAIVER FITS format, should
         any existing MEF files be overwritten?
 
-    doNotOpenDQ : bool (Default = False)
+    doNotOpenDQ: bool, optional
         Should the DQ files be oppened when simultaneously with the image
         files?
 
-    fnamesOnly : bool (Default = False)
+    fnamesOnly: bool, optional
         Return file names only, or open the files and return
         :py:class:`~skypac.utils.ImageRef` objects?
 
-    im_fmode : str (Default = 'update')
-        File mode to be used to open image FITS file. See `astropy.io.fits.open`
-        for more details.
+    im_fmode: str, optional
+        File mode to be used to open image FITS file.
+        See `astropy.io.fits.open` for more details.
 
-    dq_fmode : str (Default = 'readonly')
+    dq_fmode: str, optional
         File mode to be used to open DQ FITS file. This is valid only if the
         DQ model of the image file is 'external' (see documentation for
         :py:class:`~skypac.utils.ImageRef` for more details). For 'intrinsic'
-        DQ model the DQ files will use the same setting as for `im_fmode`\ .
+        DQ model the DQ files will use the same setting as for ``im_fmode``.
 
-    msk_fmode : str (Default = 'readonly')
+    msk_fmode: str, optional
         File mode to be used to open mask files.
 
     Attributes
     ----------
-    clobber : bool
-        If a file being appended is in GEIS or WAIVER FITS format, should \
+    clobber: bool
+        If a file being appended is in GEIS or WAIVER FITS format, should
         any existing MEF files be overwritten?
 
-    dq_bits : int
-        Bitmask specifying what pixels in the mask should be removed \
-        (or kept) with the precise interpretation being left to the user. \
-        This flag is not used by this class but was designed to be \
-        passed to other functions that will use :py:class:`FileExtMaskInfo`\ .
+    dq_bits: int
+        Bitmask specifying what pixels in the mask should be removed
+        (or kept) with the precise interpretation being left to the user.
+        This flag is not used by this class but was designed to be
+        passed to other functions that will use :py:class:`FileExtMaskInfo`.
 
     """
-    def __init__(self, default_ext=('SCI','*'), default_mask_ext=0,
+    def __init__(self, default_ext=('SCI', '*'), default_mask_ext=0,
                  clobber=False, doNotOpenDQ=False, fnamesOnly=False,
                  im_fmode='update', dq_fmode='readonly', msk_fmode='readonly'):
         if default_ext is not None:
             self._verify_ext(default_ext)
         self._verify_ext(default_mask_ext)
         if fnamesOnly:
-            self._im     = None
-            self._dq     = None
+            self._im = None
+            self._dq = None
         else:
-            self._im     = ImageRef(None)
-            self._dq     = ImageRef(None)
-        self._defext     = default_ext
-        self._defmext    = default_mask_ext
+            self._im = ImageRef(None)
+            self._dq = ImageRef(None)
+        self._defext = default_ext
+        self._defmext = default_mask_ext
         self._fnamesOnly = fnamesOnly
         self._dontopenDQ = doNotOpenDQ
-        self.clobber     = clobber
-        self.dq_bits     = None # can be set from "outside" if needed
-        self._im_fmode   = im_fmode
-        self._dq_fmode   = dq_fmode
-        self._msk_fmode  = msk_fmode
+        self.clobber = clobber
+        self.dq_bits = None  # can be set from "outside" if needed
+        self._im_fmode = im_fmode
+        self._dq_fmode = dq_fmode
+        self._msk_fmode = msk_fmode
         self.clear_ext()
 
     def __copy__(self):
         return deepcopy(self)
 
     def clear_ext(self):
-        self._fext      = [] # a list to hold file extensions associated
-                             # with the "main" file;
-        self._dqext     = [] # a list to hold file extensions associated
-                             # with the "DQ" file;
-        self._maskext   = [] # a list to hold file extensions associated
-                             # with the mask file;
-        #self._maskfname = [] # a list to hold mask file names
-        self._maskimg   = [] # ImageRef list for mask files
-        self._filesig   = [] # file signatures (store to avoid duplicate
-                             # ImageRef objects), e.g., file 'stat'
+        # a list to hold file extensions associated with the "main" file:
+        self._fext = []
 
-        self._nfext  = 0  # number of extensions (keys in the dictonary)
-                          # associated with the "main" file;
-        self._nmask  = 0  # number of mask files (and extensions) associated
-                          # with the "main" file. _nmask <= _nfext !!!
+        # a list to hold file extensions associated with the "DQ" file:
+        self._dqext = []
+
+        # a list to hold file extensions associated with the mask file:
+        self._maskext = []
+
+        #self._maskfname = [] # a list to hold mask file names
+
+        # ImageRef list for mask files
+        self._maskimg = []
+
+        # file signatures (store to avoid duplicate ImageRef objects), e.g.,
+        # file 'stat'
+        self._filesig = []
+
+        # number of extensions (keys in the dictonary) associated with the
+        # "main" file:
+        self._nfext = 0
+
+        # number of mask files (and extensions) associated with the "main"
+        # file. _nmask <= _nfext !!!
+        self._nmask = 0
+
         self._finalized = False
 
     def clear_masks(self):
@@ -667,12 +682,13 @@ class FileExtMaskInfo(object):
         """
         if not self._fnamesOnly:
             for im in self._maskimg:
-                if im is not None: im.release()
+                if im is not None:
+                    im.release()
 
         self._maskext = []
         self._maskimg = []
         self._filesig = self._filesig[:2]
-        self._nmask   = 0
+        self._nmask = 0
         self._finalized = False
 
     @property
@@ -718,7 +734,7 @@ class FileExtMaskInfo(object):
     def image(self):
         """
         Image file name or the associated :py:class:`~skypac.utils.ImageRef`
-        object (depending on the `fnamesOnly` value).
+        object (depending on the ``fnamesOnly`` value).
 
         :getter: Get the :py:class:`~skypac.utils.ImageRef` image object.
 
@@ -727,7 +743,7 @@ class FileExtMaskInfo(object):
         :type: str, ImageRef, None
 
         .. note::
-            Setting the image will re-initialize `FileExtMaskInfo`. All
+            Setting the image will re-initialize ``FileExtMaskInfo``. All
             previous settings will be lost and previously attached files
             will be released/deleted.
 
@@ -741,17 +757,17 @@ class FileExtMaskInfo(object):
 
         Parameters
         ----------
-        img : ImageRef, str, None
-            New image file to be attached to `FileExtMaskInfo` object.
+        img: ImageRef, str, None
+            New image file to be attached to ``FileExtMaskInfo`` object.
 
         .. note::
-            Setting the image will re-initialize `FileExtMaskInfo`. All
+            Setting the image will re-initialize ``FileExtMaskInfo``. All
             previous settings will be lost and previously attached files
             will be released/deleted.
 
 
         """
-        # NOTE: if image == None this will effectively
+        # NOTE: if image is None this will effectively
         # initialize the object anew
 
         filesig = []
@@ -775,17 +791,20 @@ class FileExtMaskInfo(object):
                     filesig.append(_Stat(img))
                 else:
                     filesig.append(None)
-                filesig.append(None) # <- DQ image
+                filesig.append(None)  # <- DQ image
             else:
-                (im, dq) = openImageEx(img, mode=self._im_fmode,
-                                  dqmode=self._dq_fmode,
-                                  memmap=False, saveAsMEF=True,
-                                  output_base_fitsname=None,
-                                  clobber=self.clobber,
-                                  imageOnly=self._dontopenDQ,
-                                  openImageHDU=True,
-                                  openDQHDU=not self._dontopenDQ,
-                                  preferMEF=True, verbose=True)
+                (im, dq) = openImageEx(
+                    img,
+                    mode=self._im_fmode,
+                    dqmode=self._dq_fmode,
+                    memmap=False, saveAsMEF=True,
+                    output_base_fitsname=None,
+                    clobber=self.clobber,
+                    imageOnly=self._dontopenDQ,
+                    openImageHDU=True,
+                    openDQHDU=not self._dontopenDQ,
+                    preferMEF=True, verbose=True
+                )
 
                 self._im.release()
                 self._dq.release()
@@ -801,23 +820,25 @@ class FileExtMaskInfo(object):
         elif isinstance(img, ImageRef):
             # This is designed to hold imageObjects from astrodrizzle
             # and DQ mask will be combined with static masks and user masks
-            # in astrodrizzle. This is not designed to work as a stand-alone app.
+            # in astrodrizzle. This is not designed to work as a stand-alone
+            # app.
             assert(not img.closed and not self._fnamesOnly)
             self._im.release()
             self._dq.release()
             self._im = img
             self._im.hold()
 
-            # as it has been mentioned above, DQ will be dealt with in astrodrizzle
-            # However, if DQ is needed here, then look for the DQ file name
-            # self._im.hdu[1].dqfile. For now, provide a dummy DQ image:
+            # as it has been mentioned above, DQ will be dealt with in
+            # astrodrizzle. However, if DQ is needed here, then look for
+            # the DQ file name self._im.hdu[1].dqfile. For now,
+            # provide a dummy DQ image:
             self._dq = ImageRef(None)
 
             filesig.append(_Stat(img.original_fname))
-            filesig.append(None) # <- DQ image
+            filesig.append(None)  # <- DQ image
 
         else:
-            raise TypeError('Image can be None, a valid file name (string), '\
+            raise TypeError('Image can be None, a valid file name (string), '
                             'or an *open* ImageRef object.')
 
         self.clear_ext()
@@ -827,7 +848,7 @@ class FileExtMaskInfo(object):
     def DQimage(self):
         """
         DQ image (file or :py:class:`~skypac.utils.ImageRef`
-        object depending on the `fnamesOnly` value).
+        object depending on the ``fnamesOnly`` value).
 
         :getter: Get the :py:class:`~skypac.utils.ImageRef` DQ image object.
 
@@ -845,17 +866,17 @@ class FileExtMaskInfo(object):
 
         """
         if self._im is None:
-            raise AssertionError("DQ image cannot be set if science image " \
+            raise AssertionError("DQ image cannot be set if science image "
                                  "has not been previously set.")
         if (self._fnamesOnly and isinstance(dq, str)):
-            assert(isinstance(self._dq, str)) #DEBUG
+            assert(isinstance(self._dq, str))  # DEBUG
             self._dq = dq
             self._dqext = []
         elif (not self._fnamesOnly and isinstance(dq, ImageRef)):
-            assert(isinstance(self._dq, ImageRef)) #DEBUG
+            assert(isinstance(self._dq, ImageRef))  # DEBUG
             if self._im.DQ_model is None:
-                raise ValueError("Cannot set DQ image when DQ model of the " \
-                                 "science image is \'None\'.")
+                raise ValueError("Cannot set DQ image when DQ model of the "
+                                 "science image is 'None'.")
             self._dq.release()
             self._dq = dq
             self._dq.hold()
@@ -871,8 +892,8 @@ class FileExtMaskInfo(object):
                                    "Suspected a logical error in the code.")
 
         else:
-            raise TypeError("Type of the DQ image does not match the " \
-                    "value of the 'fnamesOnly' parameter.")
+            raise TypeError("Type of the DQ image does not match the "
+                            "value of the 'fnamesOnly' parameter.")
 
     @property
     def fext(self):
@@ -897,23 +918,23 @@ class FileExtMaskInfo(object):
 
         Parameters
         ----------
-        dqext : list
+        dqext: list
             A list of extension specifications to be used with DQ image.
             Must be of the same length as the number of extensions
-            set for the image file (see :py:attr:`count`\ ).
+            set for the image file (see :py:attr:`count`).
 
         """
         if len(dqext) != self._nfext:
-            raise ValueError("Length of the DQ extension list must be " \
-                             "equal to the length of the science image " \
+            raise ValueError("Length of the DQ extension list must be "
+                             "equal to the length of the science image "
                              "extension list")
 
         # theck that there are no wildcard characters:
         for ext in dqext:
             if isinstance(ext, str) or \
-               (isinstance(ext,tuple) and not isinstance(ext[1],int)):
-                raise ValueError("DQ extension list may not contain " \
-                    "wildcard type extensions.")
+               (isinstance(ext, tuple) and not isinstance(ext[1], int)):
+                raise ValueError("DQ extension list may not contain "
+                                 "wildcard type extensions.")
 
         self._dqext = deepcopy(dqext)
         return
@@ -930,7 +951,7 @@ class FileExtMaskInfo(object):
     def mask_images(self):
         """
         Mask image file names or :py:class:`~skypac.utils.ImageRef`
-        object depending on the `fnamesOnly` value.
+        object depending on the ``fnamesOnly`` value.
 
         """
         return self._maskimg
@@ -938,11 +959,11 @@ class FileExtMaskInfo(object):
     @staticmethod
     def _exnumber2extnv(hdulist, extnum):
         try:
-            hdr     = hdulist[extnum].header
+            hdr = hdulist[extnum].header
             extname = hdr['EXTNAME']
-            extver  = hdr['EXTVER']
+            extver = hdr['EXTVER']
             return (extname, extver)
-        except:
+        except Exception:
             return None
 
     def _find_DQ_extensions(self):
@@ -955,23 +976,25 @@ class FileExtMaskInfo(object):
         dqext = []
 
         for ext in self.fext:
-
             if isinstance(ext, int):
                 if self._im.DQ_model == 'intrinsic':
-                    # step 1: convert integer extensions to tuples (extname, extver)
+                    # step 1: convert integer extensions to tuples
+                    #         (extname, extver)
                     #         (necessary for DQ_model='intrinsic')
                     tuple_ext = self._exnumber2extnv(self._im.hdu, ext)
                     if tuple_ext is None:
                         raise RuntimeError("Unable to compute DQ extensions.")
 
                     # step 2: Replace 'SCI' extension names in tuples with 'DQ'
-                    # extension names:
+                    #         extension names:
                     dqext.append((self._dq.extname, tuple_ext[1]))
 
-                else: # nothing to do when ext is 'ini' and DQ_model=='extrinsic'
+                else:
+                    # nothing to do when ext is 'ini' and DQ_model=='extrinsic'
                     dqext.append(ext)
 
-            else: # ext is a tuple:
+            else:
+                # ext is a tuple:
                 # Replace 'SCI' extension names in tuples with 'DQ'
                 # extension names:
                 dqext.append((self._dq.extname, ext[1]))
@@ -994,7 +1017,8 @@ class FileExtMaskInfo(object):
         if isinstance(ext, str) and ext == '*':
             return True
 
-        if isinstance(ext, tuple) and len(ext) == 2 and isinstance(ext[0], str):
+        if isinstance(ext, tuple) and len(ext) == 2 and \
+           isinstance(ext[0], str):
             if isinstance(ext[1], int):
                 return False
             elif isinstance(ext[1], str) and ext[1] == '*':
@@ -1009,7 +1033,7 @@ class FileExtMaskInfo(object):
             # any "image-like" ext when default_extname=None:
             expext = get_ext_list(hdulist, extname=None)
         else:
-            expext = [ ext ]
+            expext = [ext]
         return expext
 
     def append_ext(self, ext):
@@ -1018,15 +1042,15 @@ class FileExtMaskInfo(object):
         image file.
 
         .. note::
-            This function *appends* the extensions. If it is desired \
+            This function *appends* the extensions. If it is desired
             to *set* the extensions, use :py:meth:`replace_ext` instead.
 
         Parameters
         ----------
-        ext : int, tuple, None, list
+        ext: int, tuple, None, list
             Extension specification: None, an integer extension *number*,
-            a tuple (\ *extension* *number*\ , *extension* *version*\ )
-            where extension version can be '*' which will be replaced with
+            a tuple (*extension number*, *extension version*)
+            where extension version can be ``'*'`` which will be replaced with
             the extension versions of all extensions having given extension
             name. If ext is None, it will be replaced with the default
             extension specification set during the initialization of the
@@ -1035,12 +1059,13 @@ class FileExtMaskInfo(object):
         """
         assert(not self.finalized)
         try:
-            if ext is not None and \
-               ((not self._fnamesOnly and self._im.hdu == None) or \
-                (self._fnamesOnly and self._im == None)):
-                raise RuntimeError("Cannot add extensions to a " \
-                                   "FileExtMaskInfo object that has not " \
-                                   "been assigned a file name.")
+            if (ext is not None and
+                ((not self._fnamesOnly and self._im.hdu is None) or
+                 (self._fnamesOnly and self._im is None))):
+                raise RuntimeError(
+                    "Cannot add extensions to a FileExtMaskInfo object that "
+                    "has not been assigned a file name."
+                )
 
             if isinstance(ext, list):
                 for e in ext:
@@ -1049,24 +1074,26 @@ class FileExtMaskInfo(object):
 
             if self._fnamesOnly:
                 if ext is None:
-                    extlist = [ self._defext ]
+                    extlist = [self._defext]
                 else:
                     self._verify_ext(ext)
-                    extlist = [ ext ]
+                    extlist = [ext]
             else:
                 if ext is None:
-                    extlist = self._expand_wildcard_ext(self._im.hdu, self._defext)
+                    extlist = self._expand_wildcard_ext(
+                        self._im.hdu, self._defext
+                    )
                 else:
                     self._verify_ext(ext)
                     extlist = self._expand_wildcard_ext(self._im.hdu, ext)
 
-            self._fext  += extlist
+            self._fext += extlist
             self._nfext += len(extlist)
 
-        except:
+        except Exception as e:
             self._im.release()
             self._dq.release()
-            raise
+            raise e
 
     def replace_fext(self, ext):
         """
@@ -1079,8 +1106,8 @@ class FileExtMaskInfo(object):
         """
         assert(not self.finalized)
         self._nfext = 0
-        self._fext  = []
-        self.append_ext(ext = ext)
+        self._fext = []
+        self.append_ext(ext=ext)
 
         if self._im.DQ_model is not None and self._dq is not None and \
            not self._dq.closed and not self._fnamesOnly:
@@ -1091,57 +1118,57 @@ class FileExtMaskInfo(object):
         Append a mask image and its extension(s).
 
         .. note::
-            Mask files and extensions are kept in ordered lists and their \
-            order is significant: the first mask file-extension pair is \
-            associated with the first extension of the science image file \
+            Mask files and extensions are kept in ordered lists and their
+            order is significant: the first mask file-extension pair is
+            associated with the first extension of the science image file
             set with :py:meth:`append_ext` and so on.
 
         Parameters
         ----------
-        mask : str, ImageRef, None
+        mask: str, ImageRef, None
             Mask image file. Can be a string file name,
-            an :py:class:`~skypac.utils.ImageRef` object (\ *only* if
-            :py:attr:`fnamesOnly`\ =\ `False`\ ), or None (to act as a place
+            an :py:class:`~skypac.utils.ImageRef` object (*only* if
+            :py:attr:`fnamesOnly` is `False`), or `None` (to act as a place
             holder in the ordered list of extensions).
 
-        ext : int, tuple, None, list
+        ext: int, tuple, None, list
             Extension specification: None, an integer extension *number*,
-            a tuple (\ *extension* *number*\ , *extension* *version*\ )
-            where extension version can be '*' which will be replaced with
+            a tuple (*extension number*, *extension version*)
+            where extension version can be ``'*'`` which will be replaced with
             the extension versions of all extensions having given extension
             name. If ext is None, it will be replaced with the default
             extension specification for mask images set during
             the initialization of the :py:class:`FileExtMaskInfo` object.
 
-        mask_stat : `os.stat_result` (Default = None)
-            An `os.stat_result` structure for the input `mask` file.
+        mask_stat: `os.stat_result`, optional
+            An `os.stat_result` structure for the input ``mask`` file.
             If `None`, then :py:meth:`append_mask` will compute `stat` for
-            the input `mask` file.
+            the input ``mask`` file.
 
         Raises
         ------
         RuntimeError
-            Raised if attempting to add masks when the science image \
+            Raised if attempting to add masks when the science image
             was not yet set.
 
         AssertionError
-            Raised if :py:attr:`finalized`\ =\ `True`\ .
+            Raised if :py:attr:`finalized` is `True`.
 
         TypeError
-            Raised if `mask` is an :py:class:`~skypac.utils.ImageRef` \
-            object but :py:attr:`fnamesOnly`\ =\ `True`\ or if `mask` \
+            Raised if `mask` is an :py:class:`~skypac.utils.ImageRef`
+            object but :py:attr:`fnamesOnly` is `True` or if ``mask``
             argument is of incorrect type.
 
         ValueError
-            If `mask` is an :py:class:`~skypac.utils.ImageRef`\ , it must
+            If ``mask`` is an :py:class:`~skypac.utils.ImageRef`, it must
             *not* be closed.
 
         """
         assert(not self.finalized)
-        if (not self._fnamesOnly and self._im.hdu == None) or \
+        if (not self._fnamesOnly and self._im.hdu is None) or \
            (self._fnamesOnly and not self._im):
-            raise RuntimeError("Cannot add mask and extensions to a " \
-                               "FileExtMaskInfo object that has not " \
+            raise RuntimeError("Cannot add mask and extensions to a "
+                               "FileExtMaskInfo object that has not "
                                "been assigned a file name.")
 
         if isinstance(ext, list):
@@ -1164,7 +1191,8 @@ class FileExtMaskInfo(object):
                 if ext is None:
                     self._maskext.append(self._defmext)
                 else:
-                    self._verify_ext(ext) # raise exception if non-compliant extension
+                    # next statement raise exception if non-compliant extension
+                    self._verify_ext(ext)
                     self._maskext.append(ext)
                 self._nmask += 1
                 return
@@ -1193,31 +1221,36 @@ class FileExtMaskInfo(object):
                 elif findex == 1:
                     mask = self._dq
                 else:
-                    mask = self._maskimg[findex-2]
+                    mask = self._maskimg[findex - 2]
 
                 mask.hold()
                 self._filesig.append(stat)
             else:
                 try:
-                    mask, dq = openImageEx(mask, mode=self._msk_fmode, memmap=False,
-                                saveAsMEF=True, clobber=self.clobber,
-                                imageOnly=True, openImageHDU=True, openDQHDU=False,
-                                preferMEF=True, verbose=False)
+                    mask, dq = openImageEx(
+                        mask, mode=self._msk_fmode, memmap=False,
+                        saveAsMEF=True, clobber=self.clobber,
+                        imageOnly=True, openImageHDU=True, openDQHDU=False,
+                        preferMEF=True, verbose=False
+                    )
                     mask.DQ_model = None
                     self._filesig.append(stat)
 
                 except IOError:
-                    raise IOError("Unable to open file: \'{:s}\'".format(mask))
+                    raise IOError("Unable to open file: '{:s}'".format(mask))
 
         elif isinstance(mask, ImageRef):
-
             if self._fnamesOnly:
-                raise TypeError("Cannot set an ImageRef mask when " \
-                        "FileExtMaskInfo was initialized with fnamesOnly=True.")
+                raise TypeError(
+                    "Cannot set an ImageRef mask when "
+                    "FileExtMaskInfo was initialized with fnamesOnly=True."
+                )
 
             if mask.closed or mask.original_fname is None:
-                raise ValueError("ImageRef mask must not be closed and " \
-                        "have a valid 'original_fname' attribute.")
+                raise ValueError(
+                    "ImageRef mask must not be closed and "
+                    "have a valid 'original_fname' attribute."
+                )
 
             mask.hold()
             if mask_stat is None:
@@ -1227,16 +1260,16 @@ class FileExtMaskInfo(object):
             self._filesig.append(stat)
 
         else:
-            raise TypeError("Argument 'mask' can be a string file name, " \
-                            "ImageRef type object, None, or a list " \
+            raise TypeError("Argument 'mask' can be a string file name, "
+                            "ImageRef type object, None, or a list "
                             "with elements of string type or None.")
 
         if self._fnamesOnly:
             if ext is None:
-                extlist = [ self._defmext ]
+                extlist = [self._defmext]
             else:
                 self._verify_ext(ext)
-                extlist = [ ext ]
+                extlist = [ext]
         else:
             if ext is None:
                 extlist = self._expand_wildcard_ext(mask.hdu, self._defmext)
@@ -1244,14 +1277,14 @@ class FileExtMaskInfo(object):
                 self._verify_ext(ext)
                 extlist = self._expand_wildcard_ext(mask.hdu, ext)
 
-        next = len(extlist)
-        self._maskimg   += next * [ mask ]
-        for i in range(next-1):
+        nskip = len(extlist)
+        self._maskimg += nskip * [mask]
+        for i in range(nskip - 1):
             mask.hold()
-        self._maskext   += extlist
-        self._nmask     += next
+        self._maskext += extlist
+        self._nmask += nskip
 
-    def finalize(self, toImageRef = False):
+    def finalize(self, toImageRef=False):
         """
         Finalize the object by trimming or extending mask image lists to
         match the number of science image extensions.
@@ -1260,14 +1293,14 @@ class FileExtMaskInfo(object):
         be equal to the number of extensions specified for the science image.
         If the number of masks/extensions is smaller than the number of
         science extensions, the list of mask extensions will be appended with
-        None (if :py:attr:`fnamesOnly`\ =\ `True`\ ) or dummy
-        :py:class:`~skypac.utils.ImageRef` (if :py:attr:`fnamesOnly`\ =\
-        `False`\ ) until the number of mask extensions is equal to the number
+        None (if :py:attr:`fnamesOnly` is `True`) or dummy
+        :py:class:`~skypac.utils.ImageRef` (if :py:attr:`fnamesOnly` is
+        `False`) until the number of mask extensions is equal to the number
         of science image extensions. If the number of mask extensions is
         larger than the number of science image extensions, the list
         of mask extensions will be trimmed to match the number of science
         image extensions. The trimmed out mask files (if represented by
-        :py:class:`~skypac.utils.ImageRef`\ ) will be "released".
+        :py:class:`~skypac.utils.ImageRef`) will be "released".
 
         """
         if self.finalized:
@@ -1286,21 +1319,21 @@ class FileExtMaskInfo(object):
         # extension list:
         delta = self._nfext - self._nmask
         if delta > 0:
-            elem    = delta * [ None ]
-            imgelem = delta * [ ImageRef() ]
-            self._maskimg   += imgelem
-            self._maskext   += elem
+            elem = delta * [None]
+            imgelem = delta * [ImageRef()]
+            self._maskimg += imgelem
+            self._maskext += elem
         elif delta < 0:
             for m in self._maskimg[self._nfext:]:
                 m.release()
-            self._maskimg   = self._maskimg[:self._nfext]
-            self._maskext   = self._maskext[:self._nfext]
+            self._maskimg = self._maskimg[:self._nfext]
+            self._maskext = self._maskext[:self._nfext]
 
         if self._im.DQ_model is not None and self._dq is not None and \
            not self._dq.closed and not self._fnamesOnly:
             self._dqext = self._find_DQ_extensions()
 
-        self._nmask     = self._nfext
+        self._nmask = self._nfext
         self._finalized = True
 
     def convert2ImageRef(self):
@@ -1313,15 +1346,15 @@ class FileExtMaskInfo(object):
             The :py:attr:`finalized` property will not be modified.
 
         .. warning::
-            The :py:class:`FileExtMaskInfo` must not have been finalized \
-            (\ :py:attr:`finalized`\ =\ `False`\ ) and must contain file
-            names only (\ :py:attr:`fnamesOnly`\ =\ `True`\ ).
+            The :py:class:`FileExtMaskInfo` must not have been finalized
+            (:py:attr:`finalized` is `False`) and must contain file
+            names only (:py:attr:`fnamesOnly` is `True`).
 
         Raises
         ------
         AssertionError
-            Raised if :py:attr:`finalized`\ =\ `True` or \
-            :py:attr:`fnamesOnly`\ =\ `False`\ .
+            Raised if :py:attr:`finalized` is `True` or
+            :py:attr:`fnamesOnly` is `False`.
 
         See Also
         --------
@@ -1332,14 +1365,16 @@ class FileExtMaskInfo(object):
         # create a new FileExtMaskInfo object with fnamesOnly=False
         # (this should allow it to take care of opening files and identifying
         #  identical files):
-        newfi = FileExtMaskInfo(default_ext=self._defext,
-                                default_mask_ext=self._defmext,
-                                clobber=self.clobber,
-                                doNotOpenDQ=self._dontopenDQ,
-                                fnamesOnly=False,
-                                im_fmode=self._im_fmode,
-                                dq_fmode=self._dq_fmode,
-                                msk_fmode=self._msk_fmode)
+        newfi = FileExtMaskInfo(
+            default_ext=self._defext,
+            default_mask_ext=self._defmext,
+            clobber=self.clobber,
+            doNotOpenDQ=self._dontopenDQ,
+            fnamesOnly=False,
+            im_fmode=self._im_fmode,
+            dq_fmode=self._dq_fmode,
+            msk_fmode=self._msk_fmode
+        )
 
         # populate it's file and extension lists:
         newfi.image = self._im
@@ -1354,11 +1389,11 @@ class FileExtMaskInfo(object):
 
     def release_all_images(self):
         """
-        Release all images if `fnamesOnly` is `False` and replace any
+        Release all images if ``fnamesOnly`` is `False` and replace any
         existing `~skypac.utils.ImageRef` with their *original* file names.
 
         .. note::
-            This will set the :py:attr:`fnamesOnly` property to `True` and \
+            This will set the :py:attr:`fnamesOnly` property to `True` and
             the :py:attr:`finalized` property to `False.`
 
         See Also
@@ -1384,9 +1419,9 @@ class FileExtMaskInfo(object):
                 newmasklist.append(m.original_fname)
             else:
                 newmasklist.append(m)
-        self._maskimg    = newmasklist
+        self._maskimg = newmasklist
         self._fnamesOnly = True
-        self._finalized  = False
+        self._finalized = False
 
     def info(self):
         """
@@ -1399,35 +1434,39 @@ class FileExtMaskInfo(object):
             print("Image File extensions: {}".format(self.fext))
             print("DQ File name:    {}".format(self._dq))
             for i in range(self._nmask):
-                print("Mask File: {}  \tExtension: {}".format(self._maskimg[i],
-                                                              self._maskext[i]))
+                print("Mask File: {}  \tExtension: {}"
+                      .format(self._maskimg[i], self._maskext[i]))
         else:
             print("Image File name: {}".format(self._im.original_fname))
             print("Image File extensions: {}".format(self.fext))
             print("DQ File name:    {}".format(self._dq.original_fname))
             for i in range(self._nmask):
-                print("Mask File: {}  \tExtension: {}" \
-                      .format(self._maskimg[i].original_fname,
-                              self._maskext[i]))
+                print(
+                    "Mask File: {}  \tExtension: {}".format(
+                        self._maskimg[i].original_fname, self._maskext[i]
+                    )
+                )
 
 
-def parse_at_line(fstring, default_ext=('SCI','*'), default_mask_ext=0,
+def parse_at_line(fstring, default_ext=('SCI', '*'), default_mask_ext=0,
                   clobber=False, fnamesOnly=False, doNotOpenDQ=False,
                   im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',
                   verbose=False, _main_with_nchar=False, _external_flist=None):
-    """
-    parse_at_line(fstring, default_ext=('SCI','*'), default_mask_ext=0, \
+    r"""
+    parse_at_line(fstring, default_ext=('SCI', '*'), default_mask_ext=0, \
 clobber=False, fnamesOnly=False, doNotOpenDQ=False,\
 im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
-    Parse a line from a catalog file containing a science image file \
-    and extension specifications and optionally followed by a \
-    comma-separated list of mask files and extension specifications (or None).
+
+    Parse a line from a catalog file containing a science image file
+    and extension specifications and optionally followed by a
+    comma-separated list of mask files and extension specifications
+    (or `None`).
 
     File names will be stripped of leading and trailing white spaces. If it
     is essential to keep these spaces, file names may be enclosed in single
     or double quotation marks. Quotation marks may also be required when file
     names contain special characters used to separate file names and
-    extension specifications: ,[]{}
+    extension specifications: ``,[]{}``
 
     Extension specifications must follow the file name and must be delimited
     by either square or curly brackets. Curly brackets allow specifying
@@ -1444,45 +1483,44 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
         {('sci',*)} -- wildcard extension versions (i.e., all extensions with
         extension name 'sci')
 
-        ['sci'] -- equivalent to ['sci',1]
+        ['sci'] -- equivalent to ['sci', 1]
 
         {'sci'} -- equivalent to {('sci',*)}
 
     For extensions in the science image for which no mask file is provided,
     the corresponding mask file names may be omitted (but a comma must still
-    be used to show that no mask is provided in that position) or None can
-    be used in place of the file name. NOTE: 'None' (in quotation marks) will
-    be interpreted as a file named None.
+    be used to show that no mask is provided in that position) or ``None`` can
+    be used in place of the file name. NOTE: ``'None'`` (in quotation marks)
+    will be interpreted as a file named ``'None'``.
 
     Some examples of possible user input:
-        image1.fits{1,2,('sci',3)},mask1.fits,,mask3.fits[0]
+        ``image1.fits{1,2,('sci',3)},mask1.fits,,mask3.fits[0]``
 
         In this case:
 
-        ``image1.fits``\ [1] is associated with ``mask1.fits``\ [0];
+        ``image1.fits[1]`` is associated with ``mask1.fits[0]``;
 
-        ``image1.fits``\ [2] does not have an associated mask;
+        ``image1.fits[2]`` does not have an associated mask;
 
-        ``image1.fits``\ ['sci',3] is associated with ``mask3.fits``\ [0].
+        ``image1.fits['sci',3]`` is associated with ``mask3.fits[0]``.
 
         -- Assume ``image2.fits`` has 4 'SCI' extensions:
 
-        image2.fits{'sci'},None,,mask3.fits
+        ``image2.fits{'sci'},None,,mask3.fits``
 
         In this case:
 
-        ``image2.fits``\ ['sci',1] and ``image2.fits``\ ['sci',2] **and**
-        ``image2.fits``\ ['sci',4] do not have an associated mask;
-
-        ``image2.fits``\ ['sci',3] is associated with ``mask3.fits``\ [0]
+        ``image2.fits['sci', 1]`` and ``image2.fits['sci', 2]`` **and**
+        ``image2.fits['sci', 4]`` do not have an associated mask;
+        ``image2.fits['sci', 3]`` is associated with ``mask3.fits[0]``
 
     .. note::
         Wildcard extension version in extension specification can be
-        expanded *only* when `fnamesOnly`\ =\ `False`\ .
+        expanded *only* when ``fnamesOnly`` is `False`.
 
     Parameters
     ----------
-    fstring : str
+    fstring: str
         A comma-separated string describing the image file name
         and (optionally) followed by the extension specifier
         (e.g., [sci,1,2], or [sci]). The image file name may be followed
@@ -1492,46 +1530,45 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
         File and extension names may NOT contain leading and/or trailing
         spaces, commas, and/or square or curly brakets.
 
-    default_ext : int, tuple (Default = ('SCI','*'))
+    default_ext: int, tuple, optional
         Default extension to be used with image files that to not have
         an extension specified.
 
-    default_mask_ext : int, tuple (Default = 0)
+    default_mask_ext: int, tuple, optional
         Default extension to be used with image mask files that to not have
         an extension specified.
 
-    fnamesOnly : bool (Default = False)
+    fnamesOnly: bool, optional
         Return file names only, or open the files and return
         :py:class:`~skypac.utils.ImageRef` objects?
 
-    doNotOpenDQ : bool (Default = False)
+    doNotOpenDQ: bool, optional
         Should the DQ files be oppened when simultaneously with the image
         files?
 
-    im_fmode : str (Default = 'update')
-        File mode to be used to open image FITS file. See `astropy.io.fits.open`
-        for more details.
+    im_fmode: str, optional
+        File mode to be used to open image FITS file.
+        See `astropy.io.fits.open` for more details.
 
-    dq_fmode : str (Default = 'readonly')
+    dq_fmode: str, optional
         File mode to be used to open DQ FITS file. This is valid only if the
         DQ model of the image file is 'external' (see documentation for
         :py:class:`~skypac.utils.ImageRef` for more details). For 'intrinsic'
-        DQ model the DQ files will use the same setting as for `im_fmode`\ .
+        DQ model the DQ files will use the same setting as for ``im_fmode``.
 
-    msk_fmode : str (Default = 'readonly')
+    msk_fmode: str, optional
         File mode to be used to open mask files.
 
-    verbose : bool (Default = True)
+    verbose: bool, optional
         Specifies whether to print warning messages.
 
     Raises
     ------
     ValueError
         * Input argument 'fstring' must be a Python string.
-        * Input argument 'fstring' contains either unbalanced \
+        * Input argument 'fstring' contains either unbalanced
           or nested square brackets.
-        * Extension specification must be preceeded by a valid image \
-          file name.
+        * Extension specification must be preceeded by a valid image file name.
 
     Returns
     -------
@@ -1542,23 +1579,25 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
     if not isinstance(fstring, str):
         raise ValueError("Input argument 'fstring' must be a Python string.")
 
-    current_item = 0 # 0 - main file, 1 - main file extension
-                     # 2 - mask file, 3 - mask file extension
+    # 0 - main file, 1 - main file extension
+    # 2 - mask file, 3 - mask file extension:
+    current_item = 0
 
     fname = CharAccumulator()
-    sext  = ExtSpec()
-    mext  = MultiExtSpec()
-    finfo = FileExtMaskInfo(default_ext=default_ext, default_mask_ext=default_mask_ext,
-                    clobber=clobber, fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
-                    im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode)
+    sext = ExtSpec()
+    mext = MultiExtSpec()
+    finfo = FileExtMaskInfo(
+        default_ext=default_ext, default_mask_ext=default_mask_ext,
+        clobber=clobber, fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
+        im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode
+    )
 
-    closing_bracket = ''
-    current_fname   = 'Unknown'
-    current_ext     = None
-    nchar           = 0
-    fstrlen         = len(fstring)
-    dq_image        = None # this will be set only if a previous image was
-                           # already openned
+    closing_bracket = ''  # noqa: F841
+    current_fname = 'Unknown'
+    current_ext = None
+    nchar = 0
+    # this will be set only if a previous image was already openned:
+    dq_image = None
 
     avoid_duplicate_open_files = _external_flist is not None and \
         len(_external_flist) > 0 and not fnamesOnly
@@ -1579,12 +1618,13 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                     if strfname == 'NONE' or strfname == '':
                         strfname = None
 
-                    if (not fname.dirty or strfname is None) and current_item == 0:
+                    if (not fname.dirty or strfname is None) and \
+                       current_item == 0:
                         # "main" image cannot be None!
                         finfo.release_all_images()
-                        raise ValueError("Image file name must be a vaild " \
+                        raise ValueError("Image file name must be a vaild "
                                          "string.")
-                    closing_bracket = ''
+                    closing_bracket = ''  # noqa: F841
 
                     if current_item == 0:
                         sfname = str(fname)
@@ -1603,18 +1643,20 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                             finfo.image = sfname
                         else:
                             finfo.image = f.image
-                            dq_image = f.DQimage # we cannot set dq image
-                                                 # yet as we do not have
-                                                 # extensions parsed. Set
-                                                 # it delayed.
+                            # we cannot set dq image yet as we do not have
+                            # extensions parsed. Set it delayed.
+                            dq_image = f.DQimage
                         current_fname = sfname
                         finfo.append_ext(None)
                         if _main_with_nchar:
                             fname.reset()
                             break
-                        current_item  = 2
+                        current_item = 2
                     else:
-                        current_fname = None if strfname is None else str(fname)
+                        if strfname is None:
+                            current_fname = None
+                        else:
+                            current_fname = str(fname)
                         finfo.append_mask(current_fname, None)
 
                     fname.reset()
@@ -1633,7 +1675,7 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                         raise ValueError(msg)
                     fname.close()
 
-                    current_fname   = str(fname)
+                    current_fname = str(fname)
 
                     if current_item == 0:
                         found = None
@@ -1651,14 +1693,13 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                             finfo.image = current_fname
                         else:
                             finfo.image = f.image
-                            dq_image = f.DQimage # we cannot set dq image
-                                                 # yet as we do not have
-                                                 # extensions parsed. Set
-                                                 # it delayed.
+                            # we cannot set dq image yet as we do not have
+                            # extensions parsed. Set it delayed.
+                            dq_image = f.DQimage
 
-                    closing_bracket = ']'
-                    current_item    = 1 if current_item == 0 else 3
-                    current_ext     = sext
+                    closing_bracket = ']'  # noqa: F841
+                    current_item = 1 if current_item == 0 else 3
+                    current_ext = sext
                     current_ext.reset(fname=current_fname)
                     current_ext.append(ch)
                     continue
@@ -1673,7 +1714,7 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                         finfo.release_all_images()
                         raise ValueError(msg)
                     fname.close()
-                    current_fname   = str(fname)
+                    current_fname = str(fname)
                     if current_item == 0:
                         found = None
                         if avoid_duplicate_open_files:
@@ -1690,21 +1731,20 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                             finfo.image = current_fname
                         else:
                             finfo.image = f.image
-                            dq_image = f.DQimage # we cannot set dq image
-                                                 # yet as we do not have
-                                                 # extensions parsed. Set
-                                                 # it delayed.
+                            # we cannot set dq image yet as we do not have
+                            # extensions parsed. Set it delayed:
+                            dq_image = f.DQimage
 
-                    closing_bracket = '}'
-                    current_item    = 1 if current_item == 0 else 3
-                    current_ext     = mext
+                    closing_bracket = '}'  # noqa: F841
+                    current_item = 1 if current_item == 0 else 3
+                    current_ext = mext
                     current_ext.reset(fname=current_fname)
                     current_ext.append(ch)
                     continue
 
-                elif ch in [ ']', '}' ]:
+                elif ch in [']', '}']:
                     finfo.release_all_images()
-                    raise ValueError("Misplaced, unbalanced, or nested " \
+                    raise ValueError("Misplaced, unbalanced, or nested "
                                      "brackets have been detected.")
 
             fname.append(ch)
@@ -1715,16 +1755,16 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                 if current_item == 1:
                     finfo.append_ext(current_ext.ext)
                     if _main_with_nchar:
-                        current_ext.reset(fname = 'Unknown')
+                        current_ext.reset(fname='Unknown')
                         fname.reset()
                         break
                 else:
                     finfo.append_mask(current_fname, current_ext.ext)
 
-                closing_bracket = ''
-                current_fname   = ''
-                current_item    = 2
-                current_ext.reset(fname = 'Unknown')
+                closing_bracket = ''  # noqa: F841
+                current_fname = ''
+                current_item = 2
+                current_ext.reset(fname='Unknown')
                 fname.reset()
                 continue
 
@@ -1749,10 +1789,9 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
                 finfo.image = sfname
             else:
                 finfo.image = f.image
-                dq_image = f.DQimage # we cannot set dq image
-                                     # yet as we do not have
-                                     # extensions parsed. Set
-                                     # it delayed.
+                # we cannot set dq image yet as we do not have extensions
+                # parsed. Set it delayed.
+                dq_image = f.DQimage
             finfo.append_ext(None)
     elif current_item == 1:
         if current_ext.dirty:
@@ -1776,49 +1815,51 @@ im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',verbose=False)
     else:
         return finfo
 
+
 # This is a simple version of the comma-separated file list parser
 # that does not allow ASN tables or wild-card characters.
 # USE parse_cs_line below instead.
 #
 #TODO: remove after the new version is extensively verified to work as expected
 #
-def _parse_cs_line(csline, default_ext=('SCI','*'),
-                  clobber=False, fnamesOnly=False, doNotOpenDQ=False,
-                  im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',
-                  logfile=None, verbose=False):
+def _parse_cs_line(csline, default_ext=('SCI', '*'), clobber=False,
+                   fnamesOnly=False, doNotOpenDQ=False, im_fmode='update',
+                   dq_fmode='readonly', msk_fmode='readonly', logfile=None,
+                   verbose=False):
     """
-    This function is similar to :py:func:`parse_at_line`\ , the main
+    This function is similar to :py:func:`parse_at_line`, the main
     difference being the content of the input string: a list of
     comma-separated *science* image file names. No masks can be specified and
     file names must be valid (i.e., None is not allowed). Extension
     specifications are allowed and must folow the same sintax as
-    described for :py:func:`parse_at_line`\ .
+    described for :py:func:`parse_at_line`.
 
     Below we describe only differences bewtween this function and
-    :py:func:`parse_at_line`\ .
+    :py:func:`parse_at_line`.
 
     Parameters
     ----------
-    csline : str
+    csline: str
         Comma-separated list of valid science image file names and
         extension specifications.
 
-    logfile : str, file, MultiFileLog, None (Default = None)
+    logfile: str, file, MultiFileLog, None, optional
         Specifies the log file to which the messages should be printed.
-        It can be a file name, a file object, a MultiFileLog object, or None.
+        It can be a file name, a file object, a ``MultiFileLog`` object, or
+        `None`.
 
     Returns
     -------
     list
-        Returns a list of filenames if `fnamesOnly`\ =\ `True` or a list of
-        :py:class:`FileExtMaskInfo` objects if `fnamesOnly`\ =\ `False`\ .
+        Returns a list of filenames if ``fnamesOnly`` is `True` or a list of
+        :py:class:`FileExtMaskInfo` objects if ``fnamesOnly`` is `False`.
 
     """
     # Set-up log files:
     if isinstance(logfile, MultiFileLog):
         ml = logfile
     else:
-        ml = MultiFileLog(console = verbose)
+        ml = MultiFileLog(console=verbose)
         if logfile not in ('', None, sys.stdout):
             ml.add_logfile(logfile)
 
@@ -1827,47 +1868,51 @@ def _parse_cs_line(csline, default_ext=('SCI','*'),
 
     try:
         while len(csl) > 0:
-            (f, nch) = parse_at_line(csl, default_ext=default_ext,
-                        default_mask_ext=0, clobber=clobber,
-                        fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
-                        im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
-                        verbose=verbose, _main_with_nchar=True)
+            f, nch = parse_at_line(
+                csl, default_ext=default_ext, default_mask_ext=0,
+                clobber=clobber, fnamesOnly=fnamesOnly,
+                doNotOpenDQ=doNotOpenDQ, im_fmode=im_fmode, dq_fmode=dq_fmode,
+                msk_fmode=msk_fmode, verbose=verbose, _main_with_nchar=True
+            )
             fi.append(f)
             csl = csl[nch:]
-    except:
-        ml.error("Unable to parse input comma-separated file name list \'{1}...\'{0}" \
-                 "       Reported error: \"{2}\".{0}", \
-                 os.linesep, csl[:20],sys.exc_info()[1])
-        raise
+
+    except Exception as e:
+        ml.error("Unable to parse input comma-separated file name list "
+                 "'{0}...'\n"
+                 "       Reported error: \"{1}\".\n",
+                 csl[:20], sys.exc_info()[1])
+        raise e
+
     finally:
         ml.close()
 
     return fi
 
 
-def parse_cs_line(csline, default_ext=('SCI','*'),
-                  clobber=False, fnamesOnly=False, doNotOpenDQ=False,
-                  im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',
-                  logfile=None, verbose=False):
+def parse_cs_line(csline, default_ext=('SCI', '*'), clobber=False,
+                  fnamesOnly=False, doNotOpenDQ=False, im_fmode='update',
+                  dq_fmode='readonly', msk_fmode='readonly', logfile=None,
+                  verbose=False):
     """
-    This function is similar to :py:func:`parse_at_line`\ , the main
+    This function is similar to :py:func:`parse_at_line`, the main
     difference being the content of the input string: a list of
     comma-separated *science* image file names. No masks can be specified and
-    file names must be valid (i.e., None is not allowed). Extension
+    file names must be valid (i.e., `None` is not allowed). Extension
     specifications are allowed and must folow the same sintax as
-    described for :py:func:`parse_at_line`\ .
+    described for :py:func:`parse_at_line`.
 
     Below we describe only differences bewtween this function and
-    :py:func:`parse_at_line`\ .
+    :py:func:`parse_at_line`.
 
     Parameters
     ----------
-    csline : str
+    csline: str
         User input string that needs to be parsed containing one of the
         following:
 
-            * a comma-separated list of valid science image file names \
-              (see note below) and (optionally) extension specifications, \
+            * a comma-separated list of valid science image file names
+              (see note below) and (optionally) extension specifications,
               e.g.: ``'j1234567q_flt.fits[1], j1234568q_flt.fits[sci,2]'``;
 
             * an @-file name, e.g., ``'@files_to_match.txt'``.
@@ -1877,39 +1922,39 @@ def parse_cs_line(csline, default_ext=('SCI','*'),
 
             * file names of existing FITS, GEIS, or WAIVER FITS files;
 
-            * partial file names containing wildcard characters, e.g., \
+            * partial file names containing wildcard characters, e.g.,
               ``'*_flt.fits'``;
 
-            * Association (ASN) tables (must have ``_asn``, or ``_asc`` \
+            * Association (ASN) tables (must have ``_asn``, or ``_asc``
               suffix), e.g., ``'j12345670_asn.fits'``.
 
         .. warning::
-            @-file names **MAY** **NOT** be followed by an extension \
+            @-file names **MAY** **NOT** be followed by an extension
             specification.
 
         .. warning::
-            If an association table or a partial file name with wildcard \
-            characters is followed by an extension specification, it will be \
-            considered that this extension specification applies to **each** \
-            file name in the association table or **each** file name \
+            If an association table or a partial file name with wildcard
+            characters is followed by an extension specification, it will be
+            considered that this extension specification applies to **each**
+            file name in the association table or **each** file name
             obtained after wildcard expansion of the partial file name.
 
-    logfile : str, file, MultiFileLog, None (Default = None)
+    logfile: str, file, MultiFileLog, None, optional
         Specifies the log file to which the messages should be printed.
         It can be a file name, a file object, a MultiFileLog object, or None.
 
     Returns
     -------
     list
-        Returns a list of filenames if `fnamesOnly`\ =\ `True` or a list of
-        :py:class:`FileExtMaskInfo` objects if `fnamesOnly`\ =\ `False`\ .
+        Returns a list of filenames if ``fnamesOnly`` is `True` or a list of
+        :py:class:`FileExtMaskInfo` objects if ``fnamesOnly`` is `False`.
 
     """
     # Set-up log files:
     if isinstance(logfile, MultiFileLog):
         ml = logfile
     else:
-        ml = MultiFileLog(console = verbose)
+        ml = MultiFileLog(console=verbose)
         if logfile not in ('', None, sys.stdout):
             ml.add_logfile(logfile)
 
@@ -1918,18 +1963,20 @@ def parse_cs_line(csline, default_ext=('SCI','*'),
     # First, check if user specified an @-file:
     if csl[0] == '@':
         # read the @-file and return:
-        ml.logentry("Parsing input @-file \'{}\'.", csl[1:])
-        return parse_at_file(csl[1:], default_ext=default_ext,
-                             default_mask_ext=0,
-                             clobber=clobber,
-                             fnamesOnly=fnamesOnly,
-                             doNotOpenDQ=doNotOpenDQ,
-                             match2Images=None,
-                             im_fmode=im_fmode,
-                             dq_fmode=dq_fmode,
-                             msk_fmode=msk_fmode,
-                             logfile=logfile,
-                             verbose=verbose)
+        ml.logentry("Parsing input @-file '{}'.", csl[1:])
+        return parse_at_file(
+            csl[1:], default_ext=default_ext,
+            default_mask_ext=0,
+            clobber=clobber,
+            fnamesOnly=fnamesOnly,
+            doNotOpenDQ=doNotOpenDQ,
+            match2Images=None,
+            im_fmode=im_fmode,
+            dq_fmode=dq_fmode,
+            msk_fmode=msk_fmode,
+            logfile=logfile,
+            verbose=verbose
+        )
 
     # we expect a comma separated list of files:
     ml.logentry("Parsing comma-separated list of input file names.")
@@ -1942,19 +1989,21 @@ def parse_cs_line(csline, default_ext=('SCI','*'),
 
     try:
         while len(csl) > 0:
-            (f, nch) = parse_at_line(csl, default_ext=default_ext,
-                        default_mask_ext=0, clobber=clobber,
-                        fnamesOnly=True, doNotOpenDQ=doNotOpenDQ,
-                        im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
-                        verbose=verbose, _main_with_nchar=True)
+            f, nch = parse_at_line(
+                csl, default_ext=default_ext, default_mask_ext=0,
+                clobber=clobber, fnamesOnly=True, doNotOpenDQ=doNotOpenDQ,
+                im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
+                verbose=verbose, _main_with_nchar=True
+            )
             fi_list.append(f)
             csl = csl[nch:]
-    except:
-        ml.error("Unable to parse input comma-separated file name list \'{1}...\'{0}" \
-                 "       Reported error: \"{2}\".{0}", \
-                 os.linesep, csl[:20],sys.exc_info()[1])
+
+    except Exception as e:
+        ml.error("Unable to parse input comma-separated file name list "
+                 "'{0}...'\n       Reported error: \"{1}\".\n",
+                 csl[:20], sys.exc_info()[1])
         ml.close()
-        raise
+        raise e
 
     # Now walk trough each FileExtMaskInfo object and see if the
     # file name is an ASN table or has wildcard characters and expand them:
@@ -1969,19 +2018,21 @@ def parse_cs_line(csline, default_ext=('SCI','*'),
             # The input is an association table
             try:
                 # Open the association table
-                assocdict = readASNTable(fi.image, None, prodonly=False)
-            except:
+                assocdict = asnutil.readASNTable(
+                    fi.image, None, prodonly=False
+                )
+            except Exception:
                 for f in fullfi:
                     f.release_all_images()
-                raise ValueError("Unable to read Association file \'{}\'." \
+                raise ValueError("Unable to read Association file '{}'."
                                  .format(fi.image))
 
             for fname in assocdict['order']:
                 newfi = copy(fi)
                 newfi.image = fileutil.buildRootname(fname)
-                newfi.append_ext(fi.fext) # this line can be removed if we do
-                                          # not want to allow extension
-                                          # specifications for ASN tables.
+                # next line can be removed if we  not want to allow extension
+                # specifications for ASN tables.
+                newfi.append_ext(fi.fext)
                 fullfi.append(newfi)
 
         else:
@@ -2006,57 +2057,58 @@ def parse_cs_line(csline, default_ext=('SCI','*'),
     try:
         for fi in fullfi:
             if not fnamesOnly:
-                fi.finalize(toImageRef = True)
-    except:
+                fi.finalize(toImageRef=True)
+    except Exception as e:
         for f in fullfi:
             f.release_all_images()
-        raise
+        raise e
 
     return fullfi
 
 
-def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
+def parse_at_file(fname, default_ext=('SCI', '*'), default_mask_ext=0,
                   clobber=False, fnamesOnly=False,
                   doNotOpenDQ=False, match2Images=None,
                   im_fmode='update', dq_fmode='readonly', msk_fmode='readonly',
                   logfile=None, verbose=False):
     """
-    This function is similar to :py:func:`parse_at_line`\ , the main
+    This function is similar to :py:func:`parse_at_line`, the main
     difference being that is can parse multiple (EOL terminated) lines
     of the format described in the documentation for
-    :py:func:`parse_at_line`\ .
+    :py:func:`parse_at_line`.
 
     Below we describe only differences bewtween this function and
-    :py:func:`parse_at_line`\ .
+    :py:func:`parse_at_line`.
 
     Parameters
     ----------
-    fname : str
+    fname: str
         File name of the catalog file.
 
-    match2Images : list of str, list of ImageRef, None (Default = None)
+    match2Images: list of str, list of ImageRef, None, optional
         List of file names or ImageRef objects whose mask specifications
         are to be read from the catalog file. Mask specifications
         for other files in the catalog that do not match the files in the
-        `match2Images` list will be ignored. If `match2Images` is `None`\ ,
+        ``match2Images`` list will be ignored. If ``match2Images`` is `None`,
         then all files from the catalog will be read.
 
-    logfile : str, file, MultiFileLog, None (Default = None)
+    logfile: str, file, MultiFileLog, None, optional
         Specifies the log file to which the messages should be printed.
-        It can be a file name, a file object, a MultiFileLog object, or None.
+        It can be a file name, a file object, a ``MultiFileLog`` object, or
+        `None`.
 
     Returns
     -------
     list
-        Returns a list of filenames if `fnamesOnly`\ =\ `True` or a list of
-        :py:class:`FileExtMaskInfo` objects if `fnamesOnly`\ =\ `False`\ .
+        Returns a list of filenames if ``fnamesOnly`` is `True` or a list of
+        :py:class:`FileExtMaskInfo` objects if ``fnamesOnly`` is `False`.
 
     """
     # Set-up log files:
     if isinstance(logfile, MultiFileLog):
         ml = logfile
     else:
-        ml = MultiFileLog(console = verbose)
+        ml = MultiFileLog(console=verbose)
         if logfile not in ('', None, sys.stdout):
             ml.add_logfile(logfile)
 
@@ -2072,15 +2124,17 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
             if isinstance(m, ImageRef):
                 if m.closed:
                     ml.close()
-                    raise TypeError("The ImageRef elements of the "\
-                            "'match2Images' list must not be 'closed'.")
+                    raise TypeError(
+                        "The ImageRef elements of the 'match2Images' list "
+                        "must not be 'closed'."
+                    )
                 mstat.append(_Stat(m.original_fname))
             elif isinstance(m, str):
                 mstat.append(_Stat(m))
             else:
                 ml.close()
-                raise TypeError("Each element of 'match2Images' argument " \
-                                "must be either a string file name or " \
+                raise TypeError("Each element of 'match2Images' argument "
+                                "must be either a string file name or "
                                 "an ImageRef object.")
 
     fi = []
@@ -2088,7 +2142,7 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
         fh = open(fname)
     except IOError:
         ml.close()
-        raise IOError("Unable to open \"at\" file \'{}\'.".format(fname))
+        raise IOError("Unable to open \"at\" file '{}'.".format(fname))
 
     lines = fh.readlines()
 
@@ -2102,12 +2156,14 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
             continue
 
         try:
-            #create a FileExtMaskInfo for each entry in the @file:
-            f = parse_at_line(line, default_ext=default_ext,
-                    default_mask_ext=default_mask_ext, clobber=clobber,
-                    fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
-                    im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
-                    verbose=verbose, _main_with_nchar=False, _external_flist=fi)
+            # create a FileExtMaskInfo for each entry in the @file:
+            f = parse_at_line(
+                line, default_ext=default_ext,
+                default_mask_ext=default_mask_ext, clobber=clobber,
+                fnamesOnly=fnamesOnly, doNotOpenDQ=doNotOpenDQ,
+                im_fmode=im_fmode, dq_fmode=dq_fmode, msk_fmode=msk_fmode,
+                verbose=verbose, _main_with_nchar=False, _external_flist=fi
+            )
 
             if doMatching:
                 indx = None
@@ -2124,20 +2180,22 @@ def parse_at_file(fname, default_ext=('SCI','*'), default_mask_ext=0,
                     else:
                         img_fname = f.image.original_fname
                         f.release_all_images()
-                    ml.logentry("No matching image was found for the " \
-                                "catalog entry \'{}\'. This entry will " \
-                                "be ignored.", img_fname)
+                    ml.logentry("No matching image was found for the catalog "
+                                "entry '{}'. This entry will be ignored.",
+                                img_fname)
                     f.release_all_images()
                 else:
                     # a match was found. append a tuple of the file info &
                     # index of the found image
-                    fi.append((f,indx))
+                    fi.append((f, indx))
             else:
                 fi.append(f)
-        except:
-            ml.error("Unable to parse line #{:d}: \'{}\'...\n" \
-                     "       Reported error: \"{}\".\n" \
-                     "       This line will be ignored.", nl, l[:20],sys.exc_info()[1])
+
+        except Exception:
+            ml.error("Unable to parse line #{:d}: '{}'...\n"
+                     "       Reported error: \"{}\".\n"
+                     "       This line will be ignored.",
+                     nl, l[:20], sys.exc_info()[1])
 
     fh.close()
     ml.close()
