@@ -378,7 +378,7 @@ clean=True, verbose=True, flog='skymatch_log.txt')
           as "good" all other pixels (regardless of their DQ flag),
           set ``dq_bits`` to ``~4+8``, or ``~4,8``. To obtain the
           same effect with an `int` input value (except for 0),
-          enter -(4+8+1)=-9. Following this convention,
+          enter -(4+8+1)=-13. Following this convention,
           a ``dq_bits`` string value of ``'~0'`` would be equivalent to
           setting ``dq_bits=None``.
 
