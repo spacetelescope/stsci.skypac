@@ -52,12 +52,9 @@ import math
 # THIRD-PARTY
 from stwcs import wcsutil
 from astropy import wcs as pywcs
+#from astropy.nddata.bitmask import interpret_bit_flags
 from stwcs.distortion.utils import output_wcs
 from spherical_geometry.polygon import SphericalPolygon
-try:
-    from stsci.tools.bitmask import bitfield_to_boolean_mask
-except ImportError:
-    from stsci.tools.bitmask import bitmask2mask as bitfield_to_boolean_mask
 
 # LOCAL
 from .utils import (is_countrate, ext2str, MultiFileLog, ImageRef,
