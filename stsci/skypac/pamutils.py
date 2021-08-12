@@ -83,8 +83,8 @@ def _compute_pam_sd(wcs, shape=None, blc=(1, 1), idcscale=1.0, cdscale=1.0):
         return rf * np.ones(shape, dtype=np.float64)
 
     # prepare coordinates:
-    x = np.arange(shape[1], dtype=np.float) - wcs.sip.crpix[0] + float(blc[0])
-    y = np.arange(shape[0], dtype=np.float) - wcs.sip.crpix[1] + float(blc[1])
+    x = np.arange(shape[1], dtype=float) - wcs.sip.crpix[0] + float(blc[0])
+    y = np.arange(shape[0], dtype=float) - wcs.sip.crpix[1] + float(blc[1])
 
     ar = np.arange(wcs.sip.a_order + 1)
     br = np.arange(wcs.sip.b_order + 1)

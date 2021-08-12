@@ -1640,7 +1640,7 @@ def _find_optimum_sky_deltas(skylines, skystat, mlog):
     except np.linalg.LinAlgError:
         mlog.warning("Unable to compute sky: No valid data in common "
                      "image areas")
-        deltas = np.full(ns, np.nan, dtype=np.float)
+        deltas = np.full(ns, np.nan, dtype=float)
         return deltas
 
     if rank < ns - 1:
@@ -1750,7 +1750,7 @@ def _find_optimum_sky_deltas_wlead(skylines, skystat, mlog):
     except np.linalg.LinAlgError:
         mlog.warning("Unable to compute sky: No valid data in common "
                      "image areas")
-        deltas = np.full(ns, np.nan, dtype=np.float)
+        deltas = np.full(ns, np.nan, dtype=float)
         return deltas
 
     if rank < ns - 1:
