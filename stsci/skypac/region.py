@@ -422,7 +422,7 @@ class Edge(object):
         w = self._start - edge._start
         D = np.cross(u, v)
         if np.allclose(np.cross(u, v), 0, rtol=0,
-                       atol=1e2 * np.finfo(np.float).eps):
+                       atol=1e2 * np.finfo(float).eps):
             return np.array(self._start)
 
         return np.cross(v, w) / D * u + self._start
@@ -431,7 +431,7 @@ class Edge(object):
         u = self._stop - self._start
         v = edge._stop - edge._start
         return np.allclose(np.cross(u, v), 0, rtol=0,
-                           atol=1e2 * np.finfo(np.float).eps)
+                           atol=1e2 * np.finfo(float).eps)
 
 
 def _round_vertex(v):
