@@ -1321,7 +1321,7 @@ def _calc_sky(s1, s2, skystat):
         for m2 in s2.members:
             pts1 = np.sort(list(m1.polygon.points)[0], axis=0)
             pts2 = np.sort(list(m2.polygon.points)[0], axis=0)
-            if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
+            if np.allclose(pts1, pts2, rtol=0, atol=1e-8):
                 intersect_poly = m1.polygon.copy()
             else:
                 intersect_poly = m1.polygon.intersection(m2.polygon)
