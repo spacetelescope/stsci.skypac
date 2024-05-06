@@ -1,6 +1,89 @@
+[project]
+name = "stsci.skypac"
+description = "Sky matching on image mosaic"
+requires-python = ">=3.5"
+authors = [
+    { name = "Mihai Cara", email = "help@stsci.edu" },
+    { name = "Warren Hack" },
+    { name = "Pey Lian Lim" },
+]
+dependencies = [
+    "astropy>=3.1",
+    "numpy",
+    "spherical_geometry>=1.2.2",
+    "stsci.imagestats",
+    "stsci.tools",
+    "stwcs",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.license]
+file = "LICENSE.txt"
+content-type = "text/plain"
+
+[project.urls]
+repository = "https://github.com/spacetelescope/stsci.skypac"
+"Bug Reports" = "https://github.com/spacetelescope/stsci.skypac/issues/"
+Source = "https://github.com/spacetelescope/stsci.skypac/"
+Help = "https://hsthelp.stsci.edu/"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-doctestplus",
+]
+docs = [
+    "numpydoc",
+    "graphviz",
+    "sphinx<=1.8.5",
+    "sphinx_rtd_theme",
+    "stsci_rtd_theme",
+    "sphinx_automodapi",
+]
+
 [build-system]
 requires = [
     "setuptools>=38.2.5",
-    "wheel",
-    "numpy",
+    "setuptools_scm",
 ]
+
+[tool.setuptools.package-data]
+"*" = [
+    "README.rst",
+    "LICENSE.txt",
+    "CHANGELOG.rst",
+    "*.fits",
+    "*.txt",
+    "*.inc",
+    "*.cfg",
+    "*.csv",
+    "*.yaml",
+    "*.json",
+]
+"stsci.skypac" = [
+    "*.help",
+    "pars/*",
+]
+
+[tool.setuptools_scm]
+version_file = "stsci/skypac/version.py"
+
+[tool.pytest.ini_options]
+minversion = "3.0"
+addopts = "--ignore=build"
+norecursedirs = [
+    "build",
+    "docs/_build",
+    "relic",
+]
+doctest_plus = "enabled"
+doctest_optionflags = [
+    "NORMALIZE_WHITESPACE",
+    "ELLIPSIS",
+    "FLOAT_CMP",
+]
+junit_family = "xunit2"
