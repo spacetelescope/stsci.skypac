@@ -1,12 +1,7 @@
 """skymatch"""
 import os
-from pkg_resources import get_distribution, DistributionNotFound
 
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    __version__ = 'UNKNOWN'
+from .version import __version__
 
 # from .version import version as __version__
 
