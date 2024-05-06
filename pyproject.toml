@@ -15,6 +15,9 @@ dependencies = [
     "stsci.tools",
     "stwcs",
 ]
+dynamic = [
+    "version"
+]
 
 [project.readme]
 file = "README.md"
