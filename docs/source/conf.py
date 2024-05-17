@@ -14,16 +14,16 @@
 import os
 import sys
 import datetime
-import importlib
 import sphinx
+from pathlib import Path
 import stsci_rtd_theme
 from pkg_resources import get_distribution
 from distutils.version import LooseVersion
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
-conf = ConfigParser()
+
+if sys.version_info < (3, 11):
+    import tomli as tomllib
+else:
+    import tomllib
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -33,8 +33,9 @@ sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('../../stsci/skypac'))
 
 # -- General configuration ------------------------------------------------
-conf.read([os.path.join(os.path.dirname(__file__), '../..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+with open(Path(__file__).parent.parent.parent / "pyproject.toml", "rb") as configuration_file:
+    conf = tomllib.load(configuration_file)
+metadata = conf["project"]
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -105,9 +106,9 @@ suppress_warnings = ['app.add_directive', ]
 
 
 # General information about the project
-project = setup_cfg['package_name']
-author = setup_cfg['author']
-copyright = u'{0}, {1}'.format(datetime.datetime.now().year, author)
+project = metadata['name']
+author = f'{metadata["authors"][0]["name"]} <{metadata["authors"][0]["email"]}>'
+copyright = f"{datetime.datetime.now().year}, {author}"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
