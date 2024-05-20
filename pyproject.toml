@@ -54,6 +54,9 @@ requires = [
     "setuptools_scm",
 ]
 
+[tool.setuptools.packages.find]
+include = ['stsci']
+
 [tool.setuptools.package-data]
 "*" = [
     "README.rst",
