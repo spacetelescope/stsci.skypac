@@ -42,7 +42,7 @@ test = [
 docs = [
     "numpydoc",
     "graphviz",
-    "sphinx<=1.8.5",
+    "sphinx",
     "sphinx_rtd_theme",
     "stsci_rtd_theme",
     "sphinx_automodapi",
@@ -53,6 +53,9 @@ requires = [
     "setuptools>=38.2.5",
     "setuptools_scm",
 ]
+
+[tool.setuptools.packages.find]
+include = ['stsci']
 
 [tool.setuptools.package-data]
 "*" = [
