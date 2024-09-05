@@ -28,7 +28,7 @@ class SkyStats(object):
         """ Initializes the SkyStats object.
 
         Parameters
-        -----------
+        ----------
         skystat: str
             Sets the statistics that will be returned by the
             `~SkyStats.calc_sky`. The following statistics are supported:
@@ -78,13 +78,13 @@ class SkyStats(object):
         """ Computes statistics on data.
 
         Parameters
-        -----------
+        ----------
         data: numpy.ndarray
             A numpy array of values for which the statistics needs to be
             computed.
 
         Returns
-        --------
+        -------
         statistics: tuple
             A tuple of two values: (``skyvalue``, ``npix``), where ``skyvalue``
             is the statistics specified by the `skystat` parameter during

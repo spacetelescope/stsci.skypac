@@ -14,6 +14,7 @@ dependencies = [
     "stsci.imagestats",
     "stsci.tools",
     "stwcs",
+    "packaging>=19.0",
 ]
 dynamic = [
     "version"
