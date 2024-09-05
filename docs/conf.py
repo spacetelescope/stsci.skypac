@@ -14,46 +14,67 @@
 import os
 import sys
 import datetime
-import importlib
 import sphinx
-import stsci_rtd_theme
-from pkg_resources import get_distribution
-from distutils.version import LooseVersion
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
-conf = ConfigParser()
+from pathlib import Path
+from packaging.version import Version
+
+if sys.version_info < (3, 11):
+    import tomli as tomllib
+else:
+    import tomllib
+
+
+def find_mod_objs_patched(*args, **kwargs):
+    from sphinx_automodapi.utils import find_mod_objs
+
+    return find_mod_objs(args[0], onlylocals=True)
+
+
+def patch_automodapi(app):
+    """Monkey-patch the automodapi extension to exclude imported members"""
+    from sphinx_automodapi import automodsumm
+
+    automodsumm.find_mod_objs = find_mod_objs_patched
+
+
+def setup(app):
+    try:
+        app.add_css_file('css/skypac.css')
+    except AttributeError:
+        app.add_stylesheet('css/skypac.css')
+
+    app.connect("builder-inited", patch_automodapi)
+
+# Get configuration information from pyproject.toml
+with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as configuration_file:
+    conf = tomllib.load(configuration_file)
+metadata = conf["project"]
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../..'))
-sys.path.insert(0, os.path.abspath('../../stsci/skypac'))
-
-# -- General configuration ------------------------------------------------
-conf.read([os.path.join(os.path.dirname(__file__), '../..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+sys.path.insert(0, os.path.abspath('source/'))
+sys.path.insert(0, os.path.abspath('exts/'))
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+
 def check_sphinx_version(expected_version):
-    sphinx_version = LooseVersion(sphinx.__version__)
-    expected_version = LooseVersion(expected_version)
+    sphinx_version = Version(sphinx.__version__)
+    expected_version = Version(expected_version)
     if sphinx_version < expected_version:
         raise RuntimeError(
-            "At least Sphinx version {0} is required to build this "
-            "documentation.  Found {1}.".format(
-                expected_version, sphinx_version))
+            f"At least Sphinx version {expected_version} is required to build this "
+            f"documentation.  Found {sphinx_version}.")
+
 
 # Configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
     'astropy': ('http://docs.astropy.org/en/stable/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
 }
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -63,7 +84,7 @@ intersphinx_mapping = {
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # 'numfig',
+    'numfig',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -72,15 +93,18 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
-    'numpydoc'
+    'numpydoc',
+    'sphinx.ext.napoleon',
+    'sphinx_automodapi.automodapi',
+    'sphinx_automodapi.automodsumm',
+    'sphinx_automodapi.autodoc_enhancements',
+    'sphinx_automodapi.smart_resolver',
 ]
 
 if on_rtd:
     extensions.append('sphinx.ext.mathjax')
-
-elif LooseVersion(sphinx.__version__) < LooseVersion('1.4'):
+elif Version(sphinx.__version__) < Version('1.4'):
     extensions.append('sphinx.ext.pngmath')
-
 else:
     extensions.append('sphinx.ext.imgmath')
 
@@ -101,19 +125,23 @@ master_doc = 'index'
 # thus need to ignore those warning. This can be removed once the patch gets
 # released in upstream Sphinx (https://github.com/sphinx-doc/sphinx/pull/1843).
 # Suppress the warnings requires Sphinx v1.4.2
-suppress_warnings = ['app.add_directive', ]
+# suppress_warnings = ['app.add_directive', ]
 
 
 # General information about the project
-project = setup_cfg['package_name']
-author = setup_cfg['author']
-copyright = u'{0}, {1}'.format(datetime.datetime.now().year, author)
+project = metadata['name']
+author = metadata['authors'][0]['name']
+copyright = f'{datetime.datetime.today().year}, {author }'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # build documents.
-#
-release = get_distribution('stsci.skypac').version
+
+__import__(project)
+package = sys.modules[project]
+
+release = f"{package.__version__:s}"
+version = release
 
 # The language for content autogenerated by Sphinx. Refer to documentation
 # for a list of supported languages.
@@ -126,7 +154,7 @@ language = 'en'
 # today_fmt = '%B %d, %Y'
 
 # List of documents that shouldn't be included in the build.
-#unused_docs = []
+# unused_docs = []
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
@@ -154,7 +182,7 @@ pygments_style = 'sphinx'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['../_build']
+exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -194,17 +222,17 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "collapse_navigation": True
-    }
-#        "nosidebar": "false",
-#        "sidebarbgcolor": "#4db8ff",
-#        "sidebartextcolor": "black",
-#        "sidebarlinkcolor": "black",
-#        "headbgcolor": "white",
-#        }
+    "collapse_navigation": True,
+    # "sticky_navigation": False,
+    # "nosidebar": "false",
+    # "sidebarbgcolor": "#4db8ff",
+    # "sidebartextcolor": "black",
+    # "sidebarlinkcolor": "black",
+    # "headbgcolor": "white",
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
+# html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -221,16 +249,16 @@ html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['../_static']
+html_static_path = ['_static']
 html_context = {
     'css_files': [
-        '../_static/css/custom.css',
+        '_static/css/skypac.css',
     ],
 }
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../_static/stsci_pri_combo_mark_white.png'
+html_logo = '_static/stsci_pri_combo_mark_white.png'
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -302,7 +330,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = '../_static/stsci_pri_combo_mark_white.png'
+latex_logo = '_static/stsci_pri_combo_mark_white.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -340,10 +368,15 @@ man_show_urls = True
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'skypac', u'SkyPac Documentation',
-     u'Mihai Cara, \\and Warren Hack, \\and Pey Lian Lim', 'skypac',
-     'One line description of project.',
-     'Miscellaneous'),
+    (
+        'index',
+        'skypac.tex',
+        u'SkyPac Documentation',
+        author,
+        'index',
+        'One line description of project.',
+        'Miscellaneous'
+    ),
 ]
 
 # Documents to append as an appendix to all manuals.

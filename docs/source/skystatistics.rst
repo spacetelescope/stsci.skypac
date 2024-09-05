@@ -11,3 +11,4 @@ Sky statistics functions for skypac
 
 .. autoclass:: SkyStats
    :members:
+   :no-index: SkyStats
