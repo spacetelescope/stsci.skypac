@@ -43,9 +43,8 @@ test = [
 docs = [
     "numpydoc",
     "graphviz",
-    "sphinx<=1.8.5",
+    "sphinx",
     "sphinx_rtd_theme",
-    "stsci_rtd_theme",
     "sphinx_automodapi",
 ]
 
