@@ -894,7 +894,7 @@ class SkyLine(object):
         if what in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
-            raise AttributeError("'%s' object has no attribute '%s'"
+            raise AttributeError("'%s' object has no attribute '%s'",
                                  (self.__class__.__name__, what))
         else:
             return getattr(self.polygon, what)
