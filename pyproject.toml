@@ -1,19 +1,20 @@
 [project]
 name = "stsci.skypac"
 description = "Sky matching on image mosaic"
-requires-python = ">=3.5"
+requires-python = ">=3.10"
 authors = [
     { name = "Mihai Cara", email = "help@stsci.edu" },
     { name = "Warren Hack" },
     { name = "Pey Lian Lim" },
 ]
 dependencies = [
-    "astropy>=3.1",
+    "astropy>=5.0.4",
     "numpy",
     "spherical_geometry>=1.2.2",
     "stsci.imagestats",
     "stsci.tools",
     "stwcs",
+    "packaging>=19.0",
 ]
 dynamic = [
     "version"
@@ -44,7 +45,6 @@ docs = [
     "graphviz",
     "sphinx",
     "sphinx_rtd_theme",
-    "stsci_rtd_theme",
     "sphinx_automodapi",
 ]
 

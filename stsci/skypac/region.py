@@ -41,7 +41,7 @@ class Region(object):
     Base class for regions.
 
     Parameters
-    -------------
+    ----------
     rid: int or string
         region ID
     coordinate_system: astropy.wcs.CoordinateSystem instance or a string

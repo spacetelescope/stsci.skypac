@@ -54,10 +54,7 @@ from stwcs import wcsutil
 from astropy import wcs as pywcs
 from stwcs.distortion.utils import output_wcs
 from spherical_geometry.polygon import SphericalPolygon
-try:
-    from stsci.tools.bitmask import bitfield_to_boolean_mask
-except ImportError:
-    from stsci.tools.bitmask import bitmask2mask as bitfield_to_boolean_mask
+from astropy.nddata.bitmask import bitfield_to_boolean_mask
 
 # LOCAL
 from .utils import (is_countrate, ext2str, MultiFileLog, ImageRef,
@@ -897,7 +894,7 @@ class SkyLine(object):
         if what in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
-            raise AttributeError("'%s' object has no attribute '%s'"
+            raise AttributeError("'%s' object has no attribute '%s'",
                                  (self.__class__.__name__, what))
         else:
             return getattr(self.polygon, what)
