@@ -42,9 +42,10 @@ class Region(object):
 
     Parameters
     ----------
-    rid: int or string
+    rid: int, str
         region ID
-    coordinate_system: astropy.wcs.CoordinateSystem instance or a string
+    coordinate_system: astropy.wcs.CoordinateSystem, str
+        astropy.wcs.CoordinateSystem instance or a string
         in the context of WCS this would be an instance of wcs.CoordinateSysem
     """
     def __init__(self, rid, coordinate_system):
@@ -75,7 +76,7 @@ class Region(object):
 
         Parameters
         ----------
-        mask: ndarray
+        mask: numpy.ndarray
             a byte array with the shape of the observation to be used as a mask
 
         Returns
@@ -93,7 +94,7 @@ class Polygon(Region):
 
     Parameters
     ----------
-    rid: string
+    rid: str
          polygon id
 
     vertices: list of (x,y) tuples or lists
@@ -102,7 +103,7 @@ class Polygon(Region):
          The last vertex must coincide with the first vertex, minimum
          4 vertices are needed to define a triangle.
 
-    coord_system: string
+    coord_system: str
         coordinate system
 
     """
@@ -198,10 +199,9 @@ class Polygon(Region):
 
         Parameters
         ----------
-        data: array
-            the mask array
-            it has all zeros initially, elements within a region are set to
-            the region's ID
+        data: numpy.ndarray
+            the mask array it has all zeros initially, elements within
+            a region are set to the region's ID
 
         Notes
         -----
@@ -420,18 +420,20 @@ class Edge(object):
         u = self._stop - self._start
         v = edge._stop - edge._start
         w = self._start - edge._start
-        D = np.cross(u, v)
-        if np.allclose(np.cross(u, v), 0, rtol=0,
-                       atol=1e2 * np.finfo(float).eps):
+        D = _cross(u, v)
+        if abs(D) <= 1e2 * np.finfo(float).eps:
             return np.array(self._start)
 
-        return np.cross(v, w) / D * u + self._start
+        return _cross(v, w) / D * u + self._start
 
     def is_parallel(self, edge):
         u = self._stop - self._start
         v = edge._stop - edge._start
-        return np.allclose(np.cross(u, v), 0, rtol=0,
-                           atol=1e2 * np.finfo(float).eps)
+        return abs(_cross(u, v)) <= 1e2 * np.finfo(float).eps
+
+
+def _cross(u, v):
+    return u[0] * v[1] - u[1] * v[0]
 
 
 def _round_vertex(v):
