@@ -885,19 +885,19 @@ class SkyLine(object):
 
         self.members = slm
 
-    def __getattr__(self, what):
+    def __getattr__(self, name):
         """
         Control attribute access to
         `~spherical_geometry.polygon.SphericalPolygon`.
 
         """
-        if what in ('from_radec', 'from_cone', 'from_wcs',
+        if name in ('from_radec', 'from_cone', 'from_wcs',
                     'multi_union', 'multi_intersection',
                     '_find_new_inside',):
-            raise AttributeError("'%s' object has no attribute '%s'",
-                                 (self.__class__.__name__, what))
-        else:
-            return getattr(self.polygon, what)
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
+        return getattr(self.polygon, name)
 
     def __copy__(self):
         return deepcopy(self)

@@ -1,8 +1,5 @@
-include RELIC-INFO
 recursive-include docs *
 global-include *.py *.md *.yml *.txt
 exclude stsci/skypac/version.py
 prune .eggs
-prune .git
-prune relic
-prune stsci/skypac/htmlhelp
+prune .github

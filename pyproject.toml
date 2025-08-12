@@ -7,6 +7,14 @@ authors = [
     { name = "Warren Hack" },
     { name = "Pey Lian Lim" },
 ]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Development Status :: 7 - Inactive",
+]
 dependencies = [
     "astropy>=5.0.4",
     "numpy",
@@ -14,7 +22,7 @@ dependencies = [
     "stsci.imagestats",
     "stsci.tools",
     "stwcs",
-    "packaging>=19.0",
+    "packaging>=21.1",
 ]
 license-files = ["LICENSE.txt"]
 dynamic = [
@@ -47,12 +55,19 @@ docs = [
 
 [build-system]
 requires = [
-    "setuptools>=38.2.5",
-    "setuptools_scm",
+    "setuptools>=61.2",
+    "setuptools_scm[toml]>=3.6",
+    "wheel",
 ]
 
 [tool.setuptools.packages.find]
-include = ['stsci']
+namespaces = true
+where = ["."]
+include = ["stsci", "stsci.skypac"]
+exclude = [
+    "pars*",
+    "stsci.skypac.pars",
+]
 
 [tool.setuptools.package-data]
 "*" = [
@@ -69,14 +84,14 @@ include = ['stsci']
 ]
 "stsci.skypac" = [
     "*.help",
-    "pars/*",
+    "skypac/pars/*",
 ]
 
 [tool.setuptools_scm]
 version_file = "stsci/skypac/version.py"
 
 [tool.pytest.ini_options]
-minversion = "3.0"
+minversion = "4.6"
 addopts = "--ignore=build"
 norecursedirs = [
     "build",
