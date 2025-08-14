@@ -2,8 +2,13 @@ include LICENSE.txt
 include README.md
 include pyproject.toml
 
+prune *.egg*
+prune .github
 prune docs/_build
 prune build
-prune .eggs
+
+exclude  *.egg*
+exclude .gitignore
+exclude .readthedocs.yaml
 
 global-exclude *.pyc *.o
