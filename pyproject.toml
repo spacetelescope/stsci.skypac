@@ -60,43 +60,27 @@ requires = [
     "wheel",
 ]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 namespaces = true
-where = ["."]
 include = ["stsci", "stsci.skypac"]
-exclude = [
-    "pars*",
-    "stsci.skypac.pars",
-]
 
 [tool.setuptools.package-data]
-"*" = [
-    "README.rst",
-    "LICENSE.txt",
-    "CHANGELOG.rst",
-    "*.fits",
-    "*.txt",
-    "*.inc",
-    "*.cfg",
-    "*.csv",
-    "*.yaml",
-    "*.json",
-]
 "stsci.skypac" = [
-    "*.help",
-    "skypac/pars/*",
+    "pars/skymatch.cfg*",
 ]
 
 [tool.setuptools_scm]
 version_file = "stsci/skypac/version.py"
 
 [tool.pytest.ini_options]
-minversion = "4.6"
+minversion = "8.0"
 addopts = "--ignore=build"
 norecursedirs = [
     "build",
     "docs/_build",
-    "relic",
 ]
 doctest_plus = "enabled"
 doctest_optionflags = [
