@@ -1,5 +1,9 @@
-recursive-include docs *
-global-include *.py *.md *.yml *.txt
-exclude stsci/skypac/version.py
+include LICENSE.txt
+include README.md
+include pyproject.toml
+
+prune docs/_build
+prune build
 prune .eggs
-prune .github
+
+global-exclude *.pyc *.o
