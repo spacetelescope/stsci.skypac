@@ -65,10 +65,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 namespaces = true
-include = ["stsci", "stsci.skypac"]
+include = ["stsci", "stsci.skypac", "stsci.skypac.pars"]
 
 [tool.setuptools.package-data]
 "stsci.skypac" = [
+    "skymatch.help",
     "pars/skymatch.cfg*",
 ]
 
