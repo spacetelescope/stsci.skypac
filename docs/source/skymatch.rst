@@ -2,11 +2,7 @@
 Sky matching for image mosaic
 =============================
 
-.. moduleauthor:: Mihai Cara <help@stsci.edu>
-
-.. moduleauthor:: Pey-Lian Lim <help@stsci.edu>
-
-.. moduleauthor:: Warren Hack <help@stsci.edu>
+.. moduleauthor:: Mihai Cara, Pey Lian Lim, Warren Hack
 
 .. currentmodule:: stsci.skypac.skymatch
 
