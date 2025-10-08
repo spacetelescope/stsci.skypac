@@ -2,7 +2,7 @@
 Pixel Area Map (PAM) utilities
 ==============================
 
-.. moduleauthor:: Mihai Cara <help@stsci.edu>
+.. moduleauthor:: Mihai Cara
 
 .. currentmodule:: stsci.skypac.pamutils
 
