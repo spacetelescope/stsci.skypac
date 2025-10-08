@@ -3,7 +3,7 @@ name = "stsci.skypac"
 description = "Sky matching on image mosaic"
 requires-python = ">=3.10"
 authors = [
-    { name = "Mihai Cara", email = "help@stsci.edu" },
+    { name = "Mihai Cara" },
     { name = "Warren Hack" },
     { name = "Pey Lian Lim" },
 ]
