@@ -2,7 +2,7 @@
 Utility functions for parsing user catalog files for skypac
 ===========================================================
 
-.. moduleauthor:: Mihai Cara <help@stsci.edu>
+.. moduleauthor:: Mihai Cara
 
 .. currentmodule:: stsci.skypac.parseat
 

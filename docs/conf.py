@@ -132,7 +132,7 @@ master_doc = "index"
 
 # General information about the project
 project = metadata["name"]
-author = f"{metadata['authors'][0]['name']} <{metadata['authors'][0]['email']}>"
+author = metadata['authors'][0]['name']
 copyright = f"{datetime.datetime.now().year}, {author}"
 
 # The version info for the project you're documenting, acts as replacement for
