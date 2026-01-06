@@ -41,7 +41,7 @@ Help = "https://hsthelp.stsci.edu/"
 
 [project.optional-dependencies]
 test = [
-    "pytest",
+    "pytest>=9.0",
     "pytest-cov",
     "pytest-doctestplus",
 ]
@@ -76,9 +76,9 @@ include = ["stsci", "stsci.skypac", "stsci.skypac.pars"]
 [tool.setuptools_scm]
 version_file = "stsci/skypac/version.py"
 
-[tool.pytest.ini_options]
-minversion = "8.0"
-addopts = "--ignore=build"
+[tool.pytest]
+minversion = "9.0"
+addopts = ["--ignore=build"]
 norecursedirs = [
     "build",
     "docs/_build",
