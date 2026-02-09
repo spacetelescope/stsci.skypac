@@ -6,7 +6,7 @@
 __pycache__
 
 # Other generated files
-stsci/skypac/version.py
+src/stsci/skypac/version.py
 */cython_version.py
 htmlcov
 .coverage

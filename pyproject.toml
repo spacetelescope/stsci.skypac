@@ -64,8 +64,9 @@ requires = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
+where = ["src/"]
 namespaces = true
-include = ["stsci", "stsci.skypac", "stsci.skypac.pars"]
+include = ["stsci.skypac"]
 
 [tool.setuptools.package-data]
 "stsci.skypac" = [
@@ -74,7 +75,7 @@ include = ["stsci", "stsci.skypac", "stsci.skypac.pars"]
 ]
 
 [tool.setuptools_scm]
-version_file = "stsci/skypac/version.py"
+version_file = "src/stsci/skypac/version.py"
 
 [tool.pytest]
 minversion = "9.0"
