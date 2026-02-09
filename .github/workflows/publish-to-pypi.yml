@@ -3,6 +3,9 @@ name: build
 on:
   release:
     types: [ released ]
+  push:
+    branches:
+      - 'main'
   pull_request:
   workflow_dispatch:
 
