@@ -1,0 +1,95 @@
+name: tests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  PYTHON_VERSIONS: 3.9 3.10 3.11 3.12 3.13 3.14
+
+jobs:
+  supported-pythons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3"
+      - run: pip install packaging tomli
+      - name: convert Python version(s) into JSON list
+        id: versions
+        shell: python
+        run: |
+          import os
+          import json
+
+          import tomli
+          from packaging.specifiers import SpecifierSet
+          from packaging.version import Version
+
+          with open("pyproject.toml", "rb") as pyproject_toml_file:
+            version_requirements = SpecifierSet(tomli.load(pyproject_toml_file)["project"]["requires-python"])
+
+          versions = [str(version) for version in sorted([Version(version) for version in os.environ["PYTHON_VERSIONS"].split() if version in version_requirements])]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as github_output:
+              print(f"json={json.dumps(versions)}", file=github_output)
+              print(f"oldest={versions[0]}", file=github_output)
+              print(f"latest={versions[-1]}", file=github_output)
+    outputs:
+      python-version-json: ${{ steps.versions.outputs.json }}
+      oldest: ${{ steps.versions.outputs.oldest }}
+      latest: ${{ steps.versions.outputs.latest }}
+  test:
+    needs:
+      - supported-pythons
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: ["ubuntu-latest"]
+        python-version: ${{ fromJSON(needs.supported-pythons.outputs.python-version-json) }}
+        coverage: [false]
+        include:
+          - name: run tests (oldest supported Python, ubuntu-latest)
+            runs-on: "ubuntu-latest"
+            python-version: "${{ needs.supported-pythons.outputs.oldest }}"
+          - name: run tests with coverage (latest supported Python, ubuntu-latest)
+            runs-on: "ubuntu-latest"
+            python-version: "${{ needs.supported-pythons.outputs.latest }}"
+            coverage: true
+          - name: run tests (latest supported Python, macos-latest)
+            runs-on: "macos-latest"
+            python-version: "${{ needs.supported-pythons.outputs.latest }}"
+    name: ${{ matrix.name || format('run tests (Python {0}, {1})', matrix.python-version, matrix.runs-on) }}
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install ".[test]" ${{ matrix.coverage && 'coverage pytest-cov' || '' }}
+      - run: pytest ${{ matrix.coverage && '--cov' || '' }}
+      - if: matrix.coverage
+        name: report coverage to summary
+        run: |
+          coverage combine
+          echo '## Coverage Report' >> $GITHUB_STEP_SUMMARY
+          coverage report -i -m --format=markdown | tee -a $GITHUB_STEP_SUMMARY
