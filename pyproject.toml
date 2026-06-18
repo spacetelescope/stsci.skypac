@@ -1,64 +1,113 @@
 [project]
 name = "stsci.skypac"
 description = "Sky matching on image mosaic"
+readme = "README.md"
 requires-python = ">=3.10"
+license-files = ["LICENSE.txt"]
 authors = [
-    { name = "Mihai Cara" },
-    { name = "Warren Hack" },
-    { name = "Pey Lian Lim" },
+  { name = "Mihai Cara" },
+  { name = "Warren Hack" },
+  { name = "Pey Lian Lim" },
 ]
 classifiers = [
-    "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Astronomy",
-    "Topic :: Scientific/Engineering :: Physics",
-    "Development Status :: 7 - Inactive",
+  "Development Status :: 7 - Inactive",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "astropy>=5.0.4",
-    "numpy",
-    "spherical_geometry>=1.2.2",
-    "stsci.imagestats",
-    "stsci.tools",
-    "stwcs",
-    "packaging>=21.1",
+  "astropy>=5.0.4",
+  "numpy",
+  "packaging>=21.1",
+  "spherical_geometry>=1.2.2",
+  "stsci.imagestats",
+  "stsci.tools",
+  "stwcs",
 ]
-license-files = ["LICENSE.txt"]
-dynamic = [
-    "version"
-]
-
-[project.readme]
-file = "README.md"
-content-type = "text/markdown"
+dynamic = ["version"]
 
 [project.urls]
+documentation = "https://stsci-skypac.readthedocs.io"
 repository = "https://github.com/spacetelescope/stsci.skypac"
-"Bug Reports" = "https://github.com/spacetelescope/stsci.skypac/issues/"
-Source = "https://github.com/spacetelescope/stsci.skypac/"
-Help = "https://hsthelp.stsci.edu/"
 
 [project.optional-dependencies]
-test = [
-    "pytest>=9.0",
-    "pytest-cov",
-    "pytest-doctestplus",
-]
+contrib = ["ruff"]
 docs = [
-    "numpydoc",
-    "graphviz",
-    "sphinx",
-    "sphinx_rtd_theme",
-    "sphinx_automodapi",
+  "numpydoc",
+  "pytest_doctestplus",
+  "sphinx",
+  "sphinx-autoapi",
+  "sphinx-rtd-theme",
+  "towncrier"
 ]
+test = ["pytest>=9", "pytest_doctestplus", "coverage"]
 
 [build-system]
 requires = [
-    "setuptools>=61.2",
-    "setuptools_scm[toml]>=3.6",
-    "wheel",
+  "setuptools>=61.2",
+  "setuptools_scm[toml]",
 ]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+build = "py3*"
+
+[tool.cibuildwheel.macos]
+archs = ["arm64", "x86_64"]
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = ["src/", "tests/"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 50
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if typing.TYPE_CHECKING:",
+  "@overload",
+  "@typing.overload",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+  "raise NotImplementedError",
+  "\\.\\.\\.",
+]
+
+[tool.cruft]
+skip = ["**/__init__.py", "tests/*"]
+
+[tool.numpydoc_validation]
+checks = [
+  "all",
+  "EX01",  # No examples section found
+  "SA01",  # See Also section not found
+  "ES01",  # No extended summary found
+  "GL08",  # Object does not have a docstring. Ruff catches these, and allows more granular ignores.
+  "PR01",  # Parameters not documented. Already caught by ruff.
+  "PR09",  # Parameter description should finish with a period
+  "RT02",  # First line of return should contain only the type
+  "RT05",  # Return value description should finish with a period
+]
+
+[tool.pytest]
+addopts = ["--ignore=build"]
+doctest_optionflags = [
+  "ELLIPSIS",
+  "FLOAT_CMP",
+  "NORMALIZE_WHITESPACE",
+]
+junit_family = "xunit2"
+minversion = "9.0"
+norecursedirs = [
+  "build",
+  "docs/_build",
+  "docs/exts",
+]
+doctest_plus = "enabled"
 
 [tool.setuptools]
 include-package-data = true
@@ -70,24 +119,9 @@ include = ["stsci.skypac"]
 
 [tool.setuptools.package-data]
 "stsci.skypac" = [
-    "skymatch.help",
-    "pars/skymatch.cfg*",
+  "skymatch.help",
+  "pars/skymatch.cfg*",
 ]
 
 [tool.setuptools_scm]
 version_file = "src/stsci/skypac/version.py"
-
-[tool.pytest]
-minversion = "9.0"
-addopts = ["--ignore=build"]
-norecursedirs = [
-    "build",
-    "docs/_build",
-]
-doctest_plus = "enabled"
-doctest_optionflags = [
-    "NORMALIZE_WHITESPACE",
-    "ELLIPSIS",
-    "FLOAT_CMP",
-]
-junit_family = "xunit2"
