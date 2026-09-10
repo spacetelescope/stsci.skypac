@@ -41,6 +41,7 @@ Help = "https://hsthelp.stsci.edu/"
 
 [project.optional-dependencies]
 test = [
+    "coverage",
     "pytest>=9.0",
     "pytest-cov",
     "pytest-doctestplus",
