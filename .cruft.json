@@ -1,0 +1,24 @@
+{
+  "template": "https://github.com/spacetelescope/stsci-package-template",
+  "commit": "e39d792fcecff3e33472643051db0dd5cdd2b156",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "stsci.skypac",
+      "package_name": "stsci.skypac",
+      "repository_url": "https://github.com/spacetelescope/stsci.skypac",
+      "git_username": "spacetelescope/stsci.skypac-maintainers",
+      "project_description": "Sky matching on image mosaic",
+      "manage_changelog_with_towncrier": true,
+      "publish_docs_to": "readthedocs.io",
+      "task_runner": "tox",
+      "python_version": ">=3.10",
+      "python_c_extensions": false,
+      "python_build_backend": "setuptools",
+      "crds_observatory": "hst",
+      "_template": "https://github.com/spacetelescope/stsci-package-template",
+      "_commit": "e39d792fcecff3e33472643051db0dd5cdd2b156"
+    }
+  },
+  "directory": "python-package"
+}
