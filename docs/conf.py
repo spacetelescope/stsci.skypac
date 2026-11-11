@@ -260,7 +260,7 @@ html_context = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/stsci_pri_combo_mark_white.png"
+html_logo = "https://github.com/spacetelescope/branding/blob/81b7021231e885bda9c022e6c082b3cf26009b3b/stsci_sec_combo_mark_horizonal_dark_bkgd.svg?raw=true"
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -331,7 +331,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = "_static/stsci_pri_combo_mark_white.png"
+latex_logo = "_static/stsci_pri_combo_mark_dark_bkgd.png"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
