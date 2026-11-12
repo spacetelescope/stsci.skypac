@@ -1,3 +1,7 @@
+<a href="https://stsci.edu">
+  <img src="docs/_static/stsci_pri_combo_mark_horizonal_white_bkgd.png" alt="Space Telescope Science Institute" width="83%" style="margin-left: auto;"/>
+</a>
+
 # stsci.skypac
 
 [![Documentation Status](https://readthedocs.org/projects/stsci-skypac/badge/?version=latest)](http://stsci-skypac.readthedocs.io/en/latest/?badge=latest)
